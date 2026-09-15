@@ -1,0 +1,3002 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build an Empire</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eef2f8; color: #1a2233;
+  }
+
+  /* ============ LOADING SCREEN ============ */
+  #loader {
+    position: fixed; inset: 0; z-index: 9999;
+    background: radial-gradient(ellipse at 50% 40%, #ffffff 0%, #dbe6f5 60%, #c3d4ec 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s;
+    overflow: hidden;
+  }
+  #loader.hidden { opacity: 0; visibility: hidden; }
+
+  .loader-bg-circle {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, rgba(120,160,220,0.22), transparent 70%);
+    animation: floatCircle 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes floatCircle {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(20px,-30px) scale(1.12); }
+  }
+
+  .loader-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .particle {
+    position: absolute; border-radius: 50%;
+    background: rgba(90,130,200,0.4);
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) scale(0.6); opacity: 0; }
+    20% { opacity: 0.9; }
+    100% { transform: translateY(-120vh) scale(1.2); opacity: 0; }
+  }
+
+  .loader-emblem {
+    position: relative; width: 110px; height: 110px; margin-bottom: 22px;
+    animation: emblemIn 1s cubic-bezier(0.2,0.9,0.3,1.2);
+  }
+  @keyframes emblemIn {
+    0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .loader-emblem svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 24px rgba(60,110,190,0.35)); }
+  .loader-emblem .ring {
+    transform-origin: 55px 55px;
+    animation: spinRing 12s linear infinite;
+  }
+  @keyframes spinRing { to { transform: rotate(360deg); } }
+
+  .loader-title {
+    position: relative; font-size: 62px; font-weight: 900;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: #1e355e;
+    text-align: center; line-height: 1.05;
+    animation: titleIn 1s cubic-bezier(0.2,0.9,0.3,1.2) 0.2s both;
+  }
+  .loader-title .accent {
+    background: linear-gradient(90deg, #2f6fd0, #5b9bf5, #2f6fd0);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shineText 3s linear infinite;
+  }
+  @keyframes shineText { to { background-position: 200% 50%; } }
+  @keyframes titleIn {
+    0% { transform: translateY(30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .loader-sub {
+    margin-top: 12px; font-size: 14px; letter-spacing: 6px;
+    color: #6b7d99; text-transform: uppercase; font-weight: 600;
+    animation: fadeIn 1.4s ease-out 0.5s both;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .loader-bar-wrap {
+    position: relative; margin-top: 44px;
+    width: min(580px, 82vw); height: 12px;
+    background: #d3dded;
+    border-radius: 20px; overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(40,70,120,0.18);
+    animation: fadeIn 1s ease 0.7s both;
+  }
+  .loader-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #2f6fd0, #6aa9f5, #9cc8ff, #6aa9f5, #2f6fd0);
+    background-size: 200% 100%;
+    border-radius: 20px;
+    animation: shineBar 1.8s linear infinite;
+    transition: width 0.35s ease;
+    box-shadow: 0 0 14px rgba(70,130,220,0.6);
+  }
+  @keyframes shineBar { to { background-position: 200% 50%; } }
+
+  .loader-status {
+    margin-top: 16px; font-size: 13px; color: #5c7099;
+    letter-spacing: 0.5px; height: 20px;
+    display: flex; align-items: center; gap: 8px;
+    animation: fadeIn 1s ease 0.9s both;
+  }
+  .loader-status .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #2f6fd0; box-shadow: 0 0 8px #2f6fd0;
+    animation: blink 1s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+  .loader-percent {
+    margin-top: 6px; font-size: 12px; font-weight: 800;
+    color: #2f6fd0; letter-spacing: 2px;
+    animation: fadeIn 1s ease 0.9s both;
+  }
+
+  .loader-tips {
+    position: absolute; bottom: 44px; left: 0; right: 0;
+    text-align: center; font-size: 12px; color: #7b8dab;
+    letter-spacing: 0.5px; animation: fadeIn 1.5s ease 1.2s both;
+  }
+  .loader-tips .tip { transition: opacity 0.5s; }
+
+  /* ============ GAME ============ */
+  #game { position: fixed; inset: 0; display: none; }
+  #game.visible { display: block; }
+
+  #map {
+    position: absolute; inset: 0; overflow: hidden;
+    cursor: grab;
+    background: #cfe3b8;
+  }
+  #map.dragging { cursor: grabbing; }
+  #map.placing { cursor: crosshair; }
+  #map.selling { cursor: not-allowed; }
+
+  #world {
+    position: absolute; top: 0; left: 0;
+    transform-origin: 0 0;
+    width: 6000px; height: 6000px;
+  }
+  #grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(60,100,60,0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(60,100,60,0.10) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .terrain-patch {
+    position: absolute; border-radius: 50%;
+    pointer-events: none;
+  }
+  .tree-deco, .rock-deco {
+    position: absolute; pointer-events: none;
+  }
+
+  /* Buildings */
+  .building {
+    position: absolute; transform-origin: center bottom;
+    display: flex; align-items: flex-end; justify-content: center;
+    cursor: pointer; transition: filter 0.2s;
+  }
+  .building:hover { filter: brightness(1.12); }
+  .building.selected { filter: brightness(1.18) drop-shadow(0 0 10px #2f6fd0); }
+  .building svg { width: 100%; height: 100%; display: block; }
+  .building.under-construction { opacity: 0.7; }
+
+  /* Baustelle */
+  .construction-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 6;
+  }
+  .construction-overlay svg { width: 100%; height: 100%; }
+  .progress-badge {
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.97); border: 1px solid #2f6fd0;
+    color: #2f6fd0; font-size: 10px; font-weight: 800;
+    padding: 2px 7px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(40,70,120,0.2);
+    white-space: nowrap;
+  }
+  .progress-bar-bg {
+    position: absolute; bottom: -12px; left: 10%; width: 80%; height: 5px;
+    background: rgba(255,255,255,0.7); border-radius: 4px; overflow: hidden;
+    border: 1px solid #bcd0ec;
+  }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, #2f6fd0, #6aa9f5);
+    transition: width 0.3s linear;
+  }
+
+  /* Bauarbeiter */
+  .builder {
+    position: absolute; width: 20px; height: 26px;
+    pointer-events: none; z-index: 8;
+    animation: builderBob 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes builderBob {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-2px); }
+  }
+  .builder svg { width: 100%; height: 100%; display: block; }
+  .builder .hammer {
+    transform-origin: 60% 80%;
+    animation: hammerSwing 0.6s ease-in-out infinite;
+  }
+  @keyframes hammerSwing {
+    0%, 100% { transform: rotate(-25deg); }
+    50% { transform: rotate(30deg); }
+  }
+
+  .worker {
+    position: absolute; width: 18px; height: 24px;
+    pointer-events: none; transition: transform 0.1s linear;
+    z-index: 5;
+  }
+
+  .float-text {
+    position: absolute; font-weight: 800; font-size: 15px;
+    pointer-events: none; z-index: 60; white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.9), 0 2px 6px rgba(0,0,0,0.25);
+    animation: floatUp 1.4s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-55px); opacity: 0; }
+  }
+
+  /* ============ TOP BAR ============ */
+  #topbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 58px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid #d3dded;
+    display: flex; align-items: center; padding: 0 16px; gap: 18px;
+    z-index: 50; box-shadow: 0 2px 14px rgba(40,70,120,0.10);
+  }
+  .logo-small {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16px; font-weight: 900; letter-spacing: 0.5px;
+    color: #1e355e; white-space: nowrap;
+  }
+  .logo-small svg { width: 26px; height: 26px; }
+  .logo-small .txt-accent {
+    background: linear-gradient(90deg,#2f6fd0,#5b9bf5);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .res-group { display: flex; gap: 8px; flex: 1; overflow-x: auto; padding: 4px 0; }
+  .res-group::-webkit-scrollbar { height: 5px; }
+  .res-group::-webkit-scrollbar-thumb { background: #c3d4ec; border-radius: 3px; }
+  .res {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 700; white-space: nowrap;
+    background: #f2f6fc; padding: 6px 11px; border-radius: 9px;
+    border: 1px solid #e0e8f4; color: #26344e;
+    transition: all 0.2s;
+  }
+  .res:hover { background: #e8f0fc; border-color: #bcd0ec; }
+  .res svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .res .val { color: #1e355e; }
+
+  /* ============ RIGHT PANEL ============ */
+  #rightPanel {
+    position: absolute; top: 58px; right: 0; bottom: 0; width: 330px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(14px);
+    border-left: 1px solid #d3dded;
+    z-index: 40; display: flex; flex-direction: column;
+    box-shadow: -4px 0 20px rgba(40,70,120,0.08);
+  }
+  .panel-head {
+    padding: 12px 16px; font-size: 11.5px; letter-spacing: 1.8px;
+    text-transform: uppercase; color: #2f6fd0; font-weight: 800;
+    border-bottom: 1px solid #e0e8f4;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-head .count {
+    background: #e6efff; color: #2f6fd0;
+    padding: 2px 8px; border-radius: 10px; font-size: 11px;
+  }
+  .panel-tabs {
+    display: flex; gap: 4px; padding: 8px 10px 0; flex-wrap: wrap;
+  }
+  .tab-btn {
+    flex: 1; min-width: 60px; padding: 7px 6px; font-size: 11px; font-weight: 700;
+    background: transparent; border: none; cursor: pointer;
+    border-radius: 7px 7px 0 0; color: #6b7d99;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { background: #eef4fd; color: #2f6fd0; }
+  .tab-btn.active { background: #e6efff; color: #2f6fd0; }
+  #buildingList { flex: 1; overflow-y: auto; padding: 10px; }
+  #buildingList::-webkit-scrollbar { width: 8px; }
+  #buildingList::-webkit-scrollbar-thumb { background: #c3d4ec; border-radius: 4px; }
+
+  .bcard {
+    display: flex; gap: 10px; padding: 10px;
+    background: #f7faff;
+    border: 1px solid #e0e8f4;
+    border-radius: 10px; margin-bottom: 7px;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .bcard:hover { background: #eaf2ff; border-color: #a8c8f0; transform: translateX(-3px); box-shadow: 0 3px 12px rgba(47,111,208,0.12); }
+  .bcard.locked { opacity: 0.45; cursor: not-allowed; }
+  .bcard.locked:hover { transform: none; background: #f7faff; border-color: #e0e8f4; box-shadow: none; }
+  .bcard.active { background: #dbeafe; border-color: #2f6fd0; box-shadow: 0 0 0 2px rgba(47,111,208,0.2); }
+  .bcard .icon {
+    width: 48px; height: 48px; border-radius: 9px;
+    background: #eaf2ff; display: flex;
+    align-items: center; justify-content: center;
+    flex-shrink: 0; border: 1px solid #d5e2f5;
+  }
+  .bcard .icon svg { width: 30px; height: 30px; }
+  .bcard .info { flex: 1; min-width: 0; }
+  .bcard .name { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: #1e355e; }
+  .bcard .name .lock { color: #c9532f; font-size: 10px; font-weight: 700; margin-left: 4px; }
+  .bcard .desc { font-size: 11px; color: #6b7d99; line-height: 1.3; }
+  .bcard .cost { font-size: 11px; color: #2f6fd0; margin-top: 4px; font-weight: 800; }
+  .bcard .cost .time { color: #8d6e63; font-weight: 700; }
+
+  /* ============ DETAIL PANEL (rechts oben fixiert) ============ */
+  #detailPanel {
+    position: absolute; top: 74px; right: 346px; z-index: 60;
+    width: 290px; max-height: calc(100vh - 150px);
+    background: #ffffff;
+    border: 1px solid #bcd0ec;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(40,70,120,0.25);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: detailIn 0.25s cubic-bezier(0.2,0.9,0.3,1.2);
+  }
+  #detailPanel.show { display: flex; }
+  @keyframes detailIn {
+    0% { transform: translateX(20px) scale(0.96); opacity: 0; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+  .dp-head {
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #eaf2ff, #f7faff);
+    border-bottom: 1px solid #d5e2f5;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dp-head .dp-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: #fff; display: flex; align-items: center; justify-content: center;
+    border: 1px solid #d5e2f5; flex-shrink: 0;
+  }
+  .dp-head .dp-icon svg { width: 28px; height: 28px; }
+  .dp-head .dp-titles { flex: 1; min-width: 0; }
+  .dp-head .dp-name { font-size: 14px; font-weight: 800; color: #1e355e; }
+  .dp-head .dp-level { font-size: 11px; color: #6b7d99; font-weight: 700; margin-top: 2px; }
+  .dp-close {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 20px; color: #8fa3c8; line-height: 1;
+    padding: 2px 4px; border-radius: 6px;
+  }
+  .dp-close:hover { background: #e0e8f4; color: #c9532f; }
+
+  .dp-body { padding: 12px 14px; overflow-y: auto; flex: 1; }
+  .dp-body::-webkit-scrollbar { width: 6px; }
+  .dp-body::-webkit-scrollbar-thumb { background: #c3d4ec; border-radius: 3px; }
+  .dp-desc { font-size: 12px; color: #4a5c78; line-height: 1.5; margin-bottom: 10px; }
+  .dp-stat {
+    display: flex; justify-content: space-between; padding: 5px 0;
+    border-bottom: 1px dashed #e0e8f4; font-size: 12px;
+  }
+  .dp-stat .k { color: #6b7d99; }
+  .dp-stat .v { color: #1e355e; font-weight: 700; }
+  .dp-stat .v.good { color: #2e7d32; }
+  .dp-upgrade-box {
+    margin-top: 12px; padding: 10px; border-radius: 10px;
+    background: #f7faff; border: 1px solid #e0e8f4;
+  }
+  .dp-upgrade-box .dp-up-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: #2f6fd0; font-weight: 800; margin-bottom: 8px;
+  }
+  .dp-up-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px; padding: 3px 0; color: #4a5c78;
+  }
+  .dp-up-row .v { font-weight: 700; color: #1e355e; }
+  .dp-up-row .v.cost { color: #2f6fd0; }
+  .dp-up-row .v.time { color: #8d6e63; }
+  .dp-preview {
+    display: flex; gap: 8px; align-items: center; justify-content: center;
+    margin: 10px 0 4px;
+  }
+  .dp-preview .prev {
+    width: 68px; height: 68px; display: flex; align-items: center; justify-content: center;
+    background: #fff; border-radius: 10px; border: 1px solid #e0e8f4;
+  }
+  .dp-preview .prev svg { width: 100%; height: 100%; }
+  .dp-preview .prev.future { border-color: #2f6fd0; box-shadow: 0 0 0 2px rgba(47,111,208,0.15); }
+  .dp-preview .arrow { color: #2f6fd0; font-size: 18px; font-weight: 900; }
+  .dp-actions { padding: 12px 14px; border-top: 1px solid #e0e8f4; display: flex; gap: 8px; }
+  .dp-actions .btn { flex: 1; justify-content: center; }
+
+  /* Baufortschritt im Detail-Panel */
+  .dp-progress-box {
+    margin-top: 10px; padding: 10px; border-radius: 10px;
+    background: #fff8e1; border: 1px solid #ffe082;
+  }
+  .dp-progress-box .lbl { font-size: 11px; color: #8d6e63; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .dp-progress-bar { height: 8px; background: #fff; border-radius: 4px; overflow: hidden; border: 1px solid #ffe082; }
+  .dp-progress-fill { height: 100%; background: linear-gradient(90deg, #ffb300, #ffd54f); transition: width 0.4s linear; }
+  .dp-progress-time { font-size: 11px; color: #8d6e63; margin-top: 5px; text-align: right; font-weight: 700; }
+
+  /* ============ BOTTOM BAR ============ */
+  #bottombar {
+    position: absolute; bottom: 0; left: 0; right: 330px; height: 52px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid #d3dded;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px;
+    z-index: 45;
+  }
+  .btn {
+    background: #f2f6fc;
+    border: 1px solid #d3dded;
+    color: #26344e; padding: 7px 13px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { background: #e6efff; border-color: #a8c8f0; color: #2f6fd0; }
+  .btn:active { transform: scale(0.96); }
+  .btn.active { background: #2f6fd0; border-color: #2f6fd0; color: #fff; }
+  .btn svg { width: 14px; height: 14px; }
+  .spacer { flex: 1; }
+  .hint { font-size: 11px; color: #7b8dab; white-space: nowrap; }
+
+  /* Platzierungs-Banner */
+  #placeBanner {
+    position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
+    z-index: 70; background: #ffffff;
+    border: 1px solid #2f6fd0; border-radius: 12px;
+    padding: 10px 18px; box-shadow: 0 8px 24px rgba(40,70,120,0.2);
+    display: none; align-items: center; gap: 14px;
+    animation: detailIn 0.3s cubic-bezier(0.2,0.9,0.3,1.2);
+  }
+  #placeBanner.show { display: flex; }
+  #placeBanner .pb-icon { width: 34px; height: 34px; }
+  #placeBanner .pb-icon svg { width: 100%; height: 100%; }
+  #placeBanner .pb-text { font-size: 13px; font-weight: 700; color: #1e355e; }
+  #placeBanner .pb-text small { display: block; font-size: 11px; color: #6b7d99; font-weight: 500; margin-top: 2px; }
+  #placeBanner .pb-key {
+    background: #e6efff; color: #2f6fd0; padding: 3px 8px; border-radius: 6px;
+    font-size: 11px; font-weight: 800; border: 1px solid #bcd0ec;
+    font-family: monospace;
+  }
+  #placeBanner .pb-cancel {
+    background: #ffeaea; color: #c9532f; padding: 5px 10px;
+    border-radius: 7px; font-size: 11px; font-weight: 800;
+    border: 1px solid #f2b8b8; cursor: pointer;
+  }
+  #placeBanner .pb-cancel:hover { background: #ffd5d5; }
+
+  /* ============ TOOLTIP ============ */
+  #tooltip {
+    position: absolute; z-index: 80; pointer-events: none;
+    background: #ffffff; border: 1px solid #bcd0ec;
+    border-radius: 10px; padding: 10px 13px; font-size: 12px;
+    box-shadow: 0 8px 30px rgba(40,70,120,0.22); display: none;
+    max-width: 250px; color: #26344e;
+  }
+  #tooltip .t-title { font-weight: 800; color: #1e355e; margin-bottom: 4px; font-size: 13px; }
+  #tooltip .t-row { color: #4a5c78; margin: 2px 0; }
+
+  #placeGhost {
+    position: absolute; pointer-events: none; z-index: 30;
+    opacity: 0.55; border: 2px dashed #2f6fd0; border-radius: 8px;
+    display: none; background: rgba(47,111,208,0.12);
+  }
+  #placeGhost.invalid { border-color: #e53935; background: rgba(229,57,53,0.12); }
+
+  /* Modal (für Reset-Bestätigung) */
+  #modal {
+    position: absolute; inset: 0; z-index: 100;
+    background: rgba(30,53,94,0.35); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+  }
+  #modal.show { display: flex; }
+  .modal-box {
+    background: #ffffff; border: 1px solid #d3dded;
+    border-radius: 16px; padding: 24px 26px; width: min(420px, 90vw);
+    box-shadow: 0 20px 70px rgba(40,70,120,0.3);
+    animation: popIn 0.25s ease; color: #26344e;
+  }
+  @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-box h3 { color: #1e355e; margin-bottom: 10px; font-size: 19px; }
+  .modal-box p { font-size: 13px; color: #4a5c78; margin: 6px 0; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions .btn { flex: 1; padding: 10px; justify-content: center; }
+  .btn-primary { background: #2f6fd0; border-color: #2f6fd0; color: #fff; }
+  .btn-primary:hover { background: #2559ab; border-color: #2559ab; color: #fff; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #notify {
+    position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
+    z-index: 90; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; pointer-events: none;
+  }
+  .note {
+    background: #ffffff; border: 1px solid #a8c8f0;
+    color: #2f6fd0; padding: 9px 18px; border-radius: 10px;
+    font-size: 13px; font-weight: 700; box-shadow: 0 8px 24px rgba(40,70,120,0.2);
+    animation: noteIn 0.3s ease, noteOut 0.4s ease 1.8s forwards;
+  }
+  .note.bad { border-color: #f2b8b8; color: #c9532f; }
+  .note.good { border-color: #a8e0b0; color: #2e7d32; }
+  @keyframes noteIn { from { transform: translateY(-14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes noteOut { to { transform: translateY(-14px); opacity: 0; } }
+
+  /* Offline-Banner */
+  #offlineBanner {
+    position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
+    z-index: 95; background: linear-gradient(135deg, #fff8e1, #ffffff);
+    border: 2px solid #ffb300; border-radius: 14px;
+    padding: 14px 22px; box-shadow: 0 12px 40px rgba(200,140,20,0.3);
+    display: none; align-items: center; gap: 14px;
+    animation: detailIn 0.35s cubic-bezier(0.2,0.9,0.3,1.2);
+  }
+  #offlineBanner.show { display: flex; }
+  #offlineBanner .ob-icon { font-size: 30px; }
+  #offlineBanner .ob-text { font-size: 13px; color: #1e355e; font-weight: 700; }
+  #offlineBanner .ob-text small { display: block; font-size: 11px; color: #8d6e63; font-weight: 500; margin-top: 3px; }
+  #offlineBanner .ob-close {
+    background: #ffb300; color: #fff; border: none;
+    padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 12px;
+    cursor: pointer;
+  }
+  #offlineBanner .ob-close:hover { background: #e59e00; }
+
+  /* Minimap */
+  #minimap {
+    position: absolute; bottom: 62px; right: 342px;
+    width: 190px; height: 190px; z-index: 44;
+    background: #ffffff; border: 1px solid #d3dded;
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 6px 20px rgba(40,70,120,0.15);
+  }
+  #minimap .mm-inner { position: relative; width: 100%; height: 100%; background: #cfe3b8; }
+  #minimap .mm-dot { position: absolute; border-radius: 50%; }
+  #minimap .mm-view {
+    position: absolute; border: 1.5px solid #2f6fd0;
+    background: rgba(47,111,208,0.12); pointer-events: none;
+  }
+  #minimap .mm-title {
+    position: absolute; top: 4px; left: 6px; font-size: 9px;
+    font-weight: 800; color: #6b7d99; letter-spacing: 1px; text-transform: uppercase;
+    z-index: 2;
+  }
+
+  /* Statistik Panel */
+  #statsPanel {
+    position: absolute; top: 74px; left: 12px; z-index: 44;
+    background: rgba(255,255,255,0.94); border: 1px solid #d3dded;
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 6px 20px rgba(40,70,120,0.12);
+    min-width: 190px; color: #26344e;
+  }
+  #statsPanel .sp-title {
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #2f6fd0; font-weight: 800; margin-bottom: 8px;
+  }
+  #statsPanel .sp-row {
+    display: flex; justify-content: space-between; font-size: 11.5px;
+    padding: 3px 0; color: #4a5c78;
+  }
+  #statsPanel .sp-row .v { font-weight: 700; color: #1e355e; }
+  #statsPanel .sp-row .v.good { color: #2e7d32; }
+  #statsPanel .sp-row .v.bad { color: #c9532f; }
+
+  @media (max-width: 860px) {
+    .loader-title { font-size: 40px; }
+    #rightPanel { width: 250px; }
+    #bottombar { right: 250px; }
+    #minimap { right: 262px; width: 140px; height: 140px; }
+    #statsPanel, #detailPanel { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LOADING SCREEN ================= -->
+<div id="loader">
+  <div class="loader-bg-circle" style="width:400px;height:400px;top:10%;left:8%;"></div>
+  <div class="loader-bg-circle" style="width:300px;height:300px;bottom:8%;right:10%;animation-delay:2s;"></div>
+  <div class="loader-particles" id="particles"></div>
+
+  <div class="loader-emblem">
+    <svg viewBox="0 0 110 110">
+      <defs>
+        <linearGradient id="emblemGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#2f6fd0"/>
+          <stop offset="100%" stop-color="#6aa9f5"/>
+        </linearGradient>
+      </defs>
+      <circle class="ring" cx="55" cy="55" r="48" fill="none" stroke="url(#emblemGrad)" stroke-width="3" stroke-dasharray="12 8" opacity="0.6"/>
+      <circle cx="55" cy="55" r="38" fill="#eaf2ff" stroke="url(#emblemGrad)" stroke-width="2.5"/>
+      <path d="M30 68 L38 44 L48 56 L55 34 L62 56 L72 44 L80 68 Z" fill="url(#emblemGrad)" stroke="#1e355e" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="30" y="68" width="50" height="7" rx="2" fill="url(#emblemGrad)" stroke="#1e355e" stroke-width="1.2"/>
+    </svg>
+  </div>
+
+  <div class="loader-title">Build an <span class="accent">Empire</span></div>
+  <div class="loader-sub">Aufstieg · Macht · Vermächtnis</div>
+
+  <div class="loader-bar-wrap"><div class="loader-bar" id="bar"></div></div>
+  <div class="loader-status"><span class="dot"></span><span id="statusText">Initialisiere Engine…</span></div>
+  <div class="loader-percent" id="percent">0%</div>
+
+  <div class="loader-tips"><span class="tip" id="tipText">Tipp: Nutze das Mausrad zum Zoomen</span></div>
+</div>
+
+<!-- ================= GAME ================= -->
+<div id="game">
+  <div id="map">
+    <div id="world">
+      <div id="grid"></div>
+    </div>
+  </div>
+
+  <div id="placeGhost"></div>
+  <div id="tooltip"></div>
+
+  <div id="topbar">
+    <div class="logo-small">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4 19 L6 9 L10 13 L12 6 L14 13 L18 9 L20 19 Z" fill="#2f6fd0" stroke="#1e355e" stroke-width="1.5" stroke-linejoin="round"/>
+        <rect x="4" y="19" width="16" height="2.5" rx="1" fill="#2f6fd0" stroke="#1e355e" stroke-width="1"/>
+      </svg>
+      <span>BUILD AN <span class="txt-accent">EMPIRE</span></span>
+    </div>
+    <div class="res-group" id="resGroup"></div>
+  </div>
+
+  <div id="statsPanel">
+    <div class="sp-title">Imperium-Status</div>
+    <div id="statsBody"></div>
+  </div>
+
+  <div id="minimap">
+    <div class="mm-title">Karte</div>
+    <div class="mm-inner" id="mmInner"></div>
+  </div>
+
+  <div id="rightPanel">
+    <div class="panel-head"><span id="panelTitle">Gebäude</span><span class="count" id="bCount">0</span></div>
+    <div class="panel-tabs" id="panelTabs">
+      <button class="tab-btn active" data-cat="all">Alle</button>
+      <button class="tab-btn" data-cat="civic">Wohnen</button>
+      <button class="tab-btn" data-cat="production">Produktion</button>
+      <button class="tab-btn" data-cat="economy">Wirtschaft</button>
+      <button class="tab-btn" data-cat="military">Militär</button>
+      <button class="tab-btn" data-cat="special">Spezial</button>
+    </div>
+    <div id="buildingList"></div>
+  </div>
+
+  <div id="detailPanel">
+    <div class="dp-head">
+      <div class="dp-icon" id="dpIcon"></div>
+      <div class="dp-titles">
+        <div class="dp-name" id="dpName">—</div>
+        <div class="dp-level" id="dpLevel">—</div>
+      </div>
+      <button class="dp-close" id="dpClose">×</button>
+    </div>
+    <div class="dp-body" id="dpBody"></div>
+    <div class="dp-actions" id="dpActions"></div>
+  </div>
+
+  <div id="placeBanner">
+    <div class="pb-icon" id="pbIcon"></div>
+    <div class="pb-text">
+      <span id="pbName">Gebäude platzieren</span>
+      <small><span class="pb-key">Linksklick</span> zum Platzieren · <span class="pb-key">Q</span> zum Abbrechen</small>
+    </div>
+    <button class="pb-cancel" id="pbCancel">Abbrechen (Q)</button>
+  </div>
+
+  <div id="offlineBanner">
+    <div class="ob-icon">⏳</div>
+    <div class="ob-text" id="obText">Offline-Fortschritt</div>
+    <button class="ob-close" id="obClose">OK</button>
+  </div>
+
+  <div id="bottombar">
+    <button class="btn" id="btnZoomOut" title="Rauszoomen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg>
+    </button>
+    <button class="btn" id="btnZoomIn" title="Reinzoomen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg>
+    </button>
+    <button class="btn" id="btnCenter" title="Zentrieren">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      Zentrieren
+    </button>
+    <button class="btn" id="btnSellMode" title="Abriss-Modus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M5 6l1 14h12l1-14M10 11v5M14 11v5"/></svg>
+      Abreißen
+    </button>
+    <div class="spacer"></div>
+    <span class="hint" id="hintText">Ziehen = Bewegen · Mausrad = Zoom · Q = Abbrechen</span>
+    <div class="spacer"></div>
+    <button class="btn" id="btnSpeed" title="Spielgeschwindigkeit">×1</button>
+    <button class="btn" id="btnSave" title="Speichern">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 15h8v5H8z"/></svg>
+    </button>
+    <button class="btn" id="btnReset" title="Zurücksetzen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+    </button>
+  </div>
+
+  <div id="notify"></div>
+  <div id="modal"><div class="modal-box" id="modalBox"></div></div>
+</div>
+
+<script>
+/* =========================================================
+   BUILD AN EMPIRE - v3
+   - Korrekte Tür-/Fensterpositionen
+   - Neue Gebäude
+   - Detail-Sidebar (statt Modal)
+   - Bauzeit mit Bauarbeitern + Animation
+   - Q zum Abbrechen
+   - Offline-Fortschritt
+   ========================================================= */
+
+/* ---------- SVG ICONS ---------- */
+const ICONS = {
+  money: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#ffd54f" stroke="#c99a00" stroke-width="1.5"/><text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="#7a5c00">$</text></svg>`,
+  gold: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="18" rx="8" ry="3" fill="#ffca28" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="14" rx="8" ry="3" fill="#ffd54f" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="10" rx="8" ry="3" fill="#ffe082" stroke="#b8860b" stroke-width="1.3"/></svg>`,
+  food: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22 V8" stroke="#8d6e00" stroke-width="1.8"/><path d="M12 8 C8 8 6 5 6 2 C10 2 12 5 12 8 Z" fill="#ffd54f" stroke="#8d6e00" stroke-width="1.2"/><path d="M12 8 C16 8 18 5 18 2 C14 2 12 5 12 8 Z" fill="#ffecb3" stroke="#8d6e00" stroke-width="1.2"/><path d="M12 14 C8 14 6 11 6 8 C10 8 12 11 12 14 Z" fill="#ffd54f" stroke="#8d6e00" stroke-width="1.2"/><path d="M12 14 C16 14 18 11 18 8 C14 8 12 11 12 14 Z" fill="#ffecb3" stroke="#8d6e00" stroke-width="1.2"/></svg>`,
+  wood: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="4" rx="2" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/><rect x="3" y="12" width="18" height="4" rx="2" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/><rect x="3" y="17" width="18" height="4" rx="2" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/></svg>`,
+  stone: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 20 L6 9 L12 6 L18 9 L20 20 Z" fill="#b0bec5" stroke="#455a64" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 13 L11 11 L14 13 L13 16 L10 16 Z" fill="#78909c" stroke="#455a64" stroke-width="1"/></svg>`,
+  pop: `<svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" fill="#90caf9" stroke="#2f6fd0" stroke-width="1.3"/><path d="M3 20 C3 15 6 13 9 13 C12 13 15 15 15 20 Z" fill="#90caf9" stroke="#2f6fd0" stroke-width="1.3"/><circle cx="17" cy="9" r="2.4" fill="#bbdefb" stroke="#2f6fd0" stroke-width="1.2"/><path d="M13 20 C13 16 15 14 17 14 C19 14 21 16 21 20 Z" fill="#bbdefb" stroke="#2f6fd0" stroke-width="1.2"/></svg>`,
+  worker: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="6" r="3" fill="#ffb74d" stroke="#bf6a00" stroke-width="1.3"/><path d="M6 21 V14 C6 11 9 10 12 10 C15 10 18 11 18 14 V21 Z" fill="#ffcc80" stroke="#bf6a00" stroke-width="1.3"/><rect x="9" y="14" width="6" height="2" fill="#bf6a00" opacity="0.4"/></svg>`,
+  soldier: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z" fill="#ef5350" stroke="#b71c1c" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="10.5" r="1.6" fill="#fff"/></svg>`,
+  star: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z" fill="#ffd54f" stroke="#c99a00" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+
+  /* Gebäude-Icons */
+  main: `<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.3"/><polygon points="2,10 12,3 22,10" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.3" stroke-linejoin="round"/><rect x="10" y="15" width="4" height="6" fill="#4a2f10"/><rect x="6" y="13" width="3" height="3" fill="#f5e6b8"/><rect x="15" y="13" width="3" height="3" fill="#f5e6b8"/></svg>`,
+  house: `<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="12" width="14" height="9" fill="#d98e5a" stroke="#7a3b1a" stroke-width="1.3"/><polygon points="3,12 12,4 21,12" fill="#a83232" stroke="#5a1a1a" stroke-width="1.3" stroke-linejoin="round"/><rect x="10.5" y="16" width="3" height="5" fill="#4a2f10"/><rect x="7" y="14" width="2.5" height="2.5" fill="#ffe08a"/><rect x="14.5" y="14" width="2.5" height="2.5" fill="#ffe08a"/></svg>`,
+  farm: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="14" width="18" height="7" fill="#8bc34a" stroke="#558b2f" stroke-width="1.3"/><path d="M4 16 H20 M4 18 H20" stroke="#cddc39" stroke-width="1.4"/><rect x="14" y="7" width="7" height="7" fill="#a1887f" stroke="#5d4037" stroke-width="1.3"/><polygon points="13,7 17.5,3 22,7" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.1"/><rect x="16" y="10" width="2" height="2" fill="#ffe08a"/></svg>`,
+  lumber: `<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="11" width="12" height="10" fill="#795548" stroke="#4e342e" stroke-width="1.3"/><polygon points="4,11 12,3 20,11" fill="#5d4037" stroke="#3e2723" stroke-width="1.3" stroke-linejoin="round"/><rect x="10" y="16" width="4" height="5" fill="#3e2723"/><circle cx="5" cy="21" r="2" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/><circle cx="19" cy="21" r="2" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/></svg>`,
+  quarry: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 21 L6 10 L11 13 L15 7 L22 21 Z" fill="#b0bec5" stroke="#546e7a" stroke-width="1.3" stroke-linejoin="round"/><rect x="9" y="15" width="6" height="6" fill="#78909c" stroke="#455a64" stroke-width="1"/></svg>`,
+  market: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="11" fill="#ffe0b2" stroke="#bf8f5a" stroke-width="1.3"/><polygon points="2,10 4,5 8,5 10,10" fill="#e53935" stroke="#8d1a1a" stroke-width="1.1"/><polygon points="10,10 12,5 16,5 18,10" fill="#43a047" stroke="#1b5e20" stroke-width="1.1"/><polygon points="18,10 20,5 22,5 22,10" fill="#e53935" stroke="#8d1a1a" stroke-width="1.1"/><rect x="6" y="13" width="3" height="3" fill="#ffb74d"/><rect x="11" y="13" width="3" height="3" fill="#ffb74d"/><rect x="16" y="13" width="3" height="3" fill="#ffb74d"/></svg>`,
+  mine: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 22 Q12 4 22 22 Z" fill="#6d4c41" stroke="#3e2723" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 22 Q12 10 17 22 Z" fill="#1a1a1a"/><rect x="5" y="19" width="2" height="3" fill="#9e9e9e"/><rect x="17" y="19" width="2" height="3" fill="#9e9e9e"/><circle cx="12" cy="14" r="1.5" fill="#ffd54f"/></svg>`,
+  barracks: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="10" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/><polygon points="2,11 12,4 22,11" fill="#5d4037" stroke="#3e2723" stroke-width="1.3" stroke-linejoin="round"/><rect x="10" y="15" width="4" height="6" fill="#3e2723"/><rect x="4" y="4" width="1" height="7" fill="#555"/><polygon points="4.5,4.5 9,6 4.5,8" fill="#b71c1c"/></svg>`,
+  tower: `<svg viewBox="0 0 24 24" fill="none"><rect x="9" y="7" width="6" height="15" fill="#78909c" stroke="#37474f" stroke-width="1.3"/><rect x="7" y="5" width="10" height="3" fill="#546e7a" stroke="#37474f" stroke-width="1.2"/><path d="M7 5 L9 1 L12 4 L15 1 L17 5 Z" fill="#b71c1c" stroke="#7f0000" stroke-width="1.1"/><rect x="11" y="11" width="2" height="3" fill="#263238"/><rect x="11" y="16" width="2" height="3" fill="#263238"/></svg>`,
+  factory: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="20" height="12" fill="#546e7a" stroke="#37474f" stroke-width="1.3"/><rect x="4" y="12" width="3" height="4" fill="#90caf9"/><rect x="9" y="12" width="3" height="4" fill="#90caf9"/><rect x="14" y="12" width="3" height="4" fill="#90caf9"/><rect x="5" y="4" width="2.5" height="6" fill="#37474f"/><rect x="10" y="2" width="2.5" height="8" fill="#37474f"/><rect x="15" y="5" width="2.5" height="5" fill="#37474f"/><rect x="10" y="18" width="4" height="4" fill="#263238"/></svg>`,
+  fortress: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="18" height="13" fill="#7a6a9a" stroke="#2a1d4a" stroke-width="1.3"/><rect x="2" y="7" width="3" height="15" fill="#8e7eae" stroke="#2a1d4a" stroke-width="1.1"/><rect x="19" y="7" width="3" height="15" fill="#8e7eae" stroke="#2a1d4a" stroke-width="1.1"/><rect x="10" y="13" width="4" height="9" fill="#1a1030"/><rect x="11" y="3" width="2" height="6" fill="#3a2a5a"/><polygon points="10,3 12,1 14,3" fill="#b71c1c"/></svg>`,
+  church: `<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="10" width="12" height="12" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.3"/><polygon points="4,10 12,3 20,10" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/><rect x="11" y="0" width="2" height="5" fill="#c9a84c"/><rect x="9.5" y="1.2" width="5" height="1.6" fill="#c9a84c"/><rect x="11" y="15" width="2" height="7" fill="#4a2f10"/><circle cx="12" cy="8" r="1.5" fill="#ffe082"/></svg>`,
+  well: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="19" rx="8" ry="3" fill="#90a4ae" stroke="#455a64" stroke-width="1.3"/><rect x="5" y="12" width="14" height="7" fill="#b0bec5" stroke="#455a64" stroke-width="1.3"/><rect x="5" y="11" width="14" height="2" fill="#78909c" stroke="#455a64" stroke-width="1"/><rect x="6" y="5" width="1.5" height="7" fill="#8d6e63"/><rect x="16.5" y="5" width="1.5" height="7" fill="#8d6e63"/><polygon points="5,5 12,2 19,5" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.1"/></svg>`,
+  bakery: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="12" fill="#f0c080" stroke="#8d5a20" stroke-width="1.3"/><polygon points="2,10 12,4 22,10" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.3" stroke-linejoin="round"/><rect x="9" y="14" width="6" height="4" fill="#fff3e0" stroke="#bf8f5a" stroke-width="1"/></svg>`,
+  blacksmith: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" fill="#6d4c41" stroke="#3e2723" stroke-width="1.3"/><polygon points="2,11 12,5 22,11" fill="#4e342e" stroke="#2a1d1a" stroke-width="1.2"/><circle cx="12" cy="7" r="2" fill="#ff7043" stroke="#b71c1c" stroke-width="1"/><rect x="10" y="16" width="4" height="6" fill="#1a1a1a"/></svg>`,
+  university: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="18" height="10" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.3"/><polygon points="2,12 12,4 22,12" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/><rect x="10" y="15" width="4" height="7" fill="#4a2f10"/><circle cx="7" cy="16" r="1.5" fill="#90caf9" stroke="#2f6fd0" stroke-width="0.8"/><circle cx="17" cy="16" r="1.5" fill="#90caf9" stroke="#2f6fd0" stroke-width="0.8"/></svg>`,
+  watchtower: `<svg viewBox="0 0 24 24" fill="none"><rect x="9" y="6" width="6" height="16" fill="#90a4ae" stroke="#37474f" stroke-width="1.3"/><rect x="7" y="4" width="10" height="3" fill="#607d8b" stroke="#37474f" stroke-width="1.2"/><rect x="11" y="10" width="2" height="3" fill="#263238"/><rect x="11" y="15" width="2" height="3" fill="#263238"/><path d="M7 4 L12 0 L17 4 Z" fill="#b71c1c"/></svg>`,
+  wall: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="20" height="10" fill="#a8a8a8" stroke="#555" stroke-width="1.3"/><rect x="2" y="8" width="3" height="2" fill="#a8a8a8" stroke="#555" stroke-width="1"/><rect x="7" y="8" width="3" height="2" fill="#a8a8a8" stroke="#555" stroke-width="1"/><rect x="12" y="8" width="3" height="2" fill="#a8a8a8" stroke="#555" stroke-width="1"/><rect x="17" y="8" width="3" height="2" fill="#a8a8a8" stroke="#555" stroke-width="1"/></svg>`,
+  shipyard: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="16" width="20" height="6" fill="#4fc3f7" stroke="#01579b" stroke-width="1.2"/><path d="M5 16 L12 8 L19 16 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="1.2"/><rect x="11" y="10" width="2" height="6" fill="#4e342e"/></svg>`,
+  bank: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="20" height="11" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.3"/><polygon points="1,10 12,3 23,10" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.3"/><rect x="5" y="12" width="2" height="9" fill="#8d7a4a"/><rect x="11" y="12" width="2" height="9" fill="#8d7a4a"/><rect x="17" y="12" width="2" height="9" fill="#8d7a4a"/><circle cx="12" cy="7" r="1.4" fill="#ffd54f"/></svg>`,
+  tavern: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" fill="#d7a86e" stroke="#8d5a20" stroke-width="1.3"/><polygon points="2,11 12,4 22,11" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.3"/><rect x="9" y="15" width="6" height="7" fill="#4a2f10"/><circle cx="15" cy="7" r="1.5" fill="#ffd54f"/></svg>`,
+  water: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 C12 2 5 10 5 15 C5 19 8 22 12 22 C16 22 19 19 19 15 C19 10 12 2 12 2 Z" fill="#4fc3f7" stroke="#01579b" stroke-width="1.3"/></svg>`,
+  /* Neue Gebäude */
+  windmill: `<svg viewBox="0 0 24 24" fill="none"><rect x="9" y="12" width="6" height="10" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.3"/><polygon points="8,12 12,7 16,12" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.1"/><g transform="translate(12 9)"><rect x="-1" y="-8" width="2" height="16" fill="#8d6e63" transform="rotate(0)"/><rect x="-1" y="-8" width="2" height="16" fill="#8d6e63" transform="rotate(90)"/></g><circle cx="12" cy="9" r="1.5" fill="#c9a84c"/></svg>`,
+  fishing: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="14" width="18" height="8" fill="#4fc3f7" stroke="#01579b" stroke-width="1.2"/><path d="M6 14 Q12 8 18 14" stroke="#8d6e63" stroke-width="1.5" fill="none"/><rect x="11" y="4" width="2" height="10" fill="#8d6e63"/><path d="M13 5 L17 7 L13 9 Z" fill="#e53935"/></svg>`,
+  theater: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="12" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.3"/><path d="M3 10 Q6 6 9 10 Q12 6 15 10 Q18 6 21 10" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.2"/><rect x="9" y="14" width="6" height="8" fill="#8d3b2a"/><circle cx="12" cy="18" r="2" fill="#ffd54f"/></svg>`,
+  library: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="16" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/><rect x="5" y="8" width="3" height="5" fill="#e53935"/><rect x="8.5" y="8" width="3" height="5" fill="#43a047"/><rect x="12" y="8" width="3" height="5" fill="#1e88e5"/><rect x="15.5" y="8" width="3" height="5" fill="#fdd835"/><rect x="5" y="15" width="3" height="5" fill="#8e24aa"/><rect x="8.5" y="15" width="3" height="5" fill="#fb8c00"/><rect x="12" y="15" width="3" height="5" fill="#00acc1"/><rect x="15.5" y="15" width="3" height="5" fill="#7cb342"/></svg>`,
+  harbor: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="17" width="20" height="5" fill="#4fc3f7" stroke="#01579b" stroke-width="1.2"/><rect x="4" y="12" width="4" height="6" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/><rect x="16" y="12" width="4" height="6" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/><rect x="4" y="10" width="16" height="2" fill="#a1887f"/><rect x="11" y="4" width="2" height="6" fill="#8d6e63"/><path d="M13 5 L18 7 L13 9 Z" fill="#e53935"/></svg>`,
+  temple: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="18" height="10" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.3"/><polygon points="2,12 12,3 22,12" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.3"/><rect x="5" y="12" width="2" height="10" fill="#8d7a4a"/><rect x="11" y="12" width="2" height="10" fill="#8d7a4a"/><rect x="17" y="12" width="2" height="10" fill="#8d7a4a"/><circle cx="12" cy="8" r="1.8" fill="#ffd54f"/></svg>`,
+  stable: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/><polygon points="2,11 12,5 22,11" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.2"/><rect x="10" y="15" width="4" height="7" fill="#3e2723"/><ellipse cx="7" cy="17" rx="2.5" ry="2" fill="#fff" stroke="#4e342e" stroke-width="0.8"/><ellipse cx="17" cy="17" rx="2.5" ry="2" fill="#fff" stroke="#4e342e" stroke-width="0.8"/></svg>`,
+  arena: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="15" rx="10" ry="7" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/><ellipse cx="12" cy="15" rx="7" ry="4.5" fill="#8d6e63"/><ellipse cx="12" cy="15" rx="4" ry="2.5" fill="#6d4c41"/><rect x="6" y="4" width="1.5" height="8" fill="#8d6e63"/><rect x="16.5" y="4" width="1.5" height="8" fill="#8d6e63"/><polygon points="5,4 8,6 5,8" fill="#e53935"/><polygon points="19,4 16,6 19,8" fill="#1e88e5"/></svg>`,
+  workshop: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="12" fill="#78909c" stroke="#37474f" stroke-width="1.3"/><rect x="3" y="8" width="18" height="3" fill="#546e7a" stroke="#37474f" stroke-width="1"/><circle cx="12" cy="15" r="3" fill="#ffb74d" stroke="#bf6a00" stroke-width="1"/><rect x="11" y="11.5" width="2" height="7" fill="#bf6a00"/><rect x="8.5" y="14" width="7" height="2" fill="#bf6a00"/><rect x="6" y="5" width="3" height="4" fill="#37474f"/><rect x="15" y="5" width="3" height="4" fill="#37474f"/></svg>`
+};
+
+/* ---------- LOADING SCREEN ---------- */
+const tips = [
+  "Tipp: Mausrad zum Zoomen · Ziehen zum Bewegen",
+  "Tipp: Q bricht die Platzierung ab",
+  "Tipp: Bauarbeiter bauen deine Gebäude mit der Zeit",
+  "Tipp: Ab Imperium-Level 4 gibt es Fabriken",
+  "Tipp: Der Offline-Fortschritt läuft weiter",
+  "Tipp: Größere Gebäude brauchen länger zum Bauen",
+  "Tipp: Mehr Bewohner = mehr Arbeiter",
+  "Tipp: Abreißen erstattet 50% der Gesamtkosten"
+];
+const statuses = [
+  "Initialisiere Engine…","Lade Terrain-Texturen…","Verbinde mit Server…",
+  "Prüfe Server-Erreichbarkeit…","Lade Gebäude-Assets…","Lade Bauarbeiter-Sprites…",
+  "Lade Militär-Einheiten…","Baue Wirtschaftssystem…","Kalibriere Kamera…","Fast fertig…"
+];
+
+const bar = document.getElementById('bar');
+const statusText = document.getElementById('statusText');
+const percentEl = document.getElementById('percent');
+const loader = document.getElementById('loader');
+const tipText = document.getElementById('tipText');
+
+const particlesWrap = document.getElementById('particles');
+for (let i = 0; i < 40; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.bottom = '-10px';
+  p.style.width = (2 + Math.random()*4) + 'px';
+  p.style.height = p.style.width;
+  p.style.animationDuration = (5 + Math.random()*8) + 's';
+  p.style.animationDelay = (Math.random()*6) + 's';
+  p.style.opacity = 0.2 + Math.random()*0.5;
+  particlesWrap.appendChild(p);
+}
+let tipIndex = 0;
+setInterval(() => {
+  tipIndex = (tipIndex + 1) % tips.length;
+  tipText.style.opacity = 0;
+  setTimeout(() => { tipText.textContent = tips[tipIndex]; tipText.style.opacity = 1; }, 400);
+}, 2600);
+
+let loadProgress = 0, loadDone = false;
+const loadInterval = setInterval(() => {
+  if (loadDone) return;
+  const step = loadProgress < 70 ? (2 + Math.random() * 4) : (0.8 + Math.random() * 2);
+  loadProgress = Math.min(100, loadProgress + step);
+  if (loadProgress > 15 && loadProgress < 30) statusText.textContent = statuses[2];
+  else if (loadProgress < 45) statusText.textContent = statuses[3];
+  else if (loadProgress < 60) statusText.textContent = statuses[4];
+  else if (loadProgress < 72) statusText.textContent = statuses[5];
+  else if (loadProgress < 84) statusText.textContent = statuses[6];
+  else if (loadProgress < 94) statusText.textContent = statuses[7];
+  else statusText.textContent = statuses[9];
+  bar.style.width = loadProgress + '%';
+  percentEl.textContent = Math.floor(loadProgress) + '%';
+  if (loadProgress >= 100) {
+    loadDone = true;
+    clearInterval(loadInterval);
+    statusText.textContent = "Server erreichbar ✓  ·  Starte Imperium…";
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      document.getElementById('game').classList.add('visible');
+      startGame();
+    }, 700);
+  }
+}, 90);
+
+/* =========================================================
+   GAME CORE
+   ========================================================= */
+const state = {
+  money: 5000, gold: 500, food: 300, wood: 250, stone: 200,
+  population: 5, populationCap: 10, workers: 5, workersNeeded: 0,
+  soldiers: 2, soldierCap: 5, happiness: 100,
+  level: 1, buildings: [],
+  zoom: 1, camX: 0, camY: 0,
+  placing: null, selected: null, nextId: 1,
+  speed: 1, sellMode: false, activeTab: 'all',
+  lastTick: Date.now(),
+  offlineChecked: false
+};
+
+const TILE = 48;
+
+/* ---------- GEBÄUDE-DEFINITIONEN ---------- */
+const BUILDINGS = {
+  main: {
+    name: "Hauptgebäude", icon: "main", category: "core",
+    size: 3, cost: 0, maxLevel: 10,
+    desc: "Herz deines Imperiums. Bestimmt Bevölkerungslimit & Soldaten.",
+    baseCost: 900, costMult: 2.4,
+    produces: {}, needs: { workers: 0 },
+    popBonus: [0,2,4,7,11,16,22,30,40,52],
+    soldierBonus: [0,1,2,4,6,9,13,18,24,32]
+  },
+  house: {
+    name: "Wohnhaus", icon: "house", category: "civic",
+    size: 2, cost: 250, maxLevel: 10,
+    desc: "Bietet Platz für Bewohner. Jedes Upgrade erhöht die Kapazität.",
+    baseCost: 250, costMult: 1.95,
+    produces: {}, needs: { workers: 1 },
+    popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160],
+    buildTime: 8
+  },
+  tavern: {
+    name: "Taverne", icon: "tavern", category: "civic",
+    size: 2, cost: 500, maxLevel: 8,
+    desc: "Erhöht die Zufriedenheit und zieht neue Bewohner an.",
+    baseCost: 500, costMult: 2.0,
+    produces: { gold: 2 }, needs: { workers: 2 },
+    happyBonus: [3, 6, 10, 14, 19, 25, 32, 40],
+    buildTime: 10
+  },
+  well: {
+    name: "Brunnen", icon: "well", category: "civic",
+    size: 1, cost: 220, maxLevel: 6,
+    desc: "Versorgt Bewohner mit Wasser. Erhöht Zufriedenheit.",
+    baseCost: 220, costMult: 1.9,
+    produces: {}, needs: { workers: 1 },
+    happyBonus: [2, 4, 7, 10, 14, 19],
+    buildTime: 5
+  },
+  farm: {
+    name: "Bauernhof", icon: "farm", category: "production",
+    size: 2, cost: 400, maxLevel: 10,
+    desc: "Produziert Nahrung. Ab Level 5 wird zur Fabrik ausgebaut.",
+    baseCost: 400, costMult: 1.9,
+    produces: { food: 5 }, needs: { workers: 3 },
+    factoryLevel: 5, buildTime: 9
+  },
+  bakery: {
+    name: "Bäckerei", icon: "bakery", category: "production",
+    size: 2, cost: 700, maxLevel: 8,
+    desc: "Verarbeitet Getreide zu Brot. Erhöht Zufriedenheit & Gold.",
+    baseCost: 700, costMult: 2.0,
+    produces: { gold: 4, food: 2 }, needs: { workers: 4 },
+    happyBonus: [2, 4, 7, 10, 14, 18, 23, 29],
+    buildTime: 11
+  },
+  lumber: {
+    name: "Holzfäller", icon: "lumber", category: "production",
+    size: 2, cost: 350, maxLevel: 10,
+    desc: "Produziert Holz für den Ausbau.",
+    baseCost: 350, costMult: 1.9,
+    produces: { wood: 4 }, needs: { workers: 3 },
+    buildTime: 8
+  },
+  quarry: {
+    name: "Steinbruch", icon: "quarry", category: "production",
+    size: 2, cost: 500, maxLevel: 10,
+    desc: "Produziert Stein für große Bauwerke.",
+    baseCost: 500, costMult: 2.0,
+    produces: { stone: 3 }, needs: { workers: 4 },
+    buildTime: 10
+  },
+  blacksmith: {
+    name: "Schmiede", icon: "blacksmith", category: "production",
+    size: 2, cost: 850, maxLevel: 8,
+    desc: "Verarbeitet Erze zu Werkzeugen und Waffen.",
+    baseCost: 850, costMult: 2.1,
+    produces: { gold: 5, stone: 2 }, needs: { workers: 5 },
+    buildTime: 12
+  },
+  windmill: {
+    name: "Windmühle", icon: "windmill", category: "production",
+    size: 2, cost: 950, maxLevel: 8,
+    desc: "Mahlt Getreide. Steigert Nahrungs- und Holzproduktion.",
+    baseCost: 950, costMult: 2.05,
+    produces: { food: 8, wood: 2 }, needs: { workers: 4 },
+    buildTime: 13
+  },
+  workshop: {
+    name: "Werkstatt", icon: "workshop", category: "production",
+    size: 2, cost: 1100, maxLevel: 8,
+    desc: "Stellt Werkzeuge her. Erhöht Produktion aller Gebäude.",
+    baseCost: 1100, costMult: 2.1,
+    produces: { gold: 3, wood: 3 }, needs: { workers: 6 },
+    globalBonus: [0.03, 0.06, 0.10, 0.15, 0.21, 0.28, 0.36, 0.45],
+    buildTime: 14
+  },
+  market: {
+    name: "Marktplatz", icon: "market", category: "economy",
+    size: 2, cost: 700, maxLevel: 10,
+    desc: "Erhöht Einkommen und Handelsgüter.",
+    baseCost: 700, costMult: 2.1,
+    produces: { gold: 6 }, needs: { workers: 4 },
+    buildTime: 11
+  },
+  mine: {
+    name: "Goldmine", icon: "mine", category: "economy",
+    size: 2, cost: 1200, maxLevel: 10,
+    desc: "Fördert Gold aus den Tiefen der Erde.",
+    baseCost: 1200, costMult: 2.2,
+    produces: { gold: 11 }, needs: { workers: 6 },
+    buildTime: 14
+  },
+  bank: {
+    name: "Bank", icon: "bank", category: "economy",
+    size: 3, cost: 2500, maxLevel: 8,
+    desc: "Erwirtschaftet passives Einkommen durch Zinsen.",
+    baseCost: 2500, costMult: 2.25,
+    produces: { gold: 20 }, needs: { workers: 8 },
+    unlockLevel: 3, buildTime: 20
+  },
+  university: {
+    name: "Universität", icon: "university", category: "civic",
+    size: 3, cost: 2800, maxLevel: 8,
+    desc: "Bildet Spezialisten aus. Steigert Produktion aller Gebäude.",
+    baseCost: 2800, costMult: 2.2,
+    produces: { gold: 8 }, needs: { workers: 10 },
+    globalBonus: [0.05, 0.10, 0.16, 0.22, 0.29, 0.37, 0.46, 0.56],
+    unlockLevel: 4, buildTime: 22
+  },
+  factory: {
+    name: "Fabrik", icon: "factory", category: "production",
+    size: 3, cost: 3500, maxLevel: 10,
+    desc: "Industrielle Produktion. Liefert große Mengen Ressourcen.",
+    baseCost: 3500, costMult: 2.3,
+    produces: { gold: 18, wood: 7, stone: 7, food: 5 }, needs: { workers: 12 },
+    unlockLevel: 4, buildTime: 25
+  },
+  shipyard: {
+    name: "Werft", icon: "shipyard", category: "economy",
+    size: 3, cost: 4200, maxLevel: 8,
+    desc: "Handel über Wasser. Große Golderträge.",
+    baseCost: 4200, costMult: 2.3,
+    produces: { gold: 28 }, needs: { workers: 14 },
+    unlockLevel: 5, buildTime: 28
+  },
+  harbor: {
+    name: "Hafen", icon: "harbor", category: "economy",
+    size: 3, cost: 5200, maxLevel: 8,
+    desc: "Internationaler Handelshafen. Sehr hohe Golderträge.",
+    baseCost: 5200, costMult: 2.35,
+    produces: { gold: 38, food: 4 }, needs: { workers: 16 },
+    unlockLevel: 6, buildTime: 32
+  },
+  library: {
+    name: "Bibliothek", icon: "library", category: "civic",
+    size: 2, cost: 1500, maxLevel: 8,
+    desc: "Bildung für alle. Erhöht Zufriedenheit & leichtes Einkommen.",
+    baseCost: 1500, costMult: 2.05,
+    produces: { gold: 4 }, needs: { workers: 5 },
+    happyBonus: [4, 8, 13, 18, 24, 31, 39, 48],
+    buildTime: 16
+  },
+  theater: {
+    name: "Theater", icon: "theater", category: "civic",
+    size: 2, cost: 2200, maxLevel: 8,
+    desc: "Kulturelles Zentrum. Erhöht die Zufriedenheit stark.",
+    baseCost: 2200, costMult: 2.2,
+    produces: { gold: 6 }, needs: { workers: 7 },
+    happyBonus: [6, 12, 19, 27, 36, 46, 57, 69],
+    unlockLevel: 3, buildTime: 20
+  },
+  temple: {
+    name: "Tempel", icon: "temple", category: "civic",
+    size: 3, cost: 4000, maxLevel: 8,
+    desc: "Heiliger Ort. Maximiert Zufriedenheit und bringt Segen.",
+    baseCost: 4000, costMult: 2.3,
+    produces: { gold: 12 }, needs: { workers: 10 },
+    happyBonus: [8, 16, 25, 35, 46, 58, 71, 85],
+    unlockLevel: 5, buildTime: 30
+  },
+  stable: {
+    name: "Stall", icon: "stable", category: "production",
+    size: 2, cost: 1600, maxLevel: 8,
+    desc: "Zucht von Tieren. Liefert Nahrung und Militärvorteile.",
+    baseCost: 1600, costMult: 2.1,
+    produces: { food: 6, gold: 3 }, needs: { workers: 5 },
+    soldierPerLevel: [0, 1, 2, 3, 5, 7, 9, 12],
+    buildTime: 15
+  },
+  barracks: {
+    name: "Kaserne", icon: "barracks", category: "military",
+    size: 2, cost: 900, maxLevel: 10,
+    desc: "Trainiert Soldaten. Erhöht das Militärlimit.",
+    baseCost: 900, costMult: 2.15,
+    produces: {}, needs: { workers: 4 },
+    soldierPerLevel: [2, 5, 9, 14, 20, 28, 38, 50, 65, 84],
+    buildTime: 14
+  },
+  tower: {
+    name: "Wachturm", icon: "watchtower", category: "military",
+    size: 1, cost: 600, maxLevel: 8,
+    desc: "Verteidigungsanlage. Erhöht Verteidigung & Soldatenlimit.",
+    baseCost: 600, costMult: 1.95,
+    produces: {}, needs: { workers: 2 },
+    soldierPerLevel: [1, 2, 4, 6, 9, 13, 18, 24],
+    buildTime: 8
+  },
+  wall: {
+    name: "Stadtmauer", icon: "wall", category: "military",
+    size: 1, cost: 800, maxLevel: 8,
+    desc: "Schützt das Imperium. Erhöht Verteidigung.",
+    baseCost: 800, costMult: 2.0,
+    produces: {}, needs: { workers: 3 },
+    soldierPerLevel: [0, 1, 2, 4, 6, 9, 13, 18],
+    buildTime: 7
+  },
+  arena: {
+    name: "Arena", icon: "arena", category: "military",
+    size: 3, cost: 3200, maxLevel: 8,
+    desc: "Kampfarena. Trainiert Elitekämpfer und bringt Ruhm.",
+    baseCost: 3200, costMult: 2.25,
+    produces: { gold: 8 }, needs: { workers: 9 },
+    soldierPerLevel: [3, 7, 12, 18, 25, 33, 42, 52],
+    happyBonus: [3, 6, 10, 14, 19, 24, 30, 36],
+    unlockLevel: 4, buildTime: 26
+  },
+  fortress: {
+    name: "Festung", icon: "fortress", category: "military",
+    size: 3, cost: 6000, maxLevel: 10,
+    desc: "Mächtige Militärbasis. Große Mengen Soldaten.",
+    baseCost: 6000, costMult: 2.4,
+    produces: { gold: 12 }, needs: { workers: 15 },
+    soldierPerLevel: [10, 20, 35, 55, 80, 110, 150, 200, 260, 335],
+    unlockLevel: 6, buildTime: 35
+  },
+  church: {
+    name: "Kirche", icon: "church", category: "special",
+    size: 2, cost: 1800, maxLevel: 8,
+    desc: "Ort des Glaubens. Bringt Zufriedenheit und Gemeinschaft.",
+    baseCost: 1800, costMult: 2.1,
+    produces: { gold: 5 }, needs: { workers: 4 },
+    happyBonus: [5, 10, 16, 22, 29, 37, 46, 56],
+    buildTime: 17
+  },
+  fishing: {
+    name: "Fischerhütte", icon: "fishing", category: "production",
+    size: 1, cost: 380, maxLevel: 8,
+    desc: "Fischt in Gewässern. Liefert Nahrung und etwas Gold.",
+    baseCost: 380, costMult: 1.95,
+    produces: { food: 4, gold: 1 }, needs: { workers: 2 },
+    buildTime: 7
+  }
+};
+
+/* ---------- TERRAIN ---------- */
+const world = document.getElementById('world');
+function buildTerrain() {
+  const colors = ['#b8d99a', '#a8cd88', '#c6e0a8', '#9fc47f', '#b0d490'];
+  for (let i = 0; i < 240; i++) {
+    const p = document.createElement('div');
+    p.className = 'terrain-patch';
+    const sz = 90 + Math.random() * 340;
+    p.style.width = sz + 'px'; p.style.height = sz + 'px';
+    p.style.left = Math.random() * 6000 + 'px';
+    p.style.top = Math.random() * 6000 + 'px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.opacity = 0.18 + Math.random()*0.25;
+    world.appendChild(p);
+  }
+  for (let i = 0; i < 120; i++) {
+    const t = document.createElement('div');
+    t.className = 'tree-deco';
+    t.innerHTML = `<svg viewBox="0 0 30 40" width="26" height="34"><rect x="13" y="26" width="4" height="12" fill="#6d4c41"/><circle cx="15" cy="18" r="11" fill="#4caf50"/><circle cx="9" cy="22" r="7" fill="#66bb6a"/><circle cx="21" cy="22" r="7" fill="#388e3c"/></svg>`;
+    t.style.left = Math.random() * 6000 + 'px';
+    t.style.top = Math.random() * 6000 + 'px';
+    t.style.opacity = 0.85;
+    world.appendChild(t);
+  }
+  for (let i = 0; i < 50; i++) {
+    const r = document.createElement('div');
+    r.className = 'rock-deco';
+    r.innerHTML = `<svg viewBox="0 0 30 24" width="24" height="20"><path d="M2 22 L6 10 L14 14 L20 6 L28 22 Z" fill="#b0bec5" stroke="#607d8b" stroke-width="1.2"/></svg>`;
+    r.style.left = Math.random() * 6000 + 'px';
+    r.style.top = Math.random() * 6000 + 'px';
+    r.style.opacity = 0.7;
+    world.appendChild(r);
+  }
+}
+
+/* =========================================================
+   KORREKTE SVG BUILDING RENDERER
+   Wichtig: Tür IMMER auf Bodenlinie (y=100), Fenster über Boden,
+   nicht in Körpermitte oder außerhalb des Daches.
+   ========================================================= */
+function buildingSVG(type, level, w, h) {
+  const lvl = level;
+
+  if (type === 'main') {
+    const bodyTop = 100 - (30 + lvl * 4);
+    const bodyH = 100 - bodyTop;
+    let roof = '';
+    if (lvl >= 2) roof += `<polygon points="14,${bodyTop} 50,${bodyTop-20} 86,${bodyTop}" fill="#8d3b2a" stroke="#3a2f10" stroke-width="1.6"/>`;
+    let centralTower = '';
+    if (lvl >= 3) centralTower = `<rect x="42" y="${bodyTop-28}" width="16" height="20" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.4"/><polygon points="40,${bodyTop-28} 50,${bodyTop-40} 60,${bodyTop-28}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.2"/>`;
+    let sideTowers = '';
+    if (lvl >= 4) sideTowers += `<rect x="18" y="${bodyTop-12}" width="10" height="12" fill="#b8860b" stroke="#7a5c10" stroke-width="1"/><rect x="72" y="${bodyTop-12}" width="10" height="12" fill="#b8860b" stroke="#7a5c10" stroke-width="1"/>`;
+    let orb = '';
+    if (lvl >= 5) orb = `<circle cx="50" cy="${bodyTop-46}" r="3" fill="#ffd66b" stroke="#c99a00" stroke-width="1"/>`;
+    let gateHouse = '';
+    if (lvl >= 6) gateHouse = `<rect x="30" y="${bodyTop-18}" width="6" height="18" fill="#8d6e63"/><rect x="64" y="${bodyTop-18}" width="6" height="18" fill="#8d6e63"/>`;
+    let flags = '';
+    if (lvl >= 7) flags = `<rect x="49" y="${bodyTop-58}" width="2" height="12" fill="#555"/><polygon points="51,${bodyTop-58} 62,${bodyTop-54} 51,${bodyTop-50}" fill="#b71c1c"/>`;
+    let windowsTop = '';
+    if (lvl >= 8) windowsTop = `<circle cx="30" cy="${bodyTop-24}" r="3" fill="#90caf9" stroke="#2f6fd0" stroke-width="0.8"/><circle cx="70" cy="${bodyTop-24}" r="3" fill="#90caf9" stroke="#2f6fd0" stroke-width="0.8"/>`;
+    let goldRoof = '';
+    if (lvl >= 9) goldRoof = `<rect x="36" y="${bodyTop-40}" width="28" height="6" fill="#ffd54f" stroke="#c99a00" stroke-width="1"/>`;
+    let crown = '';
+    if (lvl >= 10) crown = `<circle cx="50" cy="${bodyTop-70}" r="5" fill="#ffd54f" stroke="#c99a00" stroke-width="1.2"/><rect x="49" y="${bodyTop-65}" width="2" height="10" fill="#555"/>`;
+
+    // Fenster: immer in der Körpermitte, oberhalb der Tür, innerhalb des Körpers
+    const winY = bodyTop + 8;
+    const winCount = lvl >= 5 ? 4 : 2;
+    let windows = '';
+    const startX = winCount === 4 ? 16 : 24;
+    const stepX = winCount === 4 ? 16 : 30;
+    for (let i = 0; i < winCount; i++) {
+      const wx = startX + i * stepX;
+      // Nur zeichnen, wenn innerhalb Körperbreite
+      if (wx > 12 && wx < 84) {
+        windows += `<rect x="${wx}" y="${winY}" width="8" height="10" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+      }
+    }
+
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <rect x="18" y="${bodyTop}" width="64" height="${bodyH}" rx="2" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.8"/>
+      ${roof}
+      ${centralTower}
+      ${sideTowers}
+      ${orb}
+      ${gateHouse}
+      ${flags}
+      ${windowsTop}
+      ${goldRoof}
+      ${crown}
+      ${windows}
+      <rect x="44" y="80" width="12" height="20" fill="#4a2f10"/>
+      <circle cx="54" cy="90" r="1" fill="#ffd54f"/>
+    </svg>`;
+  }
+
+  if (type === 'house') {
+    // Körper endet bei y=100 (Boden). Dach sitzt oben drauf.
+    const bodyH = 26 + lvl * 3.5;
+    const bodyTop = 100 - bodyH;
+    const roofH = 14 + lvl * 1.6;
+
+    // Fenster: horizontal über Boden, aber vertikal mittig im Körper
+    // Wichtig: nicht zu hoch (nicht ins Dach), nicht zu tief (nicht in Tür)
+    const winY = bodyTop + bodyH * 0.35;
+    const winH = 8;
+    const winW = 9;
+
+    let windows = '';
+    // Linkes Fenster
+    windows += `<rect x="20" y="${winY}" width="${winW}" height="${winH}" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    // Rechtes Fenster (ab Lv.2 zusätzlich, davor nur eins mittig)
+    if (lvl >= 2) {
+      windows += `<rect x="${100-20-winW}" y="${winY}" width="${winW}" height="${winH}" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    } else {
+      windows += `<rect x="${50-winW/2}" y="${winY}" width="${winW}" height="${winH}" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    }
+
+    let extras = '';
+    // Schornstein: sitzt auf dem Dach, nicht am Körper
+    if (lvl >= 3) {
+      const chimY = bodyTop - roofH + 4;
+      extras += `<rect x="46" y="${chimY}" width="8" height="12" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/>`;
+    }
+    // Dachfenster: im Dach, mittig
+    if (lvl >= 4) {
+      const dfY = bodyTop - roofH * 0.55;
+      extras += `<rect x="44" y="${dfY}" width="12" height="7" fill="#4fc3f7" stroke="#01579b" stroke-width="0.8"/>`;
+    }
+    // Zweiter Schornstein (Lv.5)
+    if (lvl >= 5) {
+      const chimY2 = bodyTop - roofH + 4;
+      extras += `<rect x="26" y="${chimY2}" width="6" height="10" fill="#8d6e63" stroke="#4e342e" stroke-width="0.9"/>`;
+    }
+    // Vordach über Tür
+    if (lvl >= 6) {
+      extras += `<path d="M38 74 L62 74 L58 68 L42 68 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/>`;
+    }
+    // Goldene Zierleiste
+    if (lvl >= 7) {
+      extras += `<rect x="30" y="${bodyTop - roofH*0.25}" width="40" height="3" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    }
+    // Fahne
+    if (lvl >= 8) {
+      extras += `<rect x="49" y="${bodyTop - roofH - 10}" width="2" height="12" fill="#555"/><polygon points="51,${bodyTop - roofH - 10} 60,${bodyTop - roofH - 6} 51,${bodyTop - roofH - 2}" fill="#b71c1c"/>`;
+    }
+    // Seitliche Anbauten
+    if (lvl >= 9) {
+      extras += `<rect x="6" y="${bodyTop + 8}" width="8" height="${bodyH - 8}" fill="#a1887f" stroke="#4e342e" stroke-width="1"/><rect x="86" y="${bodyTop + 8}" width="8" height="${bodyH - 8}" fill="#a1887f" stroke="#4e342e" stroke-width="1"/>`;
+    }
+    // Goldene Kugel
+    if (lvl >= 10) {
+      extras += `<circle cx="50" cy="${bodyTop - roofH - 16}" r="3" fill="#ffd54f" stroke="#c99a00" stroke-width="1"/>`;
+    }
+
+    // Tür: exakt auf Bodenlinie y=100, mittig
+    const doorW = 12, doorH = 22;
+    const doorX = 50 - doorW/2;
+    const doorY = 100 - doorH;
+
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="40" ry="3" fill="rgba(0,0,0,0.16)"/>
+      <rect x="14" y="${bodyTop}" width="72" height="${bodyH}" fill="#d98e5a" stroke="#7a3b1a" stroke-width="1.6"/>
+      <polygon points="8,${bodyTop} 50,${bodyTop - roofH} 92,${bodyTop}" fill="#a83232" stroke="#5a1a1a" stroke-width="1.6" stroke-linejoin="round"/>
+      ${windows}
+      ${extras}
+      <rect x="${doorX}" y="${doorY}" width="${doorW}" height="${doorH}" fill="#4a2f10" stroke="#2a1a08" stroke-width="0.8"/>
+      <circle cx="${doorX + doorW - 3}" cy="${doorY + doorH/2}" r="1" fill="#ffd54f"/>
+    </svg>`;
+  }
+
+  if (type === 'farm') {
+    if (lvl >= 5) {
+      const bodyTop = 100 - (20 + lvl * 2);
+      const bodyH = 100 - bodyTop;
+      let chim = '';
+      const chimCount = Math.min(3, Math.floor(lvl/2));
+      for (let i = 0; i < chimCount; i++) {
+        const cxp = 24 + i * 26;
+        const chH = 16 + i * 3 + lvl;
+        chim += `<rect x="${cxp}" y="${bodyTop - chH}" width="6" height="${chH}" fill="#37474f" stroke="#1c262b" stroke-width="1"/>`;
+      }
+      let smoke = '';
+      if (lvl >= 6) smoke = `<circle cx="26" cy="${bodyTop - 20}" r="4" fill="#cfd8dc" opacity="0.7"/><circle cx="50" cy="${bodyTop - 26}" r="5" fill="#cfd8dc" opacity="0.6"/>`;
+      // Fenster horizontal mittig im Körper
+      const winY = bodyTop + bodyH * 0.35;
+      let windows = '';
+      for (let i = 0; i < 5; i++) {
+        windows += `<rect x="${12 + i*15}" y="${winY}" width="9" height="9" fill="#90caf9" stroke="#37474f" stroke-width="0.6"/>`;
+      }
+      return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+        <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.2)"/>
+        <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#546e7a" stroke="#2e3b42" stroke-width="1.6"/>
+        ${windows}
+        ${chim}
+        ${smoke}
+        <rect x="42" y="82" width="16" height="18" fill="#263238"/>
+      </svg>`;
+    }
+    const rows = 2 + Math.min(lvl, 6);
+    const fieldH = 26;
+    const fieldTop = 100 - fieldH;
+    let fieldRows = '';
+    for (let i = 0; i < rows; i++) {
+      const yy = fieldTop + i * (fieldH/rows);
+      fieldRows += `<rect x="8" y="${yy}" width="84" height="${(fieldH/rows)*0.55}" fill="${i%2?'#8bc34a':'#cddc39'}" stroke="#558b2f" stroke-width="0.5"/>`;
+    }
+    // Bauernhaus hat Körper bei y=42..74 (also 32 hoch, über Feld)
+    const houseTop = 42, houseH = 32;
+    // Fenster im Bauernhaus mittig
+    let hw = '';
+    if (lvl >= 2) hw = `<rect x="64" y="${houseTop + houseH*0.45}" width="6" height="6" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.6"/>`;
+    // Tür auf Feldboden
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="4" y="${fieldTop}" width="92" height="${fieldH}" fill="#6b8e23" stroke="#558b2f" stroke-width="1.2" rx="2"/>
+      ${fieldRows}
+      <rect x="58" y="${houseTop}" width="28" height="${houseH}" fill="#a1887f" stroke="#5d4037" stroke-width="1.4"/>
+      <polygon points="54,${houseTop} 72,${houseTop - 14} 90,${houseTop}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.3"/>
+      <rect x="68" y="${100 - 14}" width="8" height="14" fill="#4a2f10"/>
+      ${hw}
+    </svg>`;
+  }
+
+  if (type === 'lumber') {
+    const bodyH = 26 + lvl * 2.4;
+    const bodyTop = 100 - bodyH;
+    const roofH = 14;
+    // Fenster mittig im Körper
+    const winY = bodyTop + bodyH * 0.4;
+    let windows = '';
+    if (lvl >= 2) windows += `<rect x="20" y="${winY}" width="9" height="9" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    if (lvl >= 3) windows += `<rect x="71" y="${winY}" width="9" height="9" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    let extras = '';
+    if (lvl >= 4) extras += `<rect x="46" y="${bodyTop - roofH + 2}" width="8" height="10" fill="#8d6e63" stroke="#4e342e" stroke-width="0.9"/>`;
+    if (lvl >= 5) extras += `<circle cx="22" cy="${100 - 8}" r="4" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/><circle cx="78" cy="${100 - 8}" r="4" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/>`;
+    if (lvl >= 6) extras += `<rect x="10" y="86" width="80" height="3" fill="#a1887f"/>`;
+    if (lvl >= 7) extras += `<rect x="42" y="${bodyTop - roofH - 12}" width="16" height="8" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    if (lvl >= 8) extras += `<circle cx="50" cy="${bodyTop - roofH - 18}" r="3" fill="#ffd54f"/>`;
+    // Tür auf Bodenlinie
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="38" ry="3" fill="rgba(0,0,0,0.16)"/>
+      <rect x="16" y="${bodyTop}" width="68" height="${bodyH}" fill="#795548" stroke="#4e342e" stroke-width="1.6"/>
+      <polygon points="12,${bodyTop} 50,${bodyTop - roofH} 88,${bodyTop}" fill="#5d4037" stroke="#3e2723" stroke-width="1.6" stroke-linejoin="round"/>
+      ${windows}
+      ${extras}
+      <rect x="44" y="78" width="12" height="22" fill="#3e2723"/>
+      <circle cx="53" cy="89" r="1" fill="#ffd54f"/>
+    </svg>`;
+  }
+
+  if (type === 'quarry') {
+    const rockCount = 3 + Math.min(lvl, 7);
+    let rocks = '';
+    for (let i = 0; i < rockCount; i++) {
+      const rx = 8 + (i * 84/rockCount) + Math.random()*2;
+      const ry = 88 + Math.random()*6;
+      const rr = 4 + Math.random()*3;
+      rocks += `<ellipse cx="${rx}" cy="${ry}" rx="${rr}" ry="${rr*0.75}" fill="#bdbdbd" stroke="#616161" stroke-width="0.8"/>`;
+    }
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="40" y="52" width="20" height="20" fill="#757575" stroke="#424242" stroke-width="1"/>`;
+    if (lvl >= 3) extras += `<polygon points="40,52 50,42 60,52" fill="#8d6e63"/>`;
+    if (lvl >= 5) extras += `<rect x="44" y="58" width="6" height="8" fill="#ffe08a"/>`;
+    if (lvl >= 6) extras += `<circle cx="50" cy="46" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 7) extras += `<rect x="18" y="60" width="4" height="20" fill="#616161"/><rect x="78" y="60" width="4" height="20" fill="#616161"/>`;
+    if (lvl >= 8) extras += `<polygon points="12,88 20,78 28,88" fill="#9e9e9e" stroke="#616161" stroke-width="1"/>`;
+    if (lvl >= 9) extras += `<rect x="44" y="28" width="12" height="14" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/>`;
+    if (lvl >= 10) extras += `<circle cx="50" cy="22" r="3" fill="#ffd54f"/>`;
+    // Tür in Hauptgestein, auf Bodenlinie
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <path d="M4 92 L18 46 L38 58 L54 40 L72 52 L88 44 L96 92 Z" fill="#b0bec5" stroke="#546e7a" stroke-width="1.4" stroke-linejoin="round"/>
+      <rect x="42" y="70" width="14" height="22" fill="#3e2723"/>
+      ${rocks}
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'market') {
+    const stalls = 1 + Math.min(lvl, 4);
+    let stallSvg = '';
+    const stallW = 74 / stalls;
+    for (let i = 0; i < stalls; i++) {
+      const x = 12 + i * stallW;
+      stallSvg += `<rect x="${x}" y="52" width="${stallW - 2}" height="34" fill="#ffb74d" stroke="#e65100" stroke-width="1.2"/>
+                   <polygon points="${x-1},52 ${x + (stallW-2)/2},40 ${x + stallW - 1},52" fill="${i%2?'#e53935':'#43a047'}" stroke="#7f1d1d" stroke-width="0.8"/>`;
+    }
+    let extras = '';
+    if (lvl >= 3) extras += `<rect x="46" y="26" width="8" height="18" fill="#8d6e63"/>`;
+    if (lvl >= 5) extras += `<circle cx="50" cy="22" r="4" fill="#ffd54f" stroke="#c99a00" stroke-width="1"/>`;
+    if (lvl >= 6) extras += `<rect x="4" y="52" width="6" height="34" fill="#a1887f"/>`;
+    if (lvl >= 7) extras += `<rect x="90" y="52" width="6" height="34" fill="#a1887f"/>`;
+    if (lvl >= 8) extras += `<rect x="20" y="86" width="60" height="3" fill="#8d6e63"/>`;
+    if (lvl >= 9) extras += `<circle cx="26" cy="70" r="3" fill="#fff3e0"/><circle cx="74" cy="70" r="3" fill="#fff3e0"/>`;
+    // Türen in den Ständen (auf Bodenlinie)
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="8" y="48" width="84" height="40" fill="#ffe0b2" stroke="#bf8f5a" stroke-width="1.4"/>
+      ${stallSvg}
+      ${extras}
+      <rect x="44" y="76" width="12" height="16" fill="#4a2f10"/>
+    </svg>`;
+  }
+
+  if (type === 'mine') {
+    const caveW = 36 + lvl * 1.6;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="14" y="86" width="6" height="8" fill="#9e9e9e"/>`;
+    if (lvl >= 3) extras += `<rect x="80" y="86" width="6" height="8" fill="#9e9e9e"/>`;
+    if (lvl >= 4) extras += `<circle cx="50" cy="60" r="4" fill="#ffd54f" stroke="#c99a00" stroke-width="1"/>`;
+    if (lvl >= 5) extras += `<rect x="36" y="30" width="8" height="20" fill="#6d4c41" stroke="#3e2723" stroke-width="1"/>`;
+    if (lvl >= 6) extras += `<circle cx="50" cy="24" r="4" fill="#ffb300" stroke="#7a5c10" stroke-width="1"/>`;
+    if (lvl >= 7) extras += `<rect x="20" y="48" width="6" height="40" fill="#4e342e"/><rect x="74" y="48" width="6" height="40" fill="#4e342e"/>`;
+    if (lvl >= 8) extras += `<circle cx="20" cy="46" r="4" fill="#ffd54f"/>`;
+    if (lvl >= 9) extras += `<rect x="44" y="8" width="12" height="12" fill="#c9a84c" stroke="#7a5c10" stroke-width="1"/>`;
+    if (lvl >= 10) extras += `<circle cx="50" cy="4" r="3" fill="#ffd54f"/>`;
+    // Tür (Höhleneingang) exakt auf Bodenlinie
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <path d="M2 94 Q50 16 98 94 Z" fill="#6d4c41" stroke="#3e2723" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M${50-caveW/2} 94 Q50 44 ${50+caveW/2} 94 Z" fill="#1a1a1a"/>
+      <rect x="16" y="86" width="8" height="8" fill="#9e9e9e"/>
+      <rect x="76" y="86" width="8" height="8" fill="#9e9e9e"/>
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'barracks') {
+    const bodyH = 30 + lvl * 2.6;
+    const bodyTop = 100 - bodyH;
+    const roofH = 16;
+    // Fenster horizontal mittig
+    const winY = bodyTop + bodyH * 0.4;
+    let windows = '';
+    if (lvl >= 2) windows += `<rect x="18" y="${winY}" width="10" height="10" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    if (lvl >= 3) windows += `<rect x="72" y="${winY}" width="10" height="10" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
+    let extras = '';
+    if (lvl >= 4) extras += `<rect x="6" y="${bodyTop - 8}" width="2" height="20" fill="#555"/><polygon points="7,${bodyTop - 6} 20,${bodyTop - 2} 7,${bodyTop + 2}" fill="#b71c1c"/>`;
+    if (lvl >= 5) extras += `<rect x="92" y="${bodyTop - 8}" width="2" height="20" fill="#555"/><polygon points="93,${bodyTop - 6} 80,${bodyTop - 2} 93,${bodyTop + 2}" fill="#b71c1c"/>`;
+    if (lvl >= 6) extras += `<circle cx="50" cy="${bodyTop - roofH + 4}" r="4" fill="#b71c1c" stroke="#7f0000" stroke-width="1"/>`;
+    if (lvl >= 7) extras += `<rect x="20" y="${bodyTop - roofH - 8}" width="12" height="8" fill="#8d6e63"/>`;
+    if (lvl >= 8) extras += `<rect x="68" y="${bodyTop - roofH - 8}" width="12" height="8" fill="#8d6e63"/>`;
+    if (lvl >= 9) extras += `<rect x="44" y="${bodyTop - roofH - 16}" width="12" height="10" fill="#c9a84c" stroke="#7a5c10" stroke-width="1"/>`;
+    if (lvl >= 10) extras += `<circle cx="50" cy="${bodyTop - roofH - 22}" r="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="#8d6e63" stroke="#4e342e" stroke-width="1.6"/>
+      <polygon points="6,${bodyTop} 50,${bodyTop - roofH} 94,${bodyTop}" fill="#5d4037" stroke="#3e2723" stroke-width="1.6" stroke-linejoin="round"/>
+      ${windows}
+      ${extras}
+      <rect x="42" y="78" width="16" height="22" fill="#3e2723"/>
+      <circle cx="54" cy="89" r="1" fill="#ffd54f"/>
+    </svg>`;
+  }
+
+  if (type === 'tower' || type === 'watchtower') {
+    const towerH = 40 + lvl * 3.5;
+    const topY = 100 - towerH - 14;
+    let extras = '';
+    // Fenster vertikal verteilt, aber innerhalb Turm
+    if (lvl >= 2) extras += `<rect x="44" y="${topY + 16}" width="12" height="8" fill="#263238"/>`;
+    if (lvl >= 3) extras += `<rect x="42" y="${topY + 30}" width="16" height="10" fill="#455a64" stroke="#263238" stroke-width="0.8"/>`;
+    if (lvl >= 4) extras += `<rect x="36" y="${topY}" width="28" height="8" fill="#37474f" stroke="#263238" stroke-width="1"/>`;
+    if (lvl >= 5) extras += `<polygon points="34,${topY} 50,${topY - 14} 66,${topY}" fill="#b71c1c" stroke="#7f0000" stroke-width="1"/>`;
+    if (lvl >= 6) extras += `<circle cx="50" cy="${topY - 20}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 7) extras += `<rect x="30" y="${topY + 26}" width="4" height="20" fill="#546e7a"/><rect x="66" y="${topY + 26}" width="4" height="20" fill="#546e7a"/>`;
+    if (lvl >= 8) extras += `<rect x="46" y="${topY - 26}" width="8" height="8" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    // Tür auf Bodenlinie
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="34" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <rect x="34" y="${topY + 8}" width="32" height="${towerH}" fill="#78909c" stroke="#37474f" stroke-width="1.6"/>
+      <rect x="28" y="${topY}" width="44" height="10" fill="#546e7a" stroke="#37474f" stroke-width="1.4"/>
+      ${extras}
+      <rect x="44" y="86" width="12" height="14" fill="#263238"/>
+    </svg>`;
+  }
+
+  if (type === 'factory') {
+    const bodyH = 28 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    let chim = '';
+    const chimCount = Math.min(3, 1 + Math.floor(lvl/3));
+    for (let i = 0; i < chimCount; i++) {
+      const cx = 20 + i * 30;
+      const chH = 18 + i * 3 + lvl;
+      chim += `<rect x="${cx}" y="${bodyTop - chH}" width="6" height="${chH}" fill="#37474f" stroke="#1c262b" stroke-width="1"/>`;
+    }
+    let smoke = '';
+    if (lvl >= 4) smoke = `<circle cx="24" cy="${bodyTop - 26}" r="4" fill="#cfd8dc" opacity="0.7"/><circle cx="54" cy="${bodyTop - 34}" r="5" fill="#cfd8dc" opacity="0.6"/><circle cx="84" cy="${bodyTop - 28}" r="4" fill="#cfd8dc" opacity="0.65"/>`;
+    // Fenster horizontal in Körpermitte
+    const winY = bodyTop + bodyH * 0.4;
+    let windows = '';
+    const winN = Math.min(5, 2 + Math.floor(lvl/2));
+    for (let i = 0; i < winN; i++) {
+      windows += `<rect x="${12 + i*15}" y="${winY}" width="9" height="9" fill="#90caf9" stroke="#37474f" stroke-width="0.6"/>`;
+    }
+    let extras = '';
+    if (lvl >= 3) extras += `<rect x="76" y="${bodyTop + 4}" width="14" height="10" fill="#90a4ae" stroke="#455a64" stroke-width="0.8"/>`;
+    if (lvl >= 5) extras += `<rect x="10" y="${bodyTop + 4}" width="14" height="10" fill="#90a4ae" stroke="#455a64" stroke-width="0.8"/>`;
+    if (lvl >= 7) extras += `<circle cx="50" cy="${bodyTop - 12}" r="4" fill="#ffd54f" stroke="#c99a00" stroke-width="0.8"/>`;
+    if (lvl >= 9) extras += `<rect x="20" y="92" width="60" height="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <rect x="4" y="${bodyTop}" width="92" height="${bodyH}" fill="#546e7a" stroke="#2e3b42" stroke-width="1.6"/>
+      ${windows}
+      ${chim}
+      ${smoke}
+      ${extras}
+      <rect x="42" y="80" width="16" height="20" fill="#263238"/>
+      <circle cx="53" cy="90" r="1" fill="#ffd54f"/>
+    </svg>`;
+  }
+
+  if (type === 'fortress') {
+    const bodyH = 34 + lvl * 2.6;
+    const bodyTop = 100 - bodyH;
+    let towers = '';
+    if (lvl >= 2) towers += `<rect x="6" y="${bodyTop - 10}" width="12" height="${bodyH + 10}" fill="#8e7eae" stroke="#2a1d4a" stroke-width="1.2"/>`;
+    if (lvl >= 3) towers += `<rect x="82" y="${bodyTop - 10}" width="12" height="${bodyH + 10}" fill="#8e7eae" stroke="#2a1d4a" stroke-width="1.2"/>`;
+    if (lvl >= 4) towers += `<polygon points="6,${bodyTop - 10} 12,${bodyTop - 20} 18,${bodyTop - 10}" fill="#b71c1c"/>`;
+    if (lvl >= 5) towers += `<polygon points="82,${bodyTop - 10} 88,${bodyTop - 20} 94,${bodyTop - 10}" fill="#b71c1c"/>`;
+    if (lvl >= 6) towers += `<rect x="44" y="${bodyTop - 22}" width="12" height="14" fill="#3a2a5a" stroke="#1a1030" stroke-width="1"/>`;
+    if (lvl >= 7) towers += `<polygon points="44,${bodyTop - 22} 50,${bodyTop - 32} 56,${bodyTop - 22}" fill="#b71c1c"/>`;
+    if (lvl >= 8) towers += `<circle cx="50" cy="${bodyTop - 38}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 9) towers += `<rect x="20" y="${bodyTop + 4}" width="8" height="10" fill="#ffe08a"/><rect x="72" y="${bodyTop + 4}" width="8" height="10" fill="#ffe08a"/>`;
+    if (lvl >= 10) towers += `<rect x="28" y="${bodyTop - 14}" width="44" height="4" fill="#ffd54f"/>`;
+    // Haupttor auf Bodenlinie
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.22)"/>
+      <rect x="14" y="${bodyTop}" width="72" height="${bodyH}" fill="#7a6a9a" stroke="#2a1d4a" stroke-width="1.6"/>
+      ${towers}
+      <rect x="42" y="80" width="16" height="20" fill="#1a1030"/>
+      <path d="M42 80 Q50 72 58 80" fill="#1a1030"/>
+    </svg>`;
+  }
+
+  if (type === 'tavern') {
+    const bodyH = 24 + lvl * 2.2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 16;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<circle cx="22" cy="${winY + 4}" r="3" fill="#ffe08a"/>`;
+    if (lvl >= 3) extras += `<circle cx="78" cy="${winY + 4}" r="3" fill="#ffe08a"/>`;
+    if (lvl >= 4) extras += `<rect x="46" y="${bodyTop - roofH + 2}" width="8" height="10" fill="#8d3b2a"/>`;
+    if (lvl >= 5) extras += `<circle cx="50" cy="${bodyTop - roofH - 2}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 6) extras += `<rect x="24" y="${bodyTop - roofH - 6}" width="4" height="8" fill="#8d6e63"/>`;
+    if (lvl >= 7) extras += `<circle cx="26" cy="${bodyTop - roofH - 8}" r="2.5" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="40" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="12" y="${bodyTop}" width="76" height="${bodyH}" fill="#d7a86e" stroke="#8d5a20" stroke-width="1.6"/>
+      <polygon points="8,${bodyTop} 50,${bodyTop - roofH} 92,${bodyTop}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.5"/>
+      ${extras}
+      <rect x="44" y="80" width="12" height="20" fill="#4a2f10"/>
+    </svg>`;
+  }
+
+  if (type === 'well') {
+    const wellH = 14 + lvl * 1.5;
+    const wellY = 100 - wellH - 4;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="30" y="${wellY - 18}" width="40" height="3" fill="#8d6e63"/>`;
+    if (lvl >= 3) extras += `<polygon points="30,${wellY - 18} 50,${wellY - 30} 70,${wellY - 18}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1"/>`;
+    if (lvl >= 4) extras += `<circle cx="50" cy="${wellY - 34}" r="2.5" fill="#ffd54f"/>`;
+    if (lvl >= 5) extras += `<rect x="24" y="${wellY + 4}" width="52" height="3" fill="#78909c"/>`;
+    if (lvl >= 6) extras += `<circle cx="50" cy="${wellY - 6}" r="3" fill="#4fc3f7" stroke="#01579b" stroke-width="0.8"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="34" ry="3" fill="rgba(0,0,0,0.16)"/>
+      <rect x="22" y="${wellY}" width="56" height="${wellH}" fill="#b0bec5" stroke="#455a64" stroke-width="1.4"/>
+      <rect x="20" y="${wellY - 4}" width="60" height="5" fill="#78909c" stroke="#455a64" stroke-width="1.2"/>
+      <rect x="32" y="${wellY + 4}" width="10" height="${wellH - 4}" fill="#263238"/>
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'bakery') {
+    const bodyH = 26 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 16;
+    const winY = bodyTop + bodyH * 0.35;
+    let extras = '';
+    if (lvl >= 2) extras += `<circle cx="50" cy="${bodyTop - roofH - 2}" r="2.5" fill="#fff3e0"/>`;
+    if (lvl >= 3) extras += `<rect x="20" y="${winY}" width="8" height="8" fill="#fff3e0" stroke="#bf8f5a" stroke-width="0.6"/>`;
+    if (lvl >= 4) extras += `<rect x="72" y="${winY}" width="8" height="8" fill="#fff3e0" stroke="#bf8f5a" stroke-width="0.6"/>`;
+    if (lvl >= 5) extras += `<circle cx="34" cy="${bodyTop - roofH + 4}" r="2" fill="#fff3e0"/>`;
+    if (lvl >= 6) extras += `<circle cx="66" cy="${bodyTop - roofH + 4}" r="2" fill="#fff3e0"/>`;
+    if (lvl >= 7) extras += `<rect x="44" y="${bodyTop - roofH - 10}" width="12" height="8" fill="#c9a84c"/>`;
+    if (lvl >= 8) extras += `<circle cx="50" cy="${bodyTop - roofH - 14}" r="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="#f0c080" stroke="#8d5a20" stroke-width="1.6"/>
+      <polygon points="6,${bodyTop} 50,${bodyTop - roofH} 94,${bodyTop}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.5"/>
+      ${extras}
+      <rect x="36" y="80" width="14" height="20" fill="#fff3e0" stroke="#bf8f5a" stroke-width="0.8"/>
+      <circle cx="43" cy="90" r="1" fill="#8d5a20"/>
+    </svg>`;
+  }
+
+  if (type === 'blacksmith') {
+    const bodyH = 24 + lvl * 2.2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 16;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<circle cx="50" cy="${bodyTop - roofH - 2}" r="3" fill="#ff7043" stroke="#b71c1c" stroke-width="0.8"/>`;
+    if (lvl >= 3) extras += `<rect x="16" y="${winY}" width="8" height="8" fill="#ffb74d"/>`;
+    if (lvl >= 4) extras += `<rect x="76" y="${winY}" width="8" height="8" fill="#ffb74d"/>`;
+    if (lvl >= 5) extras += `<path d="M30 ${bodyTop + 6} L36 ${bodyTop - 2} L42 ${bodyTop + 6}" stroke="#ffb74d" stroke-width="2" fill="none"/>`;
+    if (lvl >= 6) extras += `<rect x="22" y="${bodyTop - roofH - 8}" width="4" height="12" fill="#555"/><rect x="74" y="${bodyTop - roofH - 8}" width="4" height="12" fill="#555"/>`;
+    if (lvl >= 7) extras += `<circle cx="24" cy="${bodyTop - roofH - 10}" r="2" fill="#ffd54f"/><circle cx="76" cy="${bodyTop - roofH - 10}" r="2" fill="#ffd54f"/>`;
+    if (lvl >= 8) extras += `<rect x="44" y="${bodyTop - roofH - 14}" width="12" height="8" fill="#c9a84c" stroke="#7a5c10" stroke-width="1"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="#6d4c41" stroke="#3e2723" stroke-width="1.6"/>
+      <polygon points="6,${bodyTop} 50,${bodyTop - roofH} 94,${bodyTop}" fill="#4e342e" stroke="#2a1d1a" stroke-width="1.5"/>
+      ${extras}
+      <rect x="42" y="80" width="16" height="20" fill="#1a1a1a"/>
+      <circle cx="48" cy="90" r="1.2" fill="#ff7043"/>
+    </svg>`;
+  }
+
+  if (type === 'university') {
+    const bodyH = 28 + lvl * 2.4;
+    const bodyTop = 100 - bodyH;
+    const roofH = 14;
+    const cols = Math.min(5, 2 + Math.floor(lvl/2));
+    let colSvg = '';
+    for (let i = 0; i < cols; i++) {
+      const cx = 18 + i * (64/(cols-1 || 1));
+      colSvg += `<rect x="${cx - 1.5}" y="${bodyTop}" width="3" height="${bodyH}" fill="#8d7a4a"/>`;
+    }
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="46" y="${bodyTop - roofH + 2}" width="8" height="10" fill="#4a2f10"/>`;
+    if (lvl >= 3) extras += `<circle cx="50" cy="${bodyTop - roofH - 4}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 4) extras += `<rect x="20" y="${bodyTop + 8}" width="6" height="8" fill="#90caf9"/>`;
+    if (lvl >= 5) extras += `<rect x="74" y="${bodyTop + 8}" width="6" height="8" fill="#90caf9"/>`;
+    if (lvl >= 6) extras += `<rect x="20" y="${bodyTop - roofH + 4}" width="60" height="3" fill="#c9a84c"/>`;
+    if (lvl >= 7) extras += `<polygon points="14,${bodyTop - roofH + 4} 50,${bodyTop - roofH - 10} 86,${bodyTop - roofH + 4}" fill="#8d6e63" stroke="#4e342e" stroke-width="1"/>`;
+    if (lvl >= 8) extras += `<circle cx="50" cy="${bodyTop - roofH - 16}" r="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="8" y="${bodyTop}" width="84" height="${bodyH}" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.6"/>
+      ${colSvg}
+      ${extras}
+      <rect x="44" y="82" width="12" height="18" fill="#4a2f10"/>
+    </svg>`;
+  }
+
+  if (type === 'wall') {
+    const wallH = 20 + lvl * 2;
+    const wallY = 100 - wallH;
+    let merlons = '';
+    for (let i = 0; i < 6; i++) {
+      merlons += `<rect x="${6 + i*15}" y="${wallY - 6}" width="8" height="6" fill="#b0bec5" stroke="#555" stroke-width="0.8"/>`;
+    }
+    let extras = '';
+    if (lvl >= 3) extras += `<rect x="46" y="${wallY + 6}" width="8" height="8" fill="#ffe08a"/>`;
+    if (lvl >= 5) extras += `<rect x="24" y="${wallY + 6}" width="6" height="8" fill="#ffe08a"/><rect x="70" y="${wallY + 6}" width="6" height="8" fill="#ffe08a"/>`;
+    if (lvl >= 7) extras += `<rect x="46" y="${wallY - 16}" width="8" height="10" fill="#8d6e63"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="46" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <rect x="4" y="${wallY}" width="92" height="${wallH}" fill="#a8a8a8" stroke="#555" stroke-width="1.5"/>
+      ${merlons}
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'shipyard' || type === 'harbor') {
+    const bodyH = 24 + lvl * 2;
+    const bodyTop = 100 - bodyH - 8;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="20" y="${bodyTop + 8}" width="60" height="3" fill="#4e342e"/>`;
+    if (lvl >= 3) extras += `<rect x="46" y="${bodyTop - 16}" width="8" height="16" fill="#8d6e63"/>`;
+    if (lvl >= 4) extras += `<polygon points="46,${bodyTop - 16} 54,${bodyTop - 24} 54,${bodyTop - 16}" fill="#fff"/>`;
+    if (lvl >= 5) extras += `<rect x="14" y="${bodyTop + 4}" width="6" height="${bodyH - 4}" fill="#6d4c41"/>`;
+    if (lvl >= 6) extras += `<rect x="80" y="${bodyTop + 4}" width="6" height="${bodyH - 4}" fill="#6d4c41"/>`;
+    if (lvl >= 7) extras += `<circle cx="50" cy="${bodyTop - 28}" r="2.5" fill="#ffd54f"/>`;
+    if (lvl >= 8) extras += `<rect x="20" y="${bodyTop + 12}" width="60" height="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <rect x="4" y="88" width="92" height="9" fill="#4fc3f7" stroke="#01579b" stroke-width="1.2"/>
+      <rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="#8d6e63" stroke="#4e342e" stroke-width="1.4"/>
+      <polygon points="14,${bodyTop} 50,${bodyTop - 14} 86,${bodyTop}" fill="#5d4037" stroke="#3e2723" stroke-width="1.3"/>
+      <rect x="46" y="80" width="10" height="12" fill="#4a2f10"/>
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'bank') {
+    const bodyH = 28 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 16;
+    let cols = '';
+    const ccount = 4 + Math.min(lvl, 4);
+    for (let i = 0; i < ccount; i++) {
+      const cx = 12 + i * (76/(ccount-1));
+      cols += `<rect x="${cx - 2}" y="${bodyTop}" width="4" height="${bodyH}" fill="#8d7a4a"/>`;
+    }
+    let extras = '';
+    if (lvl >= 2) extras += `<circle cx="50" cy="${bodyTop - roofH - 4}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 3) extras += `<rect x="40" y="${bodyTop - roofH - 12}" width="20" height="8" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    if (lvl >= 4) extras += `<circle cx="24" cy="${bodyTop - roofH + 2}" r="2" fill="#ffd54f"/><circle cx="76" cy="${bodyTop - roofH + 2}" r="2" fill="#ffd54f"/>`;
+    if (lvl >= 5) extras += `<rect x="20" y="${bodyTop + 10}" width="6" height="6" fill="#90caf9"/><rect x="74" y="${bodyTop + 10}" width="6" height="6" fill="#90caf9"/>`;
+    if (lvl >= 6) extras += `<rect x="16" y="${bodyTop - roofH - 18}" width="68" height="4" fill="#c9a84c"/>`;
+    if (lvl >= 7) extras += `<circle cx="30" cy="${bodyTop - roofH - 22}" r="2.5" fill="#ffd54f"/><circle cx="70" cy="${bodyTop - roofH - 22}" r="2.5" fill="#ffd54f"/>`;
+    if (lvl >= 8) extras += `<circle cx="50" cy="${bodyTop - roofH - 24}" r="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.6"/>
+      ${cols}
+      <polygon points="4,${bodyTop} 50,${bodyTop - roofH} 96,${bodyTop}" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.5"/>
+      ${extras}
+      <rect x="44" y="82" width="12" height="18" fill="#4a2f10"/>
+    </svg>`;
+  }
+
+  /* ----- NEUE GEBÄUDE ----- */
+  if (type === 'windmill') {
+    const bodyH = 22 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 12;
+    const winY = bodyTop + bodyH * 0.4;
+    const bladeY = bodyTop - roofH - 2;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="46" y="${winY}" width="8" height="8" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.6"/>`;
+    if (lvl >= 3) extras += `<rect x="30" y="${winY}" width="6" height="6" fill="#ffe08a"/>`;
+    if (lvl >= 5) extras += `<rect x="64" y="${winY}" width="6" height="6" fill="#ffe08a"/>`;
+    if (lvl >= 6) extras += `<rect x="46" y="${bodyTop - roofH - 22}" width="8" height="8" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="40" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="20" y="${bodyTop}" width="60" height="${bodyH}" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.5"/>
+      <polygon points="16,${bodyTop} 50,${bodyTop - roofH} 84,${bodyTop}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.3"/>
+      <g transform="translate(50 ${bladeY})">
+        <rect x="-1.2" y="-16" width="2.4" height="32" fill="#8d6e63"/>
+        <rect x="-16" y="-1.2" width="32" height="2.4" fill="#8d6e63"/>
+      </g>
+      <circle cx="50" cy="${bladeY}" r="2.5" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>
+      <rect x="44" y="80" width="12" height="20" fill="#4a2f10"/>
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'fishing') {
+    const houseH = 22 + lvl * 2;
+    const houseTop = 100 - houseH - 4;
+    const roofH = 12;
+    const winY = houseTop + houseH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="34" y="${winY}" width="8" height="8" fill="#ffe08a"/>`;
+    if (lvl >= 3) extras += `<circle cx="50" cy="${houseTop - roofH - 2}" r="2.5" fill="#ffd54f"/>`;
+    if (lvl >= 5) extras += `<rect x="60" y="${winY}" width="6" height="6" fill="#ffe08a"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="46" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="4" y="86" width="92" height="11" fill="#4fc3f7" stroke="#01579b" stroke-width="1.2"/>
+      <path d="M6 86 Q50 78 94 86" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.6"/>
+      <rect x="24" y="${houseTop}" width="46" height="${houseH}" fill="#a1887f" stroke="#4e342e" stroke-width="1.4"/>
+      <polygon points="20,${houseTop} 47,${houseTop - roofH} 74,${houseTop}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.2"/>
+      <rect x="42" y="80" width="10" height="14" fill="#4a2f10"/>
+      ${extras}
+      <rect x="78" y="${houseTop + 4}" width="2" height="${houseH - 4}" fill="#8d6e63"/>
+      <path d="M80 ${houseTop + 4} L90 ${houseTop + 8} L80 ${houseTop + 12} Z" fill="#e53935"/>
+    </svg>`;
+  }
+
+  if (type === 'library') {
+    const bodyH = 24 + lvl * 2.4;
+    const bodyTop = 100 - bodyH;
+    const roofH = 14;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="20" y="${winY}" width="8" height="8" fill="#ffe08a"/>`;
+    if (lvl >= 3) extras += `<rect x="72" y="${winY}" width="8" height="8" fill="#ffe08a"/>`;
+    if (lvl >= 5) extras += `<rect x="46" y="${bodyTop - roofH + 4}" width="8" height="8" fill="#4fc3f7" stroke="#01579b" stroke-width="0.8"/>`;
+    if (lvl >= 6) extras += `<rect x="30" y="${bodyTop - roofH - 6}" width="40" height="3" fill="#c9a84c"/>`;
+    if (lvl >= 8) extras += `<circle cx="50" cy="${bodyTop - roofH - 10}" r="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="12" y="${bodyTop}" width="76" height="${bodyH}" fill="#a1887f" stroke="#4e342e" stroke-width="1.5"/>
+      <polygon points="8,${bodyTop} 50,${bodyTop - roofH} 92,${bodyTop}" fill="#5d4037" stroke="#3e2723" stroke-width="1.4"/>
+      <rect x="46" y="80" width="10" height="20" fill="#4a2f10"/>
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'theater') {
+    const bodyH = 26 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 12;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="16" y="${bodyTop + bodyH*0.4}" width="10" height="10" fill="#ffe08a"/>`;
+    if (lvl >= 3) extras += `<rect x="74" y="${bodyTop + bodyH*0.4}" width="10" height="10" fill="#ffe08a"/>`;
+    if (lvl >= 5) extras += `<circle cx="50" cy="${bodyTop - roofH - 2}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 6) extras += `<rect x="46" y="${bodyTop - roofH - 14}" width="8" height="10" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    if (lvl >= 8) extras += `<polygon points="30,${bodyTop - roofH + 4} 50,${bodyTop - roofH - 8} 70,${bodyTop - roofH + 4}" fill="#8d3b2a"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.5"/>
+      <path d="M6 ${bodyTop} Q14 ${bodyTop - roofH} 22 ${bodyTop} Q30 ${bodyTop - roofH} 38 ${bodyTop} Q46 ${bodyTop - roofH} 54 ${bodyTop} Q62 ${bodyTop - roofH} 70 ${bodyTop} Q78 ${bodyTop - roofH} 86 ${bodyTop} Q94 ${bodyTop - roofH} 94 ${bodyTop}" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.2"/>
+      ${extras}
+      <rect x="42" y="80" width="16" height="20" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="0.8"/>
+      <circle cx="50" cy="90" r="2" fill="#ffd54f"/>
+    </svg>`;
+  }
+
+  if (type === 'temple') {
+    const bodyH = 30 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 18;
+    let cols = '';
+    const ccount = 4 + Math.min(lvl, 4);
+    for (let i = 0; i < ccount; i++) {
+      const cx = 12 + i * (76/(ccount-1));
+      cols += `<rect x="${cx - 2}" y="${bodyTop}" width="4" height="${bodyH}" fill="#8d7a4a"/>`;
+    }
+    let extras = '';
+    if (lvl >= 2) extras += `<circle cx="50" cy="${bodyTop - roofH - 4}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 3) extras += `<rect x="40" y="${bodyTop - roofH - 14}" width="20" height="10" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>`;
+    if (lvl >= 4) extras += `<rect x="30" y="${bodyTop + 10}" width="40" height="4" fill="#c9a84c"/>`;
+    if (lvl >= 5) extras += `<rect x="20" y="${bodyTop + 14}" width="8" height="10" fill="#ffd54f" stroke="#c99a00" stroke-width="0.8"/><rect x="72" y="${bodyTop + 14}" width="8" height="10" fill="#ffd54f" stroke="#c99a00" stroke-width="0.8"/>`;
+    if (lvl >= 6) extras += `<circle cx="30" cy="${bodyTop - roofH - 8}" r="2" fill="#ffd54f"/><circle cx="70" cy="${bodyTop - roofH - 8}" r="2" fill="#ffd54f"/>`;
+    if (lvl >= 7) extras += `<polygon points="10,${bodyTop - roofH - 18} 50,${bodyTop - roofH - 30} 90,${bodyTop - roofH - 18}" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.2"/>`;
+    if (lvl >= 8) extras += `<circle cx="50" cy="${bodyTop - roofH - 34}" r="3" fill="#ffd54f"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.6"/>
+      ${cols}
+      <polygon points="4,${bodyTop} 50,${bodyTop - roofH} 96,${bodyTop}" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.5"/>
+      ${extras}
+      <rect x="44" y="82" width="12" height="18" fill="#4a2f10"/>
+    </svg>`;
+  }
+
+  if (type === 'stable') {
+    const bodyH = 24 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 14;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<ellipse cx="20" cy="${winY + 4}" rx="3" ry="2.5" fill="#fff" stroke="#4e342e" stroke-width="0.8"/>`;
+    if (lvl >= 3) extras += `<ellipse cx="80" cy="${winY + 4}" rx="3" ry="2.5" fill="#fff" stroke="#4e342e" stroke-width="0.8"/>`;
+    if (lvl >= 4) extras += `<circle cx="50" cy="${bodyTop - roofH - 2}" r="3" fill="#c9a84c"/>`;
+    if (lvl >= 6) extras += `<rect x="20" y="${bodyTop - roofH - 8}" width="8" height="8" fill="#8d6e63"/>`;
+    if (lvl >= 8) extras += `<rect x="72" y="${bodyTop - roofH - 8}" width="8" height="8" fill="#8d6e63"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="#a1887f" stroke="#4e342e" stroke-width="1.5"/>
+      <polygon points="6,${bodyTop} 50,${bodyTop - roofH} 94,${bodyTop}" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.4"/>
+      ${extras}
+      <rect x="42" y="80" width="16" height="20" fill="#3e2723"/>
+      <path d="M42 80 Q50 74 58 80" fill="#3e2723"/>
+    </svg>`;
+  }
+
+  if (type === 'arena') {
+    const bodyTop = 100 - (30 + lvl * 2);
+    let extras = '';
+    if (lvl >= 2) extras += `<ellipse cx="50" cy="80" rx="34" ry="14" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/>`;
+    if (lvl >= 3) extras += `<ellipse cx="50" cy="80" rx="22" ry="9" fill="#6d4c41"/>`;
+    if (lvl >= 4) extras += `<rect x="6" y="${bodyTop}" width="1.5" height="18" fill="#8d6e63"/><polygon points="6,${bodyTop} 14,${bodyTop + 3} 6,${bodyTop + 6}" fill="#e53935"/>`;
+    if (lvl >= 5) extras += `<rect x="92" y="${bodyTop}" width="1.5" height="18" fill="#8d6e63"/><polygon points="93,${bodyTop} 85,${bodyTop + 3} 93,${bodyTop + 6}" fill="#1e88e5"/>`;
+    if (lvl >= 6) extras += `<circle cx="50" cy="${bodyTop - 4}" r="3" fill="#ffd54f"/>`;
+    if (lvl >= 8) extras += `<rect x="20" y="${bodyTop - 10}" width="60" height="3" fill="#c9a84c"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="46" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <ellipse cx="50" cy="82" rx="44" ry="18" fill="#a1887f" stroke="#4e342e" stroke-width="1.4"/>
+      <ellipse cx="50" cy="82" rx="34" ry="13" fill="#8d6e63"/>
+      <ellipse cx="50" cy="82" rx="20" ry="8" fill="#6d4c41"/>
+      <ellipse cx="50" cy="82" rx="10" ry="4" fill="#4e342e"/>
+      ${extras}
+    </svg>`;
+  }
+
+  if (type === 'workshop') {
+    const bodyH = 26 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 10;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<rect x="20" y="${winY}" width="8" height="8" fill="#ffb74d"/>`;
+    if (lvl >= 3) extras += `<rect x="72" y="${winY}" width="8" height="8" fill="#ffb74d"/>`;
+    if (lvl >= 4) extras += `<circle cx="50" cy="${bodyTop + bodyH*0.55}" r="3" fill="#ffb74d" stroke="#bf6a00" stroke-width="0.8"/>`;
+    if (lvl >= 5) extras += `<rect x="6" y="${bodyTop - roofH - 4}" width="6" height="8" fill="#37474f"/>`;
+    if (lvl >= 6) extras += `<rect x="88" y="${bodyTop - roofH - 4}" width="6" height="8" fill="#37474f"/>`;
+    if (lvl >= 8) extras += `<rect x="30" y="${bodyTop - roofH - 10}" width="40" height="3" fill="#c9a84c"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="#78909c" stroke="#37474f" stroke-width="1.5"/>
+      <rect x="10" y="${bodyTop - roofH}" width="80" height="3" fill="#546e7a" stroke="#37474f" stroke-width="1"/>
+      ${extras}
+      <rect x="44" y="80" width="12" height="20" fill="#263238"/>
+      <circle cx="50" cy="90" r="1.5" fill="#ffb74d"/>
+    </svg>`;
+  }
+
+  if (type === 'church') {
+    const bodyH = 26 + lvl * 2;
+    const bodyTop = 100 - bodyH;
+    const roofH = 16;
+    const winY = bodyTop + bodyH * 0.4;
+    let extras = '';
+    if (lvl >= 2) extras += `<circle cx="50" cy="${bodyTop - roofH - 6}" r="2.5" fill="#ffd54f"/>`;
+    if (lvl >= 3) extras += `<path d="M42 ${bodyTop - roofH - 2} L50 ${bodyTop - roofH - 14} L58 ${bodyTop - roofH - 2} Z" fill="#8d3b2a"/>`;
+    if (lvl >= 4) extras += `<rect x="20" y="${winY}" width="6" height="10" fill="#4fc3f7" stroke="#01579b" stroke-width="0.6"/>`;
+    if (lvl >= 5) extras += `<rect x="74" y="${winY}" width="6" height="10" fill="#4fc3f7" stroke="#01579b" stroke-width="0.6"/>`;
+    if (lvl >= 7) extras += `<rect x="30" y="${bodyTop - roofH - 14}" width="40" height="3" fill="#c9a84c"/>`;
+    if (lvl >= 8) extras += `<rect x="49" y="${bodyTop - roofH - 26}" width="2" height="10" fill="#c9a84c"/><rect x="45" y="${bodyTop - roofH - 22}" width="10" height="2" fill="#c9a84c"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.15)"/>
+      <rect x="12" y="${bodyTop}" width="76" height="${bodyH}" fill="#e8dfc8" stroke="#8d7a4a" stroke-width="1.5"/>
+      <polygon points="8,${bodyTop} 50,${bodyTop - roofH} 92,${bodyTop}" fill="#8d6e63" stroke="#4e342e" stroke-width="1.4"/>
+      ${extras}
+      <rect x="44" y="80" width="12" height="20" fill="#4a2f10"/>
+    </svg>`;
+  }
+
+  // Fallback
+  return `<svg viewBox="0 0 100 100"><rect x="10" y="30" width="80" height="60" fill="#c9a84c" stroke="#7a5c10" stroke-width="2" rx="4"/></svg>`;
+}
+
+/* ---------- BUILDER SVG ---------- */
+function builderSVG(color) {
+  const c = color || '#ffb74d';
+  const skin = '#e0ac69';
+  return `<svg viewBox="0 0 20 26" preserveAspectRatio="xMidYMax meet">
+    <circle cx="10" cy="6" r="4" fill="${skin}"/>
+    <path d="M5 6 Q10 1 15 6 L15 5 Q10 0 5 5 Z" fill="#ffd54f" stroke="#bf6a00" stroke-width="0.6"/>
+    <rect x="5" y="10" width="10" height="10" rx="2" fill="${c}"/>
+    <rect x="5.5" y="20" width="3.5" height="6" fill="#37474f"/>
+    <rect x="11" y="20" width="3.5" height="6" fill="#37474f"/>
+    <g class="hammer">
+      <rect x="14" y="12" width="2" height="8" fill="#8d6e63"/>
+      <rect x="12" y="10" width="6" height="3" fill="#78909c"/>
+    </g>
+  </svg>`;
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function getCost(type, level) {
+  const def = BUILDINGS[type];
+  if (level === 0) return Math.round(def.cost);
+  return Math.round(def.baseCost * Math.pow(def.costMult, level));
+}
+function getUpgradeCost(b) { return getCost(b.type, b.level); }
+function costString(type, level) { return getCost(type, level).toLocaleString('de-DE'); }
+
+/* Bauzeit in Sekunden (Basis × Level-Faktor × Größe) */
+function getBuildTime(type, level) {
+  const def = BUILDINGS[type];
+  const base = def.buildTime || 8;
+  const sizeFactor = def.size === 3 ? 1.6 : def.size === 2 ? 1.2 : 1;
+  if (level === 0) return Math.round(base * sizeFactor);
+  return Math.round(base * sizeFactor * (0.8 + level * 0.4));
+}
+function formatTime(sec) {
+  sec = Math.max(0, Math.ceil(sec));
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m < 60) return m + 'm ' + s + 's';
+  const h = Math.floor(m / 60);
+  return h + 'h ' + (m % 60) + 'm';
+}
+
+/* =========================================================
+   RECALC / PRODUCTION
+   ========================================================= */
+function recalc() {
+  let popCap = 0, workerNeed = 0, soldierCap = 0, happy = 0;
+  state.buildings.forEach(b => {
+    if (b.construction) return; // Baustellen zählen nicht
+    const def = BUILDINGS[b.type];
+    if (def.popPerLevel) popCap += def.popPerLevel[b.level-1] || 0;
+    if (def.popBonus && b.type === 'main') popCap += def.popBonus[b.level-1] || 0;
+    if (def.soldierPerLevel) soldierCap += def.soldierPerLevel[b.level-1] || 0;
+    if (def.soldierBonus && b.type === 'main') soldierCap += def.soldierBonus[b.level-1] || 0;
+    if (def.needs && def.needs.workers) workerNeed += def.needs.workers * b.level;
+    if (def.happyBonus) happy += def.happyBonus[b.level-1] || 0;
+  });
+  state.populationCap = Math.max(10, popCap);
+  state.workersNeeded = workerNeed;
+  state.soldierCap = Math.max(2, soldierCap);
+  state.happiness = Math.min(100, 60 + happy);
+  if (state.population > state.populationCap) state.population = state.populationCap;
+  state.workers = Math.max(0, Math.min(state.workersNeeded, state.population - state.soldiers));
+  if (state.soldiers > state.soldierCap) state.soldiers = state.soldierCap;
+}
+
+function productionTick(dt) {
+  if (!state.buildings.length) return;
+  dt = dt || 1;
+  let globalMult = 1;
+  state.buildings.forEach(b => {
+    if (b.construction) return;
+    const def = BUILDINGS[b.type];
+    if (def.globalBonus) globalMult += def.globalBonus[b.level-1] || 0;
+  });
+  const workerRatio = state.workersNeeded > 0 ? Math.min(1, state.workers / state.workersNeeded) : 1;
+  const happyMult = 0.7 + (state.happiness / 100) * 0.5;
+  let prod = { gold: 0, food: 0, wood: 0, stone: 0 };
+  state.buildings.forEach(b => {
+    if (b.construction) return;
+    const def = BUILDINGS[b.type];
+    if (def.produces) {
+      for (const k in def.produces) {
+        prod[k] += def.produces[k] * b.level * workerRatio * globalMult * happyMult * dt;
+      }
+    }
+    if (b.type === 'farm' && b.level >= def.factoryLevel) {
+      prod.food += 8 * b.level * workerRatio * globalMult * dt;
+      prod.gold += 4 * b.level * workerRatio * globalMult * dt;
+    }
+  });
+  state.gold += Math.floor(prod.gold);
+  state.food += Math.floor(prod.food);
+  state.wood += Math.floor(prod.wood);
+  state.stone += Math.floor(prod.stone);
+  const tax = Math.floor((state.population * 1.4 + state.buildings.length * 0.9) * dt * (state.happiness/100));
+  state.money += tax;
+  if (state.population < state.populationCap && state.food > state.population * 2) {
+    if (Math.random() < 0.25 * dt * (state.happiness/100)) state.population++;
+  }
+  const foodUse = Math.floor(state.population * 0.35 * dt);
+  if (state.food >= foodUse) state.food -= foodUse;
+  else { state.food = 0; if (Math.random() < 0.3 * dt && state.population > 2) state.population--; }
+}
+
+/* =========================================================
+   MAP / CAMERA
+   ========================================================= */
+const mapEl = document.getElementById('map');
+const tooltip = document.getElementById('tooltip');
+const ghost = document.getElementById('placeGhost');
+const worldEl = document.getElementById('world');
+
+let isDragging = false, dragStart = {x:0,y:0}, dragMoved = false;
+
+function applyTransform() {
+  worldEl.style.transform = `translate(${state.camX}px, ${state.camY}px) scale(${state.zoom})`;
+  updateMinimapView();
+}
+
+mapEl.addEventListener('mousedown', (e) => {
+  if (e.button === 0 && !state.placing && !state.sellMode) {
+    isDragging = true; dragMoved = false;
+    dragStart = { x: e.clientX - state.camX, y: e.clientY - state.camY };
+    mapEl.classList.add('dragging');
+  }
+  if (e.button === 2) cancelPlacing();
+});
+window.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    const nx = e.clientX - dragStart.x;
+    const ny = e.clientY - dragStart.y;
+    if (Math.abs(nx - state.camX) > 3 || Math.abs(ny - state.camY) > 3) dragMoved = true;
+    state.camX = nx; state.camY = ny;
+    applyTransform();
+  }
+  updateGhost(e);
+  if (tooltip.style.display === 'block') {
+    tooltip.style.left = (e.clientX + 16) + 'px';
+    tooltip.style.top = (e.clientY + 16) + 'px';
+  }
+});
+window.addEventListener('mouseup', () => { isDragging = false; mapEl.classList.remove('dragging'); });
+
+mapEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const oldZoom = state.zoom;
+  const delta = e.deltaY > 0 ? 0.88 : 1.14;
+  state.zoom = Math.max(0.35, Math.min(2.6, state.zoom * delta));
+  const rect = mapEl.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  state.camX = mx - (mx - state.camX) * (state.zoom / oldZoom);
+  state.camY = my - (my - state.camY) * (state.zoom / oldZoom);
+  applyTransform();
+}, { passive: false });
+
+mapEl.addEventListener('click', (e) => {
+  if (dragMoved) return;
+  if (state.placing) { placeBuilding(e); return; }
+  if (state.sellMode) {
+    const w = screenToWorld(e.clientX, e.clientY);
+    let hit = null;
+    for (const b of state.buildings) {
+      if (b.type === 'main') continue;
+      const bs = BUILDINGS[b.type].size * TILE;
+      if (w.x >= b.x && w.x <= b.x + bs && w.y >= b.y && w.y <= b.y + bs) { hit = b; break; }
+    }
+    if (hit) sellBuilding(hit);
+    return;
+  }
+  hideDetailPanel();
+  document.querySelectorAll('.building.selected').forEach(el => el.classList.remove('selected'));
+  state.selected = null;
+});
+
+mapEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'q' || e.key === 'Q') {
+    if (state.placing) { cancelPlacing(); notify("Platzierung abgebrochen"); }
+  }
+  if (e.key === 'Escape') {
+    if (state.placing) cancelPlacing();
+    if (state.sellMode) toggleSellMode();
+    hideDetailPanel();
+  }
+});
+
+/* =========================================================
+   PLACEMENT
+   ========================================================= */
+function startPlacing(type) {
+  const def = BUILDINGS[type];
+  if (def.unlockLevel && state.level < def.unlockLevel) {
+    notify(`Benötigt Imperium-Level ${def.unlockLevel}`, true);
+    return;
+  }
+  state.placing = type;
+  ghost.style.display = 'block';
+  mapEl.classList.add('placing');
+  document.querySelectorAll('.bcard').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.bcard[data-type="${type}"]`);
+  if (card) card.classList.add('active');
+
+  // Platzierungs-Banner
+  const banner = document.getElementById('placeBanner');
+  document.getElementById('pbIcon').innerHTML = ICONS[def.icon] || '';
+  document.getElementById('pbName').textContent = def.name + ' platzieren';
+  banner.classList.add('show');
+}
+function cancelPlacing() {
+  state.placing = null;
+  ghost.style.display = 'none';
+  mapEl.classList.remove('placing');
+  document.getElementById('placeBanner').classList.remove('show');
+  document.querySelectorAll('.bcard').forEach(c => c.classList.remove('active'));
+}
+function screenToWorld(clientX, clientY) {
+  const rect = mapEl.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left - state.camX) / state.zoom,
+    y: (clientY - rect.top - state.camY) / state.zoom
+  };
+}
+function updateGhost(e) {
+  if (!state.placing) return;
+  const def = BUILDINGS[state.placing];
+  const size = def.size * TILE;
+  const w = screenToWorld(e.clientX, e.clientY);
+  const gx = w.x - size / 2;
+  const gy = w.y - size / 2;
+  ghost.style.width = size + 'px';
+  ghost.style.height = size + 'px';
+  ghost.style.left = '0'; ghost.style.top = '0';
+  ghost.style.transform = `translate(${state.camX + gx * state.zoom}px, ${state.camY + gy * state.zoom}px) scale(${state.zoom})`;
+  ghost.style.transformOrigin = '0 0';
+  let collision = false;
+  for (const b of state.buildings) {
+    const bs = BUILDINGS[b.type].size * TILE;
+    if (gx < b.x + bs && gx + size > b.x && gy < b.y + bs && gy + size > b.y) { collision = true; break; }
+  }
+  if (gx < 0 || gy < 0 || gx + size > 6000 || gy + size > 6000) collision = true;
+  ghost.classList.toggle('invalid', collision);
+}
+function placeBuilding(e) {
+  const def = BUILDINGS[state.placing];
+  const w = screenToWorld(e.clientX, e.clientY);
+  const size = def.size * TILE;
+  const x = w.x - size / 2;
+  const y = w.y - size / 2;
+  if (x < 0 || y < 0 || x + size > 6000 || y + size > 6000) { notify("Außerhalb der Karte!", true); return; }
+  const cost = getCost(state.placing, 0);
+  if (state.money < cost) { notify("Nicht genug Geld!", true); return; }
+  for (const b of state.buildings) {
+    const bs = BUILDINGS[b.type].size * TILE;
+    if (x < b.x + bs && x + size > b.x && y < b.y + bs && y + size > b.y) {
+      notify("Platz ist belegt!", true); return;
+    }
+  }
+  state.money -= cost;
+  const buildTime = getBuildTime(state.placing, 0);
+  const b = {
+    id: state.nextId++,
+    type: state.placing,
+    x, y, level: 1,
+    construction: true,
+    constructionStart: Date.now(),
+    constructionDuration: buildTime * 1000,
+    constructionTotal: buildTime * 1000
+  };
+  state.buildings.push(b);
+  createBuildingEl(b);
+  updateUI();
+  updateMinimapBuildings();
+  notify(`${def.name} im Bau (${formatTime(buildTime)})`);
+  showFloat(e.clientX, e.clientY, `-${cost.toLocaleString('de-DE')}`, '#c9532f');
+  cancelPlacing();
+}
+
+/* =========================================================
+   CREATE / REFRESH / CONSTRUCTION
+   ========================================================= */
+function createBuildingEl(b) {
+  const def = BUILDINGS[b.type];
+  const size = def.size * TILE;
+  const el = document.createElement('div');
+  el.className = 'building' + (b.construction ? ' under-construction' : '');
+  el.dataset.id = b.id;
+  el.style.left = b.x + 'px';
+  el.style.top = b.y + 'px';
+  el.style.width = size + 'px';
+  el.style.height = size + 'px';
+  el.style.zIndex = Math.floor(b.y);
+  el.innerHTML = buildingSVG(b.type, b.level, size, size);
+
+  if (b.construction) {
+    // Bau-Overlay mit Bauarbeitern
+    const overlay = document.createElement('div');
+    overlay.className = 'construction-overlay';
+    overlay.innerHTML = constructionOverlaySVG(b.type, size);
+    el.appendChild(overlay);
+
+    // Fortschritts-Badge + Balken
+    const badge = document.createElement('div');
+    badge.className = 'progress-badge';
+    badge.textContent = '0%';
+    el.appendChild(badge);
+    const barBg = document.createElement('div');
+    barBg.className = 'progress-bar-bg';
+    barBg.innerHTML = '<div class="progress-bar-fill" style="width:0%"></div>';
+    el.appendChild(barBg);
+    b._badge = badge;
+    b._barFill = barBg.firstChild;
+
+    // Bauarbeiter
+    const builderPositions = getBuilderPositions(def.size);
+    b._builders = builderPositions.map(pos => {
+      const bel = document.createElement('div');
+      bel.className = 'builder';
+      bel.innerHTML = builderSVG('#ffb74d');
+      bel.style.left = (b.x + pos.x * size) + 'px';
+      bel.style.top = (b.y + pos.y * size) + 'px';
+      bel.style.zIndex = Math.floor(b.y) + 20;
+      worldEl.appendChild(bel);
+      return bel;
+    });
+  }
+
+  el.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (state.placing || state.sellMode) return;
+    selectBuilding(b.id);
+  });
+  el.addEventListener('mouseenter', (ev) => {
+    if (state.placing) return;
+    showTooltipForBuilding(b, ev);
+  });
+  el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+  worldEl.appendChild(el);
+  b.el = el;
+}
+
+function constructionOverlaySVG(type, size) {
+  // Bau-Gerüst mit Pfosten und Streben
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none">
+    <rect x="2" y="2" width="96" height="96" fill="none" stroke="#8d6e63" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.7"/>
+    <line x1="0" y1="100" x2="100" y2="0" stroke="#a1887f" stroke-width="1.2" opacity="0.5"/>
+    <line x1="100" y1="100" x2="0" y2="0" stroke="#a1887f" stroke-width="1.2" opacity="0.5"/>
+    <rect x="0" y="95" width="100" height="5" fill="#8d6e63" opacity="0.5"/>
+  </svg>`;
+}
+
+function getBuilderPositions(size) {
+  if (size === 3) return [
+    { x: 0.15, y: 0.85 }, { x: 0.45, y: 0.85 }, { x: 0.75, y: 0.85 },
+    { x: 0.15, y: 0.55 }, { x: 0.75, y: 0.55 }
+  ];
+  if (size === 2) return [
+    { x: 0.2, y: 0.85 }, { x: 0.7, y: 0.85 }, { x: 0.5, y: 0.5 }
+  ];
+  return [{ x: 0.35, y: 0.85 }, { x: 0.65, y: 0.85 }];
+}
+
+function refreshBuildingEl(b) {
+  const def = BUILDINGS[b.type];
+  const size = def.size * TILE;
+  // Bauarbeiter entfernen
+  if (b._builders) { b._builders.forEach(el => el.remove()); b._builders = null; }
+  b.el.classList.remove('under-construction');
+  b.el.innerHTML = buildingSVG(b.type, b.level, size, size);
+  b.el.style.zIndex = Math.floor(b.y);
+  // Re-attach events
+  b.el.onclick = (ev) => {
+    ev.stopPropagation();
+    if (state.placing || state.sellMode) return;
+    selectBuilding(b.id);
+  };
+  b.el.onmouseenter = (ev) => { if (!state.placing) showTooltipForBuilding(b, ev); };
+  b.el.onmouseleave = () => { tooltip.style.display = 'none'; };
+}
+
+/* Bau-Tick: prüft alle Baustellen */
+function constructionTick() {
+  const now = Date.now();
+  let changed = false;
+  for (const b of state.buildings) {
+    if (!b.construction) continue;
+    const elapsed = now - b.constructionStart;
+    const progress = Math.min(1, elapsed / b.constructionDuration);
+    if (b._barFill) b._barFill.style.width = (progress * 100) + '%';
+    if (b._badge) b._badge.textContent = Math.floor(progress * 100) + '%';
+    if (progress >= 1) {
+      b.construction = false;
+      refreshBuildingEl(b);
+      changed = true;
+      notify(`${BUILDINGS[b.type].name} fertiggestellt!`, false, true);
+    }
+  }
+  if (changed) { recalc(); updateUI(); updateMinimapBuildings(); }
+}
+
+/* =========================================================
+   DETAIL PANEL (rechts oben)
+   ========================================================= */
+function selectBuilding(id) {
+  const b = state.buildings.find(x => x.id === id);
+  if (!b) return;
+  state.selected = b;
+  document.querySelectorAll('.building.selected').forEach(el => el.classList.remove('selected'));
+  if (b.el) b.el.classList.add('selected');
+  showDetailPanel(b);
+}
+
+function showDetailPanel(b) {
+  const def = BUILDINGS[b.type];
+  const panel = document.getElementById('detailPanel');
+
+  document.getElementById('dpIcon').innerHTML = ICONS[def.icon] || '';
+  document.getElementById('dpName').textContent = def.name;
+  document.getElementById('dpLevel').textContent = b.construction ? 'Im Bau…' : `Level ${b.level} / ${def.maxLevel}`;
+
+  let bodyHTML = `<div class="dp-desc">${def.desc}</div>`;
+
+  if (b.construction) {
+    const now = Date.now();
+    const progress = Math.min(1, (now - b.constructionStart) / b.constructionDuration);
+    const remaining = Math.max(0, (b.constructionDuration - (now - b.constructionStart)) / 1000);
+    bodyHTML += `
+      <div class="dp-progress-box">
+        <div class="lbl">Baufortschritt</div>
+        <div class="dp-progress-bar"><div class="dp-progress-fill" id="dpProgressFill" style="width:${progress*100}%"></div></div>
+        <div class="dp-progress-time" id="dpProgressTime">${formatTime(remaining)} verbleibend</div>
+      </div>
+    `;
+  } else {
+    // Stats
+    let statsHTML = '';
+    if (def.produces) {
+      const prodStr = Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ');
+      statsHTML += `<div class="dp-stat"><span class="k">Produktion</span><span class="v">${prodStr}</span></div>`;
+    }
+    if (def.popPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Bevölkerung</span><span class="v good">+${def.popPerLevel[b.level-1]}</span></div>`;
+    if (def.popBonus && b.type === 'main') statsHTML += `<div class="dp-stat"><span class="k">Bevölkerung</span><span class="v good">+${def.popBonus[b.level-1]}</span></div>`;
+    if (def.soldierPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Soldatenlimit</span><span class="v good">+${def.soldierPerLevel[b.level-1]}</span></div>`;
+    if (def.soldierBonus && b.type === 'main') statsHTML += `<div class="dp-stat"><span class="k">Soldatenlimit</span><span class="v good">+${def.soldierBonus[b.level-1]}</span></div>`;
+    if (def.happyBonus) statsHTML += `<div class="dp-stat"><span class="k">Zufriedenheit</span><span class="v good">+${def.happyBonus[b.level-1]}</span></div>`;
+    if (def.globalBonus) statsHTML += `<div class="dp-stat"><span class="k">Globaler Bonus</span><span class="v good">+${Math.round(def.globalBonus[b.level-1]*100)}%</span></div>`;
+    if (def.needs && def.needs.workers) statsHTML += `<div class="dp-stat"><span class="k">Arbeiter</span><span class="v">${def.needs.workers * b.level}</span></div>`;
+    bodyHTML += statsHTML;
+
+    // Upgrade-Vorschau
+    if (b.level < def.maxLevel) {
+      const nextSize = def.size * TILE;
+      const upCost = getUpgradeCost(b);
+      const upTime = getBuildTime(b.type, b.level);
+      bodyHTML += `
+        <div class="dp-upgrade-box">
+          <div class="dp-up-title">Upgrade auf Level ${b.level + 1}</div>
+          <div class="dp-preview">
+            <div class="prev">${buildingSVG(b.type, b.level, nextSize, nextSize)}</div>
+            <div class="arrow">→</div>
+            <div class="prev future">${buildingSVG(b.type, b.level+1, nextSize, nextSize)}</div>
+          </div>
+          <div class="dp-up-row"><span>Kosten</span><span class="v cost">${upCost.toLocaleString('de-DE')} Geld</span></div>
+          <div class="dp-up-row"><span>Bauzeit</span><span class="v time">${formatTime(upTime)}</span></div>
+        </div>
+      `;
+    } else {
+      bodyHTML += `<div class="dp-upgrade-box" style="text-align:center;color:#2e7d32;font-weight:800;">Maximales Level erreicht</div>`;
+    }
+  }
+
+  document.getElementById('dpBody').innerHTML = bodyHTML;
+
+  // Aktionen
+  const actions = document.getElementById('dpActions');
+  actions.innerHTML = '';
+  if (b.construction) {
+    // Vielleicht: Beschleunigen-Button
+    const speedBtn = document.createElement('button');
+    speedBtn.className = 'btn btn-primary';
+    speedBtn.textContent = 'Sofort fertigstellen (500 Geld)';
+    speedBtn.onclick = () => {
+      if (state.money < 500) { notify("Nicht genug Geld!", true); return; }
+      state.money -= 500;
+      b.constructionStart = Date.now() - b.constructionDuration;
+      constructionTick();
+      showDetailPanel(b);
+      updateUI();
+    };
+    actions.appendChild(speedBtn);
+  } else if (b.level < def.maxLevel) {
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn btn-primary';
+    upBtn.textContent = 'Upgrade starten';
+    const cost = getUpgradeCost(b);
+    if (state.money < cost) { upBtn.disabled = true; upBtn.style.opacity = '0.5'; }
+    upBtn.onclick = () => startUpgrade(b);
+    actions.appendChild(upBtn);
+  }
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn';
+  closeBtn.textContent = 'Schließen';
+  closeBtn.onclick = hideDetailPanel;
+  actions.appendChild(closeBtn);
+
+  panel.classList.add('show');
+}
+
+function hideDetailPanel() {
+  document.getElementById('detailPanel').classList.remove('show');
+  state.selected = null;
+  document.querySelectorAll('.building.selected').forEach(el => el.classList.remove('selected'));
+}
+
+document.getElementById('dpClose').onclick = hideDetailPanel;
+
+/* =========================================================
+   UPGRADE mit Bauzeit
+   ========================================================= */
+function startUpgrade(b) {
+  const def = BUILDINGS[b.type];
+  if (b.level >= def.maxLevel) return;
+  const cost = getUpgradeCost(b);
+  if (state.money < cost) { notify("Nicht genug Geld!", true); return; }
+  state.money -= cost;
+  // Upgrade als Bauphase
+  b.level++;
+  b.construction = true;
+  const buildTime = getBuildTime(b.type, b.level - 1);
+  b.constructionStart = Date.now();
+  b.constructionDuration = buildTime * 1000;
+  b.constructionTotal = buildTime * 1000;
+
+  // Baustellen-Overlay + Bauarbeiter
+  if (b._builders) b._builders.forEach(el => el.remove());
+  const size = def.size * TILE;
+  b.el.classList.add('under-construction');
+  b.el.innerHTML = buildingSVG(b.type, b.level, size, size);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'construction-overlay';
+  overlay.innerHTML = constructionOverlaySVG(b.type, size);
+  b.el.appendChild(overlay);
+
+  const badge = document.createElement('div');
+  badge.className = 'progress-badge';
+  badge.textContent = '0%';
+  b.el.appendChild(badge);
+  const barBg = document.createElement('div');
+  barBg.className = 'progress-bar-bg';
+  barBg.innerHTML = '<div class="progress-bar-fill" style="width:0%"></div>';
+  b.el.appendChild(barBg);
+  b._badge = badge;
+  b._barFill = barBg.firstChild;
+
+  const builderPositions = getBuilderPositions(def.size);
+  b._builders = builderPositions.map(pos => {
+    const bel = document.createElement('div');
+    bel.className = 'builder';
+    bel.innerHTML = builderSVG('#ffb74d');
+    bel.style.left = (b.x + pos.x * size) + 'px';
+    bel.style.top = (b.y + pos.y * size) + 'px';
+    bel.style.zIndex = Math.floor(b.y) + 20;
+    worldEl.appendChild(bel);
+    return bel;
+  });
+
+  // Events neu setzen
+  b.el.onclick = (ev) => { ev.stopPropagation(); if (!state.placing && !state.sellMode) selectBuilding(b.id); };
+  b.el.onmouseenter = (ev) => { if (!state.placing) showTooltipForBuilding(b, ev); };
+  b.el.onmouseleave = () => { tooltip.style.display = 'none'; };
+
+  recalc();
+  updateUI();
+  updateMinimapBuildings();
+  notify(`${def.name} Upgrade auf Level ${b.level} gestartet`);
+  showDetailPanel(b);
+}
+
+/* =========================================================
+   SELL MODE
+   ========================================================= */
+function toggleSellMode() {
+  state.sellMode = !state.sellMode;
+  document.getElementById('btnSellMode').classList.toggle('active', state.sellMode);
+  mapEl.classList.toggle('selling', state.sellMode);
+  if (state.sellMode) {
+    cancelPlacing();
+    hideDetailPanel();
+    notify("Abriss-Modus: Klicke auf ein Gebäude");
+  }
+}
+function sellBuilding(b) {
+  if (b.type === 'main') { notify("Hauptgebäude kann nicht abgerissen werden!", true); return; }
+  const totalInvested = (function() {
+    let sum = getCost(b.type, 0);
+    for (let i = 1; i < b.level; i++) sum += getCost(b.type, i);
+    return sum;
+  })();
+  const refund = Math.floor(totalInvested * 0.5);
+  state.money += refund;
+  state.buildings = state.buildings.filter(x => x.id !== b.id);
+  if (b.el) b.el.remove();
+  if (b._builders) b._builders.forEach(el => el.remove());
+  recalc();
+  updateUI();
+  updateMinimapBuildings();
+  hideDetailPanel();
+  notify(`Abgerissen. +${refund.toLocaleString('de-DE')} Geld`, false, true);
+}
+
+/* =========================================================
+   UI UPDATE
+   ========================================================= */
+function updateUI() {
+  const resGroup = document.getElementById('resGroup');
+  const fmt = (n) => Math.floor(n).toLocaleString('de-DE');
+  resGroup.innerHTML = `
+    <div class="res">${ICONS.money}<span class="val">${fmt(state.money)}</span></div>
+    <div class="res">${ICONS.gold}<span class="val">${fmt(state.gold)}</span></div>
+    <div class="res">${ICONS.food}<span class="val">${fmt(state.food)}</span></div>
+    <div class="res">${ICONS.wood}<span class="val">${fmt(state.wood)}</span></div>
+    <div class="res">${ICONS.stone}<span class="val">${fmt(state.stone)}</span></div>
+    <div class="res">${ICONS.pop}<span class="val">${state.population}/${state.populationCap}</span></div>
+    <div class="res">${ICONS.worker}<span class="val">${state.workers}/${state.workersNeeded}</span></div>
+    <div class="res">${ICONS.soldier}<span class="val">${state.soldiers}/${state.soldierCap}</span></div>
+    <div class="res">${ICONS.star}<span class="val">Lv.${state.level}</span></div>
+  `;
+  const statsBody = document.getElementById('statsBody');
+  const workerRatio = state.workersNeeded > 0 ? Math.round(state.workers/state.workersNeeded*100) : 100;
+  const workerClass = workerRatio >= 80 ? 'good' : workerRatio >= 40 ? '' : 'bad';
+  const constructing = state.buildings.filter(b => b.construction).length;
+  statsBody.innerHTML = `
+    <div class="sp-row"><span>Gebäude</span><span class="v">${state.buildings.length}</span></div>
+    <div class="sp-row"><span>Im Bau</span><span class="v ${constructing>0?'':''}">${constructing}</span></div>
+    <div class="sp-row"><span>Arbeiter</span><span class="v ${workerClass}">${workerRatio}%</span></div>
+    <div class="sp-row"><span>Zufriedenheit</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
+    <div class="sp-row"><span>Militär</span><span class="v">${state.soldiers}/${state.soldierCap}</span></div>
+  `;
+}
+
+/* =========================================================
+   BUILDING LIST
+   ========================================================= */
+const buildingList = document.getElementById('buildingList');
+function renderBuildingList() {
+  buildingList.innerHTML = '';
+  let count = 0;
+  for (const key in BUILDINGS) {
+    const def = BUILDINGS[key];
+    if (key === 'main') continue;
+    if (state.activeTab !== 'all' && def.category !== state.activeTab) continue;
+    const locked = def.unlockLevel && state.level < def.unlockLevel;
+    if (!locked) count++;
+    const card = document.createElement('div');
+    card.className = 'bcard' + (locked ? ' locked' : '');
+    card.dataset.type = key;
+    const buildT = getBuildTime(key, 0);
+    card.innerHTML = `
+      <div class="icon">${ICONS[def.icon]}</div>
+      <div class="info">
+        <div class="name">${def.name} ${locked?`<span class="lock">Lv.${def.unlockLevel}</span>`:''}</div>
+        <div class="desc">${def.desc}</div>
+        <div class="cost">${locked ? 'Gesperrt' : costString(key, 0) + ' Geld · <span class="time">' + formatTime(buildT) + '</span>'}</div>
+      </div>
+    `;
+    if (!locked) {
+      card.onclick = () => {
+        if (state.money < getCost(key, 0)) { notify("Nicht genug Geld!", true); return; }
+        if (state.sellMode) toggleSellMode();
+        startPlacing(key);
+      };
+    }
+    buildingList.appendChild(card);
+  }
+  document.getElementById('bCount').textContent = count;
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeTab = btn.dataset.cat;
+    renderBuildingList();
+  };
+});
+
+/* =========================================================
+   TOOLTIP
+   ========================================================= */
+function showTooltipForBuilding(b, ev) {
+  const def = BUILDINGS[b.type];
+  let extra = '';
+  if (b.construction) {
+    const remaining = Math.max(0, (b.constructionDuration - (Date.now() - b.constructionStart)) / 1000);
+    extra = `<div class="t-row" style="color:#8d6e63;font-weight:700;">Im Bau · ${formatTime(remaining)}</div>`;
+  } else {
+    if (def.produces) extra += `<div class="t-row">Produktion: ${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</div>`;
+    if (def.popPerLevel) extra += `<div class="t-row">Bevölkerung: +${def.popPerLevel[b.level-1]}</div>`;
+    if (def.soldierPerLevel) extra += `<div class="t-row">Soldaten: +${def.soldierPerLevel[b.level-1]}</div>`;
+    if (def.happyBonus) extra += `<div class="t-row">Zufriedenheit: +${def.happyBonus[b.level-1]}</div>`;
+    if (b.level < def.maxLevel) extra += `<div class="t-row" style="color:#2f6fd0;margin-top:6px;">Upgrade: ${getUpgradeCost(b).toLocaleString('de-DE')} Geld · ${formatTime(getBuildTime(b.type, b.level))}</div>`;
+  }
+  tooltip.innerHTML = `
+    <div class="t-title">${def.name} (Lv.${b.level})</div>
+    <div class="t-row">${def.desc}</div>
+    ${extra}
+    <div class="t-row" style="color:#7b8dab;font-size:11px;margin-top:4px;">Klicken für Details</div>
+  `;
+  tooltip.style.display = 'block';
+  tooltip.style.left = (ev.clientX + 16) + 'px';
+  tooltip.style.top = (ev.clientY + 16) + 'px';
+}
+
+/* =========================================================
+   FLOAT / NOTIFY
+   ========================================================= */
+function showFloat(clientX, clientY, text, color) {
+  const rect = mapEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-text';
+  el.textContent = text;
+  el.style.color = color || '#2e7d32';
+  el.style.left = (clientX - rect.left) + 'px';
+  el.style.top = (clientY - rect.top) + 'px';
+  mapEl.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+function notify(msg, bad, good) {
+  const n = document.createElement('div');
+  n.className = 'note' + (bad ? ' bad' : good ? ' good' : '');
+  n.textContent = msg;
+  document.getElementById('notify').appendChild(n);
+  setTimeout(() => n.remove(), 2200);
+}
+
+/* =========================================================
+   WORKERS (Bewohner)
+   ========================================================= */
+const workers = [];
+function spawnWorker() {
+  const el = document.createElement('div');
+  el.className = 'worker';
+  const colors = ['#ffcc80', '#a5d6a7', '#90caf9', '#f48fb1', '#ce93d8', '#ffb74d', '#80cbc4'];
+  const c = colors[Math.floor(Math.random()*colors.length)];
+  const skin = ['#ffcc80', '#e0ac69', '#c68642', '#8d5524'][Math.floor(Math.random()*4)];
+  el.innerHTML = `<svg viewBox="0 0 18 24" width="18" height="24"><circle cx="9" cy="5.5" r="4" fill="${skin}"/><path d="M4 8 Q9 3 14 8 L14 9 L4 9 Z" fill="${c}"/><rect x="4.5" y="10" width="9" height="9" rx="2" fill="${c}"/><rect x="5" y="18.5" width="3" height="5" fill="#37474f"/><rect x="10" y="18.5" width="3" height="5" fill="#37474f"/></svg>`;
+  const wx = Math.random() * 6000, wy = Math.random() * 6000;
+  el.style.left = wx + 'px'; el.style.top = wy + 'px';
+  el.style.zIndex = Math.floor(wy) + 10;
+  worldEl.appendChild(el);
+  workers.push({ el, x: wx, y: wy, tx: wx, ty: wy, speed: 0.6 + Math.random()*0.9, idleTimer: Math.random()*3 });
+}
+function updateWorkers(dt) {
+  const maxVisible = Math.min(70, Math.max(5, state.population * 2));
+  while (workers.length < maxVisible) spawnWorker();
+  while (workers.length > maxVisible) { const w = workers.pop(); w.el.remove(); }
+  workers.forEach(w => {
+    const dx = w.tx - w.x, dy = w.ty - w.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 4) {
+      w.idleTimer -= dt;
+      if (w.idleTimer <= 0) {
+        if (state.buildings.length && Math.random() < 0.75) {
+          const b = state.buildings[Math.floor(Math.random()*state.buildings.length)];
+          const bs = BUILDINGS[b.type].size * TILE;
+          w.tx = b.x + Math.random() * bs;
+          w.ty = b.y + bs + Math.random() * 50;
+        } else {
+          w.tx = Math.random() * 6000; w.ty = Math.random() * 6000;
+        }
+        w.idleTimer = 1 + Math.random() * 4;
+      }
+    } else {
+      w.x += (dx / dist) * w.speed * dt * 60;
+      w.y += (dy / dist) * w.speed * dt * 60;
+      w.el.style.left = w.x + 'px';
+      w.el.style.top = w.y + 'px';
+      w.el.style.zIndex = Math.floor(w.y) + 10;
+      w.el.style.transform = `scaleX(${dx < 0 ? -1 : 1})`;
+    }
+  });
+}
+
+/* =========================================================
+   MINIMAP
+   ========================================================= */
+const mmInner = document.getElementById('mmInner');
+const MM_SCALE = 190 / 6000;
+function updateMinimapBuildings() {
+  // Alte Dots entfernen, aber View behalten
+  [...mmInner.querySelectorAll('.mm-dot')].forEach(d => d.remove());
+  state.buildings.forEach(b => {
+    const dot = document.createElement('div');
+    dot.className = 'mm-dot';
+    const def = BUILDINGS[b.type];
+    const sz = def.size === 3 ? 5 : def.size === 2 ? 4 : 3;
+    dot.style.width = sz + 'px'; dot.style.height = sz + 'px';
+    dot.style.left = (b.x * MM_SCALE) + 'px';
+    dot.style.top = (b.y * MM_SCALE) + 'px';
+    dot.style.background = b.construction ? '#ffb300' :
+      b.type === 'main' ? '#c9a84c' :
+      def.category === 'military' ? '#b71c1c' :
+      def.category === 'production' ? '#4caf50' :
+      def.category === 'economy' ? '#ffb300' : '#8d6e63';
+    mmInner.appendChild(dot);
+  });
+  let view = document.getElementById('mmView');
+  if (!view) {
+    view = document.createElement('div');
+    view.className = 'mm-view';
+    view.id = 'mmView';
+    mmInner.appendChild(view);
+  }
+  updateMinimapView();
+}
+function updateMinimapView() {
+  const view = document.getElementById('mmView');
+  if (!view) return;
+  const rect = mapEl.getBoundingClientRect();
+  const vw = rect.width / state.zoom;
+  const vh = rect.height / state.zoom;
+  const vx = -state.camX / state.zoom;
+  const vy = -state.camY / state.zoom;
+  view.style.left = (vx * MM_SCALE) + 'px';
+  view.style.top = (vy * MM_SCALE) + 'px';
+  view.style.width = (vw * MM_SCALE) + 'px';
+  view.style.height = (vh * MM_SCALE) + 'px';
+}
+mmInner.addEventListener('click', (e) => {
+  const rect = mmInner.getBoundingClientRect();
+  const wx = (e.clientX - rect.left) / MM_SCALE;
+  const wy = (e.clientY - rect.top) / MM_SCALE;
+  const mapRect = mapEl.getBoundingClientRect();
+  state.camX = mapRect.width / 2 - wx * state.zoom;
+  state.camY = mapRect.height / 2 - wy * state.zoom;
+  applyTransform();
+});
+
+/* =========================================================
+   OFFLINE-FORTSCHRITT
+   ========================================================= */
+function applyOfflineProgress() {
+  const now = Date.now();
+  const last = state.lastTick || now;
+  const elapsed = Math.max(0, (now - last) / 1000);
+  if (elapsed < 5) { state.lastTick = now; return; }
+
+  // 1. Produktion nachholen (max. 8h)
+  const effective = Math.min(elapsed, 8 * 3600);
+  productionTick(effective);
+
+  // 2. Baustellen: Zeit nachholen
+  let finishedCount = 0;
+  for (const b of state.buildings) {
+    if (!b.construction) continue;
+    const remain = b.constructionDuration - (now - b.constructionStart);
+    if (remain <= 0) {
+      b.construction = false;
+      refreshBuildingEl(b);
+      finishedCount++;
+    } else {
+      // Baustelle läuft weiter – Anzeige aktualisieren
+      const progress = Math.min(1, (now - b.constructionStart) / b.constructionDuration);
+      if (b._barFill) b._barFill.style.width = (progress * 100) + '%';
+      if (b._badge) b._badge.textContent = Math.floor(progress * 100) + '%';
+    }
+  }
+  if (finishedCount > 0) { recalc(); }
+
+  // Banner anzeigen
+  if (elapsed > 30) {
+    const banner = document.getElementById('offlineBanner');
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = Math.floor(elapsed % 60);
+    let timeStr = '';
+    if (h > 0) timeStr += h + 'h ';
+    if (m > 0) timeStr += m + 'm ';
+    timeStr += s + 's';
+    document.getElementById('obText').innerHTML = `Willkommen zurück!<small>Offline für ${timeStr} · Produktion wurde nachgeholt${finishedCount > 0 ? ' · ' + finishedCount + ' Gebäude fertig' : ''}</small>`;
+    banner.classList.add('show');
+  }
+  state.lastTick = now;
+}
+document.getElementById('obClose').onclick = () => {
+  document.getElementById('offlineBanner').classList.remove('show');
+};
+
+/* =========================================================
+   START GAME
+   ========================================================= */
+function startGame() {
+  buildTerrain();
+
+  const loaded = tryLoadSave();
+  if (!loaded) {
+    const mainB = { id: state.nextId++, type: 'main', x: 3000 - 1.5*TILE, y: 3000 - 1.5*TILE, level: 1 };
+    state.buildings.push(mainB);
+    createBuildingEl(mainB);
+    const house = { id: state.nextId++, type: 'house', x: 3000 + 2.5*TILE, y: 3000 - TILE, level: 1 };
+    state.buildings.push(house);
+    createBuildingEl(house);
+    const farm = { id: state.nextId++, type: 'farm', x: 3000 - 6*TILE, y: 3000 - TILE, level: 1 };
+    state.buildings.push(farm);
+    createBuildingEl(farm);
+  } else {
+    // Offline-Fortschritt anwenden
+    applyOfflineProgress();
+  }
+
+  recalc();
+  updateUI();
+  renderBuildingList();
+  updateMinimapBuildings();
+  centerCamera();
+
+  // Game Loop
+  let last = performance.now();
+  let prodAccum = 0;
+  let saveAccum = 0;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    updateWorkers(dt);
+    constructionTick();
+    prodAccum += dt;
+    if (prodAccum >= 1) {
+      productionTick(prodAccum * state.speed);
+      prodAccum = 0;
+      updateUI();
+    }
+    saveAccum += dt;
+    if (saveAccum >= 10) {
+      state.lastTick = Date.now();
+      saveGame(true);
+      saveAccum = 0;
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  setInterval(checkLevel, 2000);
+  setInterval(() => {
+    // Detail-Panel Live-Update
+    if (state.selected && state.selected.construction) {
+      showDetailPanel(state.selected);
+    }
+  }, 500);
+
+  notify("Willkommen in deinem Imperium!", false, true);
+}
+
+function checkLevel() {
+  const totalLevels = state.buildings.filter(b => !b.construction).reduce((s, b) => s + b.level, 0);
+  const newLevel = Math.max(1, Math.floor(totalLevels / 4) + 1);
+  if (newLevel > state.level) {
+    state.level = newLevel;
+    updateUI();
+    renderBuildingList();
+    notify(`Imperium-Level ${newLevel} erreicht!`, false, true);
+  }
+}
+
+function centerCamera() {
+  const rect = mapEl.getBoundingClientRect();
+  state.zoom = 1;
+  state.camX = rect.width / 2 - 3000 * state.zoom;
+  state.camY = rect.height / 2 - 3000 * state.zoom;
+  applyTransform();
+}
+
+/* =========================================================
+   SAVE / LOAD
+   ========================================================= */
+function saveGame(silent) {
+  state.lastTick = Date.now();
+  const save = { ...state };
+  save.buildings = state.buildings.map(b => ({
+    id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
+    construction: b.construction || false,
+    constructionStart: b.constructionStart || 0,
+    constructionDuration: b.constructionDuration || 0,
+    constructionTotal: b.constructionTotal || 0
+  }));
+  // selected, placing etc. nicht speichern
+  delete save.selected;
+  delete save.placing;
+  localStorage.setItem('buildAnEmpireSave_v3', JSON.stringify(save));
+  if (!silent) notify("Spiel gespeichert!", false, true);
+}
+function tryLoadSave() {
+  const raw = localStorage.getItem('buildAnEmpireSave_v3');
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    const saved = s.buildings || [];
+    Object.assign(state, s);
+    state.buildings = saved.map(b => {
+      const nb = {
+        id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
+        construction: b.construction || false,
+        constructionStart: b.constructionStart || 0,
+        constructionDuration: b.constructionDuration || 0,
+        constructionTotal: b.constructionTotal || 0
+      };
+      createBuildingEl(nb);
+      return nb;
+    });
+    state.nextId = Math.max(...state.buildings.map(b => b.id), 0) + 1;
+    return true;
+  } catch(e) { console.warn(e); return false; }
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6, state.zoom * 1.2); applyTransform(); };
+document.getElementById('btnZoomOut').onclick = () => { state.zoom = Math.max(0.35, state.zoom / 1.2); applyTransform(); };
+document.getElementById('btnCenter').onclick = centerCamera;
+document.getElementById('btnSellMode').onclick = toggleSellMode;
+document.getElementById('btnSpeed').onclick = () => {
+  const speeds = [1, 2, 3];
+  state.speed = speeds[(speeds.indexOf(state.speed) + 1) % speeds.length];
+  document.getElementById('btnSpeed').textContent = '×' + state.speed;
+  notify(`Geschwindigkeit: ×${state.speed}`);
+};
+document.getElementById('btnSave').onclick = () => saveGame(false);
+document.getElementById('btnReset').onclick = () => {
+  if (confirm("Wirklich alles zurücksetzen?")) {
+    localStorage.removeItem('buildAnEmpireSave_v3');
+    location.reload();
+  }
+};
+document.getElementById('pbCancel').onclick = () => { cancelPlacing(); notify("Platzierung abgebrochen"); };
+
+window.addEventListener('beforeunload', () => { saveGame(true); });
+</script>
+</body>
+</html>
