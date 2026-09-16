@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Build Realm</title>
+<title>Build a Realm</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
   html, body {
@@ -98,9 +98,7 @@
     line-height: 1.5;
   }
 
-  .login-field {
-    margin-bottom: 14px;
-  }
+  .login-field { margin-bottom: 14px; }
   .login-field label {
     display: block; font-size: 11px; font-weight: 800;
     text-transform: uppercase; letter-spacing: 1.2px;
@@ -111,8 +109,7 @@
     border: 1.5px solid #d3dded; border-radius: 10px;
     background: #f7faff; color: #1e355e;
     font-size: 14px; font-weight: 600;
-    font-family: inherit;
-    outline: none;
+    font-family: inherit; outline: none;
     transition: all 0.15s;
   }
   .login-input:focus {
@@ -126,8 +123,7 @@
     padding: 8px 12px; background: #eef4fd;
     border: 1px dashed #bcd0ec; border-radius: 8px;
     font-size: 11px; color: #5c7099; font-family: monospace;
-    margin-bottom: 16px;
-    word-break: break-all;
+    margin-bottom: 16px; word-break: break-all;
   }
   .login-hwid svg { width: 14px; height: 14px; flex-shrink: 0; }
 
@@ -390,18 +386,59 @@
     white-space: nowrap; cursor: default;
   }
   .user-chip svg { width: 14px; height: 14px; }
+
   .res-group { display: flex; gap: 8px; flex: 1; overflow-x: auto; padding: 4px 0; }
   .res-group::-webkit-scrollbar { height: 5px; }
   .res-group::-webkit-scrollbar-thumb { background: #c3d4ec; border-radius: 3px; }
+
+  /* Resource chips with tooltip */
   .res {
+    position: relative;
     display: flex; align-items: center; gap: 6px;
     font-size: 12.5px; font-weight: 700; white-space: nowrap;
     background: #f2f6fc; padding: 6px 11px; border-radius: 9px;
     border: 1px solid #e0e8f4; color: #26344e; transition: all 0.2s;
+    cursor: help;
   }
   .res:hover { background: #e8f0fc; border-color: #bcd0ec; }
   .res svg { width: 15px; height: 15px; flex-shrink: 0; }
   .res .val { color: #1e355e; }
+
+  /* Custom tooltip for resource */
+  .res-tooltip {
+    position: absolute; top: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    background: #1e355e; color: #fff;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 11.5px; font-weight: 600;
+    white-space: nowrap; line-height: 1.4;
+    box-shadow: 0 6px 20px rgba(30,53,94,0.3);
+    opacity: 0; pointer-events: none;
+    transition: all 0.18s ease;
+    z-index: 100; text-align: left;
+    max-width: 240px;
+  }
+  .res-tooltip::before {
+    content: ''; position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: #1e355e;
+  }
+  .res-tooltip .tt-title {
+    font-weight: 800; color: #ffd54f; margin-bottom: 2px;
+    font-size: 12px;
+  }
+  .res:hover .res-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  /* Edge-fix for first and last tooltips */
+  .res:first-child .res-tooltip { left: 0; transform: translateX(0) translateY(-4px); }
+  .res:first-child:hover .res-tooltip { transform: translateX(0) translateY(0); }
+  .res:first-child .res-tooltip::before { left: 20px; }
+  .res:last-child .res-tooltip { left: auto; right: 0; transform: translateX(0) translateY(-4px); }
+  .res:last-child:hover .res-tooltip { transform: translateX(0) translateY(0); }
+  .res:last-child .res-tooltip::before { left: auto; right: 20px; }
 
   #rightPanel {
     position: absolute; top: 58px; right: 0; bottom: 0; width: 330px;
@@ -528,8 +565,8 @@
   .dp-preview .prev svg { width: 100%; height: 100%; }
   .dp-preview .prev.future { border-color: #2f6fd0; box-shadow: 0 0 0 2px rgba(47,111,208,0.15); }
   .dp-preview .arrow { color: #2f6fd0; font-size: 18px; font-weight: 900; }
-  .dp-actions { padding: 12px 14px; border-top: 1px solid #e0e8f4; display: flex; gap: 8px; }
-  .dp-actions .btn { flex: 1; justify-content: center; }
+  .dp-actions { padding: 12px 14px; border-top: 1px solid #e0e8f4; display: flex; gap: 8px; flex-wrap: wrap; }
+  .dp-actions .btn { flex: 1; justify-content: center; min-width: 80px; }
   .dp-progress-box {
     margin-top: 10px; padding: 10px; border-radius: 10px;
     background: #fff8e1; border: 1px solid #ffe082;
@@ -552,11 +589,23 @@
     font-size: 12px; font-weight: 700; cursor: pointer;
     transition: all 0.15s; white-space: nowrap;
     display: inline-flex; align-items: center; gap: 5px;
+    text-decoration: none;
   }
   .btn:hover { background: #e6efff; border-color: #a8c8f0; color: #2f6fd0; }
   .btn:active { transform: scale(0.96); }
   .btn.active { background: #2f6fd0; border-color: #2f6fd0; color: #fff; }
   .btn svg { width: 14px; height: 14px; }
+  .btn-lb {
+    background: linear-gradient(135deg, #ffb300, #ffd54f);
+    border-color: #e5a000; color: #5a3d00;
+  }
+  .btn-lb:hover { background: linear-gradient(135deg, #ffc233, #ffe082); border-color: #c99000; color: #3d2800; }
+  .btn-premium {
+    background: linear-gradient(135deg, #f5e6ff, #e5d4ff);
+    border-color: #c9a3e8; color: #7c4dbb;
+    position: relative;
+  }
+  .btn-premium:hover { background: linear-gradient(135deg, #ead9ff, #d7befc); border-color: #a87ee0; color: #6a3aa8; }
   .spacer { flex: 1; }
   .hint { font-size: 11px; color: #7b8dab; white-space: nowrap; }
 
@@ -623,6 +672,12 @@
   .btn-primary:hover { background: #2559ab; border-color: #2559ab; color: #fff; }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  .btn-danger {
+    background: #ffeaea; border-color: #f2b8b8; color: #c9532f;
+  }
+  .btn-danger:hover { background: #ffd5d5; border-color: #e89a9a; color: #a63a1a; }
+  .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
   #notify {
     position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
     z-index: 90; display: flex; flex-direction: column; gap: 8px;
@@ -636,8 +691,100 @@
   }
   .note.bad { border-color: #f2b8b8; color: #c9532f; }
   .note.good { border-color: #a8e0b0; color: #2e7d32; }
+  .note.premium { border-color: #d0b3f0; color: #7c4dbb; background: #faf5ff; }
   @keyframes noteIn { from { transform: translateY(-14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   @keyframes noteOut { to { transform: translateY(-14px); opacity: 0; } }
+
+  /* ============ PREMIUM MODAL ============ */
+  #premiumModal {
+    position: absolute; inset: 0; z-index: 110;
+    background: rgba(30,53,94,0.5); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #premiumModal.show { display: flex; }
+  .premium-box {
+    background: #ffffff;
+    border: 2px solid #c9a3e8;
+    border-radius: 20px; padding: 30px 28px;
+    width: min(460px, 92vw);
+    box-shadow: 0 30px 90px rgba(124,77,187,0.35);
+    animation: popIn 0.3s cubic-bezier(0.2,0.9,0.3,1.2);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .premium-box::before {
+    content: ''; position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(201,163,232,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  .premium-icon {
+    width: 72px; height: 72px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, #d7befc, #a87ee0);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 30px rgba(124,77,187,0.3);
+    position: relative; z-index: 1;
+  }
+  .premium-icon svg { width: 40px; height: 40px; }
+  .premium-title {
+    font-size: 22px; font-weight: 900; color: #7c4dbb;
+    margin-bottom: 8px; letter-spacing: 0.5px;
+    position: relative; z-index: 1;
+  }
+  .premium-subtitle {
+    font-size: 13px; color: #8d6eb5; margin-bottom: 18px;
+    font-weight: 600; position: relative; z-index: 1;
+  }
+  .premium-desc {
+    font-size: 13.5px; color: #4a5c78; line-height: 1.6;
+    margin-bottom: 20px; padding: 14px 16px;
+    background: #faf5ff; border-radius: 12px;
+    border: 1px dashed #d0b3f0;
+    position: relative; z-index: 1;
+  }
+  .premium-features {
+    text-align: left; margin-bottom: 22px;
+    position: relative; z-index: 1;
+  }
+  .premium-feature {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; font-size: 13px; color: #26344e;
+    background: #f7faff; border-radius: 9px;
+    margin-bottom: 6px;
+  }
+  .premium-feature svg {
+    width: 18px; height: 18px; flex-shrink: 0;
+    color: #7c4dbb;
+  }
+  .premium-actions {
+    display: flex; gap: 10px;
+    position: relative; z-index: 1;
+  }
+  .premium-actions .btn {
+    flex: 1; padding: 12px; justify-content: center;
+    font-size: 13px;
+  }
+  .btn-premium-cta {
+    background: linear-gradient(135deg, #a87ee0, #7c4dbb);
+    border-color: #7c4dbb; color: #fff;
+    box-shadow: 0 6px 18px rgba(124,77,187,0.35);
+  }
+  .btn-premium-cta:hover {
+    background: linear-gradient(135deg, #9666d4, #6a3aa8);
+    border-color: #6a3aa8; color: #fff;
+  }
+  .btn-premium-cta:disabled {
+    background: #e0d0f0; border-color: #c9a3e8; color: #a08bc0;
+    cursor: not-allowed; box-shadow: none;
+  }
+  .premium-soon {
+    font-size: 11.5px; color: #8d6eb5; font-weight: 700;
+    margin-top: 14px; letter-spacing: 0.3px;
+    position: relative; z-index: 1;
+  }
 
   #offlineBanner {
     position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
@@ -743,8 +890,8 @@
     </svg>
   </div>
 
-  <div class="login-title">Build <span class="accent">Realm</span></div>
-  <div class="login-sub">Dein Reich · Deine Legende</div>
+  <div class="login-title">Build <span class="accent">a Realm</span></div>
+  <div class="login-sub">Rise · Power · Legacy</div>
 
   <div class="login-card">
     <h2>
@@ -752,23 +899,23 @@
         <circle cx="12" cy="8" r="4"/>
         <path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/>
       </svg>
-      Willkommen, Herrscher
+      Welcome, Ruler
     </h2>
-    <div class="hint-text">Wähle einen Nicknamen, um dein Reich zu starten. Deine HWID wird einmalig gespeichert, damit dein Fortschritt gerätegebunden ist.</div>
+    <div class="hint-text">Choose a nickname to start your realm. Your HWID will be saved once, so your progress is bound to this device.</div>
 
     <div class="login-field">
       <label>Nickname</label>
-      <input type="text" class="login-input" id="usernameInput" placeholder="z. B. KönigLukas" maxlength="20" autocomplete="off" spellcheck="false">
+      <input type="text" class="login-input" id="usernameInput" placeholder="e.g. KingLukas" maxlength="20" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="login-field">
-      <label>Deine HWID (automatisch)</label>
+      <label>Your HWID (automatic)</label>
       <div class="login-hwid" id="hwidDisplay">
         <svg viewBox="0 0 24 24" fill="none" stroke="#5c7099" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="4" width="20" height="16" rx="2"/>
           <path d="M7 9h10M7 13h10M7 17h6"/>
         </svg>
-        <span id="hwidText">Wird geladen…</span>
+        <span id="hwidText">Loading…</span>
       </div>
     </div>
 
@@ -778,7 +925,7 @@
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M5 12h14M13 6l6 6-6 6"/>
       </svg>
-      Reich betreten
+      Enter Realm
     </button>
 
     <div class="login-status" id="loginStatus"></div>
@@ -808,13 +955,13 @@
   </div>
 
   <div class="loader-title">Build a <span class="accent">Realm</span></div>
-  <div class="loader-sub">Aufstieg · Macht · Vermächtnis</div>
+  <div class="loader-sub">Rise · Power · Legacy</div>
 
   <div class="loader-bar-wrap"><div class="loader-bar" id="bar"></div></div>
-  <div class="loader-status"><span class="dot"></span><span id="statusText">Initialisiere Engine…</span></div>
+  <div class="loader-status"><span class="dot"></span><span id="statusText">Initializing engine…</span></div>
   <div class="loader-percent" id="percent">0%</div>
 
-  <div class="loader-tips"><span class="tip" id="tipText">Tipp: Nutze das Mausrad zum Zoomen</span></div>
+  <div class="loader-tips"><span class="tip" id="tipText">Tip: Use the mouse wheel to zoom</span></div>
 </div>
 
 <!-- ================= GAME ================= -->
@@ -836,7 +983,7 @@
       </svg>
       <span>BUILD A <span class="txt-accent">REALM</span></span>
     </div>
-    <div class="user-chip" id="userChip" title="Dein Nickname">
+    <div class="user-chip" id="userChip" title="Your nickname">
       <svg viewBox="0 0 24 24" fill="none" stroke="#2f6fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/>
       </svg>
@@ -846,29 +993,29 @@
   </div>
 
   <div id="statsPanel">
-    <div class="sp-title">Realm-Status</div>
+    <div class="sp-title">Realm Status</div>
     <div id="statsBody"></div>
   </div>
 
   <div id="syncBadge">
     <div class="dot"></div>
-    <span id="syncText">Synchronisiert</span>
+    <span id="syncText">Synced</span>
   </div>
 
   <div id="minimap">
-    <div class="mm-title">Karte</div>
+    <div class="mm-title">Map</div>
     <div class="mm-inner" id="mmInner"></div>
   </div>
 
   <div id="rightPanel">
-    <div class="panel-head"><span id="panelTitle">Gebäude</span><span class="count" id="bCount">0</span></div>
+    <div class="panel-head"><span id="panelTitle">Buildings</span><span class="count" id="bCount">0</span></div>
     <div class="panel-tabs" id="panelTabs">
-      <button class="tab-btn active" data-cat="all">Alle</button>
-      <button class="tab-btn" data-cat="civic">Wohnen</button>
-      <button class="tab-btn" data-cat="production">Produktion</button>
-      <button class="tab-btn" data-cat="economy">Wirtschaft</button>
-      <button class="tab-btn" data-cat="military">Militär</button>
-      <button class="tab-btn" data-cat="special">Spezial</button>
+      <button class="tab-btn active" data-cat="all">All</button>
+      <button class="tab-btn" data-cat="civic">Civic</button>
+      <button class="tab-btn" data-cat="production">Production</button>
+      <button class="tab-btn" data-cat="economy">Economy</button>
+      <button class="tab-btn" data-cat="military">Military</button>
+      <button class="tab-btn" data-cat="special">Special</button>
     </div>
     <div id="buildingList"></div>
   </div>
@@ -889,53 +1036,105 @@
   <div id="placeBanner">
     <div class="pb-icon" id="pbIcon"></div>
     <div class="pb-text">
-      <span id="pbName">Gebäude platzieren</span>
-      <small><span class="pb-key">Linksklick</span> zum Platzieren · <span class="pb-key">Q</span> zum Abbrechen</small>
+      <span id="pbName">Place building</span>
+      <small><span class="pb-key">Left click</span> to place · <span class="pb-key">Q</span> to cancel</small>
     </div>
-    <button class="pb-cancel" id="pbCancel">Abbrechen (Q)</button>
+    <button class="pb-cancel" id="pbCancel">Cancel (Q)</button>
   </div>
 
   <div id="offlineBanner">
     <div class="ob-icon">⏳</div>
-    <div class="ob-text" id="obText">Offline-Fortschritt</div>
+    <div class="ob-text" id="obText">Offline progress</div>
     <button class="ob-close" id="obClose">OK</button>
   </div>
 
   <div id="bottombar">
-    <button class="btn" id="btnZoomOut" title="Rauszoomen">
+    <button class="btn" id="btnZoomOut" title="Zoom out">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg>
     </button>
-    <button class="btn" id="btnZoomIn" title="Reinzoomen">
+    <button class="btn" id="btnZoomIn" title="Zoom in">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg>
     </button>
-    <button class="btn" id="btnCenter" title="Zentrieren">
+    <button class="btn" id="btnCenter" title="Center view">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      Zentrieren
+      Center
     </button>
-    <button class="btn" id="btnSellMode" title="Abriss-Modus">
+    <button class="btn" id="btnSellMode" title="Demolish mode">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M5 6l1 14h12l1-14M10 11v5M14 11v5"/></svg>
-      Abreißen
+      Demolish
     </button>
     <div class="spacer"></div>
-    <span class="hint" id="hintText">Ziehen = Bewegen · Mausrad = Zoom · Q = Abbrechen</span>
+    <span class="hint" id="hintText">Drag = Move · Wheel = Zoom · Q = Cancel</span>
     <div class="spacer"></div>
-    <button class="btn" id="btnSpeed" title="Spielgeschwindigkeit">×1</button>
-    <button class="btn" id="btnSave" title="Jetzt speichern">
+    <button class="btn btn-premium" id="btnSpeed" title="Speed multiplier (Premium)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 2 L3 14h7l-1 8 10-12h-7z"/>
+      </svg>
+      ×1
+    </button>
+    <a class="btn btn-lb" href="Leaderboard/index.html" title="Open leaderboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/>
+        <path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2"/>
+      </svg>
+      Leaderboard
+    </a>
+    <button class="btn" id="btnSave" title="Save now">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 15h8v5H8z"/></svg>
     </button>
-    <button class="btn" id="btnLogout" title="Ausloggen">
+    <button class="btn" id="btnLogout" title="Log out">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
     </button>
   </div>
 
   <div id="notify"></div>
   <div id="modal"><div class="modal-box" id="modalBox"></div></div>
+
+  <!-- Premium Modal -->
+  <div id="premiumModal">
+    <div class="premium-box">
+      <div class="premium-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z" fill="#fff" opacity="0.9"/>
+        </svg>
+      </div>
+      <div class="premium-title">Premium Feature</div>
+      <div class="premium-subtitle">Speed Multiplier is locked</div>
+      <div class="premium-desc">
+        The <b>Speed Multiplier</b> lets you boost your entire realm's production, construction speed, and resource generation by ×2 or even ×3.
+      </div>
+      <div class="premium-features">
+        <div class="premium-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+          ×2 and ×3 game speed
+        </div>
+        <div class="premium-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+          Faster resource production
+        </div>
+        <div class="premium-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+          Quicker building construction
+        </div>
+      </div>
+      <div class="premium-actions">
+        <button class="btn" id="premiumCancel">Maybe later</button>
+        <button class="btn btn-premium-cta" id="premiumBuy" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+          </svg>
+          Coming Soon
+        </button>
+      </div>
+      <div class="premium-soon">Premium is not available yet — stay tuned!</div>
+    </div>
+  </div>
 </div>
 
 <!-- ============ FIREBASE SDK ============ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, get, set, update, onValue, onDisconnect, serverTimestamp }
+import { getDatabase, ref, get, set, update, onValue, onDisconnect, serverTimestamp, remove }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -952,16 +1151,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 window.__BR_db = db;
-window.__BR_fns = { ref, get, set, update, onValue, onDisconnect, serverTimestamp };
+window.__BR_fns = { ref, get, set, update, onValue, onDisconnect, serverTimestamp, remove };
 window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
 <script>
 /* =========================================================
-   BUILD A REALM - v4 (Firebase)
+   BUILD A REALM - v5 (English, Premium Speed, Resource Tooltips)
    ========================================================= */
 
-/* ---------- SVG ICONS (gekürzt – dieselben wie v3) ---------- */
+/* ---------- SVG ICONS ---------- */
 const ICONS = {
   money: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#ffd54f" stroke="#c99a00" stroke-width="1.5"/><text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="#7a5c00">$</text></svg>`,
   gold: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="18" rx="8" ry="3" fill="#ffca28" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="14" rx="8" ry="3" fill="#ffd54f" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="10" rx="8" ry="3" fill="#ffe082" stroke="#b8860b" stroke-width="1.3"/></svg>`,
@@ -1005,21 +1204,23 @@ const ICONS = {
   water: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 C12 2 5 10 5 15 C5 19 8 22 12 22 C16 22 19 19 19 15 C19 10 12 2 12 2 Z" fill="#4fc3f7" stroke="#01579b" stroke-width="1.3"/></svg>`
 };
 
-/* ---------- LOADING SCREEN TIPS ---------- */
+/* ---------- LOADING TIPS (English) ---------- */
 const tips = [
-  "Tipp: Mausrad zum Zoomen · Ziehen zum Bewegen",
-  "Tipp: Q bricht die Platzierung ab",
-  "Tipp: Bauarbeiter bauen deine Gebäude mit der Zeit",
-  "Tipp: Ab Realm-Level 4 gibt es Fabriken",
-  "Tipp: Dein Fortschritt wird in der Cloud gespeichert",
-  "Tipp: Größere Gebäude brauchen länger zum Bauen",
-  "Tipp: Mehr Bewohner = mehr Arbeiter",
-  "Tipp: Abreißen erstattet 50% der Gesamtkosten"
+  "Tip: Mouse wheel to zoom · Drag to move",
+  "Tip: Q cancels building placement",
+  "Tip: Builders construct your buildings over time",
+  "Tip: Factories unlock at Realm Level 4",
+  "Tip: Your progress is saved in the cloud",
+  "Tip: Larger buildings take longer to build",
+  "Tip: More population = more workers",
+  "Tip: Sell buildings from the detail panel",
+  "Tip: Hover over resource icons to see what they are",
+  "Tip: Speed Multiplier is a Premium feature"
 ];
 const statuses = [
-  "Initialisiere Engine…","Lade Terrain-Texturen…","Verbinde mit Firebase…",
-  "Prüfe Server-Erreichbarkeit…","Lade Gebäude-Assets…","Lade Bauarbeiter-Sprites…",
-  "Lade Militär-Einheiten…","Baue Wirtschaftssystem…","Kalibriere Kamera…","Fast fertig…"
+  "Initializing engine…","Loading terrain textures…","Connecting to Firebase…",
+  "Checking server availability…","Loading building assets…","Loading builder sprites…",
+  "Loading military units…","Building economy system…","Calibrating camera…","Almost done…"
 ];
 
 const bar = document.getElementById('bar');
@@ -1052,7 +1253,6 @@ setInterval(() => {
    HWID GENERATOR
    ========================================================= */
 function generateHWID() {
-  // Stabile Kombination aus Browser-Fingerprint-Elementen
   const nav = window.navigator;
   const scr = window.screen;
   let parts = [
@@ -1067,7 +1267,6 @@ function generateHWID() {
     nav.maxTouchPoints || 0
   ].join('|');
 
-  // Zusätzlich persistentes Random-ID, damit HWID stabil bleibt
   let seed = localStorage.getItem('br_hwid_seed');
   if (!seed) {
     seed = 'SEED-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -1075,7 +1274,6 @@ function generateHWID() {
   }
   parts += '|' + seed;
 
-  // Hash (FNV-1a 32-bit + Simple-Hash für lange Strings)
   let h1 = 0x811c9dc5, h2 = 0x1000193;
   for (let i = 0; i < parts.length; i++) {
     const c = parts.charCodeAt(i);
@@ -1091,7 +1289,7 @@ function generateHWID() {
    LOGIN FLOW
    ========================================================= */
 const HWID = generateHWID();
-let currentUser = null; // { username, hwid }
+let currentUser = null;
 let firebase = null;
 
 const usernameInput = document.getElementById('usernameInput');
@@ -1104,7 +1302,6 @@ const hwidText = document.getElementById('hwidText');
 
 hwidText.textContent = HWID;
 
-// Warten auf Firebase
 let firebaseReady = false;
 function whenFirebaseReady(cb) {
   if (window.__BR_db) { cb(); return; }
@@ -1114,7 +1311,7 @@ function whenFirebaseReady(cb) {
 whenFirebaseReady(() => {
   firebaseReady = true;
   firebase = { db: window.__BR_db, ...window.__BR_fns };
-  loginStatus.textContent = "Mit Firebase verbunden ✓";
+  loginStatus.textContent = "Connected to Firebase ✓";
   loginStatus.className = "login-status ok";
   checkExistingUser();
 });
@@ -1126,9 +1323,9 @@ function usernameKey(name) {
   return name.toLowerCase().replace(/[.#$\[\]\/]/g, '_');
 }
 function validateUsername(name) {
-  if (name.length < 3) return "Nickname muss mindestens 3 Zeichen haben";
-  if (name.length > 20) return "Nickname darf maximal 20 Zeichen haben";
-  if (!/^[A-Za-z0-9_\-äöüÄÖÜß ]+$/.test(name)) return "Nur Buchstaben, Zahlen, _ und - erlaubt";
+  if (name.length < 3) return "Nickname must be at least 3 characters";
+  if (name.length > 20) return "Nickname can be at most 20 characters";
+  if (!/^[A-Za-z0-9_\-äöüÄÖÜß ]+$/.test(name)) return "Only letters, numbers, _ and - allowed";
   return null;
 }
 
@@ -1151,12 +1348,10 @@ async function checkExistingUser() {
     if (snap.exists()) {
       const data = snap.val();
       currentUser = { username: data.username, hwid: HWID };
-      loginExisting.innerHTML = `👋 Willkommen zurück, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>!<br><span class="link" id="continueLink">Als ${escapeHtml(data.username)} fortfahren →</span>`;
+      loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>!<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
       document.getElementById('continueLink').onclick = () => {
-        // Direkt einloggen
         beginGameTransition();
       };
-      // Nickname vorausfüllen
       usernameInput.value = data.username;
       usernameInput.dispatchEvent(new Event('input'));
     }
@@ -1173,38 +1368,35 @@ async function doLogin() {
   if (err) { loginError.textContent = err; return; }
 
   loginBtn.disabled = true;
-  loginStatus.textContent = "Prüfe Verfügbarkeit…";
+  loginStatus.textContent = "Checking availability…";
   loginStatus.className = "login-status";
   loginError.textContent = '';
 
   try {
-    const { ref, get, set, update } = firebase;
+    const { ref, get, set } = firebase;
     const key = usernameKey(name);
-    // Prüfen ob Name bereits vergeben (an eine andere HWID)
+
     const nameSnap = await get(ref(firebase.db, 'usernames/' + key));
     if (nameSnap.exists()) {
       const owner = nameSnap.val();
       if (owner !== HWID) {
-        loginError.textContent = "Dieser Nickname ist bereits vergeben!";
+        loginError.textContent = "This nickname is already taken!";
         loginBtn.disabled = false;
         loginStatus.textContent = "";
         return;
       }
     }
 
-    // Prüfen ob HWID bereits einen User hat
     const hwidSnap = await get(ref(firebase.db, 'users_by_hwid/' + HWID));
     if (hwidSnap.exists()) {
       const data = hwidSnap.val();
       if (data.username !== name) {
-        // Erlaube Umbenennung: alten Namen freigeben, neuen belegen
         const oldKey = usernameKey(data.username);
         await set(ref(firebase.db, 'usernames/' + oldKey), null);
       }
     }
 
-    loginStatus.textContent = "Registriere Account…";
-    // Belegen
+    loginStatus.textContent = "Registering account…";
     await set(ref(firebase.db, 'usernames/' + key), HWID);
     await set(ref(firebase.db, 'users_by_hwid/' + HWID), {
       username: name,
@@ -1212,35 +1404,22 @@ async function doLogin() {
       createdAt: Date.now(),
       lastSeen: Date.now()
     });
-    // User-Existenz prüfen für save slot
-    const saveSnap = await get(ref(firebase.db, 'saves/' + HWID));
-    if (!saveSnap.exists()) {
-      await set(ref(firebase.db, 'saves/' + HWID), {
-        username: name,
-        hwid: HWID,
-        createdAt: Date.now(),
-        lastTick: Date.now(),
-        state: null // wird beim ersten Speichern befüllt
-      });
-    }
 
     currentUser = { username: name, hwid: HWID };
-    loginStatus.textContent = "Erfolgreich! Lade dein Reich…";
+    loginStatus.textContent = "Success! Loading your realm…";
     loginStatus.className = "login-status ok";
 
     setTimeout(() => beginGameTransition(), 500);
   } catch (e) {
     console.error(e);
-    loginError.textContent = "Fehler: " + (e.message || e);
+    loginError.textContent = "Error: " + (e.message || e);
     loginBtn.disabled = false;
     loginStatus.textContent = "";
   }
 }
 
 function beginGameTransition() {
-  // Login weg
   loginScreen.classList.add('hidden');
-  // Ladebildschirm starten
   runLoadingScreen();
 }
 
@@ -1266,7 +1445,7 @@ function runLoadingScreen() {
     if (loadProgress >= 100) {
       loadDone = true;
       clearInterval(loadInterval);
-      setStatusText("Server erreichbar ✓  ·  Starte Reich…");
+      setStatusText("Server reachable ✓  ·  Starting realm…");
       setTimeout(() => {
         loader.classList.add('hidden');
         document.getElementById('game').classList.add('visible');
@@ -1289,130 +1468,144 @@ const state = {
   placing: null, selected: null, nextId: 1,
   speed: 1, sellMode: false, activeTab: 'all',
   lastTick: Date.now(),
-  offlineChecked: false
+  playtimeSeconds: 0,
+  isPremium: false
 };
 
 const TILE = 48;
 let saveTimeout = null;
 
-/* ---------- GEBÄUDE-DEFINITIONEN (wie v3) ---------- */
+/* ---------- BUILDING DEFINITIONS (English) ---------- */
 const BUILDINGS = {
-  main: { name: "Hauptgebäude", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10,
-    desc: "Herz deines Reiches. Bestimmt Bevölkerungslimit & Soldaten.",
+  main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10,
+    desc: "Heart of your realm. Determines population and soldier limits.",
     baseCost: 900, costMult: 2.4, produces: {}, needs: { workers: 0 },
     popBonus: [0,2,4,7,11,16,22,30,40,52],
     soldierBonus: [0,1,2,4,6,9,13,18,24,32] },
-  house: { name: "Wohnhaus", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10,
-    desc: "Bietet Platz für Bewohner. Jedes Upgrade erhöht die Kapazität.",
+  house: { name: "House", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10,
+    desc: "Provides space for residents. Each upgrade increases capacity.",
     baseCost: 250, costMult: 1.95, produces: {}, needs: { workers: 1 },
     popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160], buildTime: 8 },
-  tavern: { name: "Taverne", icon: "tavern", category: "civic", size: 2, cost: 500, maxLevel: 8,
-    desc: "Erhöht die Zufriedenheit und zieht neue Bewohner an.",
+  tavern: { name: "Tavern", icon: "tavern", category: "civic", size: 2, cost: 500, maxLevel: 8,
+    desc: "Increases happiness and attracts new residents.",
     baseCost: 500, costMult: 2.0, produces: { gold: 2 }, needs: { workers: 2 },
     happyBonus: [3, 6, 10, 14, 19, 25, 32, 40], buildTime: 10 },
-  well: { name: "Brunnen", icon: "well", category: "civic", size: 1, cost: 220, maxLevel: 6,
-    desc: "Versorgt Bewohner mit Wasser. Erhöht Zufriedenheit.",
+  well: { name: "Well", icon: "well", category: "civic", size: 1, cost: 220, maxLevel: 6,
+    desc: "Supplies residents with water. Increases happiness.",
     baseCost: 220, costMult: 1.9, produces: {}, needs: { workers: 1 },
     happyBonus: [2, 4, 7, 10, 14, 19], buildTime: 5 },
-  farm: { name: "Bauernhof", icon: "farm", category: "production", size: 2, cost: 400, maxLevel: 10,
-    desc: "Produziert Nahrung. Ab Level 5 wird zur Fabrik ausgebaut.",
+  farm: { name: "Farm", icon: "farm", category: "production", size: 2, cost: 400, maxLevel: 10,
+    desc: "Produces food. Upgrades into a factory at level 5.",
     baseCost: 400, costMult: 1.9, produces: { food: 5 }, needs: { workers: 3 },
     factoryLevel: 5, buildTime: 9 },
-  bakery: { name: "Bäckerei", icon: "bakery", category: "production", size: 2, cost: 700, maxLevel: 8,
-    desc: "Verarbeitet Getreide zu Brot. Erhöht Zufriedenheit & Gold.",
+  bakery: { name: "Bakery", icon: "bakery", category: "production", size: 2, cost: 700, maxLevel: 8,
+    desc: "Processes grain into bread. Increases happiness & gold.",
     baseCost: 700, costMult: 2.0, produces: { gold: 4, food: 2 }, needs: { workers: 4 },
     happyBonus: [2, 4, 7, 10, 14, 18, 23, 29], buildTime: 11 },
-  lumber: { name: "Holzfäller", icon: "lumber", category: "production", size: 2, cost: 350, maxLevel: 10,
-    desc: "Produziert Holz für den Ausbau.",
+  lumber: { name: "Lumberjack", icon: "lumber", category: "production", size: 2, cost: 350, maxLevel: 10,
+    desc: "Produces wood for construction.",
     baseCost: 350, costMult: 1.9, produces: { wood: 4 }, needs: { workers: 3 }, buildTime: 8 },
-  quarry: { name: "Steinbruch", icon: "quarry", category: "production", size: 2, cost: 500, maxLevel: 10,
-    desc: "Produziert Stein für große Bauwerke.",
+  quarry: { name: "Quarry", icon: "quarry", category: "production", size: 2, cost: 500, maxLevel: 10,
+    desc: "Produces stone for large structures.",
     baseCost: 500, costMult: 2.0, produces: { stone: 3 }, needs: { workers: 4 }, buildTime: 10 },
-  blacksmith: { name: "Schmiede", icon: "blacksmith", category: "production", size: 2, cost: 850, maxLevel: 8,
-    desc: "Verarbeitet Erze zu Werkzeugen und Waffen.",
+  blacksmith: { name: "Blacksmith", icon: "blacksmith", category: "production", size: 2, cost: 850, maxLevel: 8,
+    desc: "Processes ore into tools and weapons.",
     baseCost: 850, costMult: 2.1, produces: { gold: 5, stone: 2 }, needs: { workers: 5 }, buildTime: 12 },
-  windmill: { name: "Windmühle", icon: "windmill", category: "production", size: 2, cost: 950, maxLevel: 8,
-    desc: "Mahlt Getreide. Steigert Nahrungs- und Holzproduktion.",
+  windmill: { name: "Windmill", icon: "windmill", category: "production", size: 2, cost: 950, maxLevel: 8,
+    desc: "Grinds grain. Boosts food and wood production.",
     baseCost: 950, costMult: 2.05, produces: { food: 8, wood: 2 }, needs: { workers: 4 }, buildTime: 13 },
-  workshop: { name: "Werkstatt", icon: "workshop", category: "production", size: 2, cost: 1100, maxLevel: 8,
-    desc: "Stellt Werkzeuge her. Erhöht Produktion aller Gebäude.",
+  workshop: { name: "Workshop", icon: "workshop", category: "production", size: 2, cost: 1100, maxLevel: 8,
+    desc: "Crafts tools. Increases production of all buildings.",
     baseCost: 1100, costMult: 2.1, produces: { gold: 3, wood: 3 }, needs: { workers: 6 },
     globalBonus: [0.03, 0.06, 0.10, 0.15, 0.21, 0.28, 0.36, 0.45], buildTime: 14 },
-  market: { name: "Marktplatz", icon: "market", category: "economy", size: 2, cost: 700, maxLevel: 10,
-    desc: "Erhöht Einkommen und Handelsgüter.",
+  market: { name: "Marketplace", icon: "market", category: "economy", size: 2, cost: 700, maxLevel: 10,
+    desc: "Increases income and trade goods.",
     baseCost: 700, costMult: 2.1, produces: { gold: 6 }, needs: { workers: 4 }, buildTime: 11 },
-  mine: { name: "Goldmine", icon: "mine", category: "economy", size: 2, cost: 1200, maxLevel: 10,
-    desc: "Fördert Gold aus den Tiefen der Erde.",
+  mine: { name: "Gold Mine", icon: "mine", category: "economy", size: 2, cost: 1200, maxLevel: 10,
+    desc: "Extracts gold from the depths of the earth.",
     baseCost: 1200, costMult: 2.2, produces: { gold: 11 }, needs: { workers: 6 }, buildTime: 14 },
   bank: { name: "Bank", icon: "bank", category: "economy", size: 3, cost: 2500, maxLevel: 8,
-    desc: "Erwirtschaftet passives Einkommen durch Zinsen.",
+    desc: "Generates passive income through interest.",
     baseCost: 2500, costMult: 2.25, produces: { gold: 20 }, needs: { workers: 8 },
     unlockLevel: 3, buildTime: 20 },
-  university: { name: "Universität", icon: "university", category: "civic", size: 3, cost: 2800, maxLevel: 8,
-    desc: "Bildet Spezialisten aus. Steigert Produktion aller Gebäude.",
+  university: { name: "University", icon: "university", category: "civic", size: 3, cost: 2800, maxLevel: 8,
+    desc: "Trains specialists. Boosts production of all buildings.",
     baseCost: 2800, costMult: 2.2, produces: { gold: 8 }, needs: { workers: 10 },
     globalBonus: [0.05, 0.10, 0.16, 0.22, 0.29, 0.37, 0.46, 0.56],
     unlockLevel: 4, buildTime: 22 },
-  factory: { name: "Fabrik", icon: "factory", category: "production", size: 3, cost: 3500, maxLevel: 10,
-    desc: "Industrielle Produktion. Liefert große Mengen Ressourcen.",
+  factory: { name: "Factory", icon: "factory", category: "production", size: 3, cost: 3500, maxLevel: 10,
+    desc: "Industrial production. Delivers large amounts of resources.",
     baseCost: 3500, costMult: 2.3, produces: { gold: 18, wood: 7, stone: 7, food: 5 },
     needs: { workers: 12 }, unlockLevel: 4, buildTime: 25 },
-  shipyard: { name: "Werft", icon: "shipyard", category: "economy", size: 3, cost: 4200, maxLevel: 8,
-    desc: "Handel über Wasser. Große Golderträge.",
+  shipyard: { name: "Shipyard", icon: "shipyard", category: "economy", size: 3, cost: 4200, maxLevel: 8,
+    desc: "Trade over water. Large gold yields.",
     baseCost: 4200, costMult: 2.3, produces: { gold: 28 }, needs: { workers: 14 },
     unlockLevel: 5, buildTime: 28 },
-  harbor: { name: "Hafen", icon: "harbor", category: "economy", size: 3, cost: 5200, maxLevel: 8,
-    desc: "Internationaler Handelshafen. Sehr hohe Golderträge.",
+  harbor: { name: "Harbor", icon: "harbor", category: "economy", size: 3, cost: 5200, maxLevel: 8,
+    desc: "International trade port. Very high gold yields.",
     baseCost: 5200, costMult: 2.35, produces: { gold: 38, food: 4 }, needs: { workers: 16 },
     unlockLevel: 6, buildTime: 32 },
-  library: { name: "Bibliothek", icon: "library", category: "civic", size: 2, cost: 1500, maxLevel: 8,
-    desc: "Bildung für alle. Erhöht Zufriedenheit & leichtes Einkommen.",
+  library: { name: "Library", icon: "library", category: "civic", size: 2, cost: 1500, maxLevel: 8,
+    desc: "Education for all. Increases happiness & light income.",
     baseCost: 1500, costMult: 2.05, produces: { gold: 4 }, needs: { workers: 5 },
     happyBonus: [4, 8, 13, 18, 24, 31, 39, 48], buildTime: 16 },
   theater: { name: "Theater", icon: "theater", category: "civic", size: 2, cost: 2200, maxLevel: 8,
-    desc: "Kulturelles Zentrum. Erhöht die Zufriedenheit stark.",
+    desc: "Cultural center. Greatly increases happiness.",
     baseCost: 2200, costMult: 2.2, produces: { gold: 6 }, needs: { workers: 7 },
     happyBonus: [6, 12, 19, 27, 36, 46, 57, 69],
     unlockLevel: 3, buildTime: 20 },
-  temple: { name: "Tempel", icon: "temple", category: "civic", size: 3, cost: 4000, maxLevel: 8,
-    desc: "Heiliger Ort. Maximiert Zufriedenheit und bringt Segen.",
+  temple: { name: "Temple", icon: "temple", category: "civic", size: 3, cost: 4000, maxLevel: 8,
+    desc: "Sacred place. Maximizes happiness and brings blessings.",
     baseCost: 4000, costMult: 2.3, produces: { gold: 12 }, needs: { workers: 10 },
     happyBonus: [8, 16, 25, 35, 46, 58, 71, 85],
     unlockLevel: 5, buildTime: 30 },
-  stable: { name: "Stall", icon: "stable", category: "production", size: 2, cost: 1600, maxLevel: 8,
-    desc: "Zucht von Tieren. Liefert Nahrung und Militärvorteile.",
+  stable: { name: "Stable", icon: "stable", category: "production", size: 2, cost: 1600, maxLevel: 8,
+    desc: "Animal breeding. Provides food and military benefits.",
     baseCost: 1600, costMult: 2.1, produces: { food: 6, gold: 3 }, needs: { workers: 5 },
     soldierPerLevel: [0, 1, 2, 3, 5, 7, 9, 12], buildTime: 15 },
-  barracks: { name: "Kaserne", icon: "barracks", category: "military", size: 2, cost: 900, maxLevel: 10,
-    desc: "Trainiert Soldaten. Erhöht das Militärlimit.",
+  barracks: { name: "Barracks", icon: "barracks", category: "military", size: 2, cost: 900, maxLevel: 10,
+    desc: "Trains soldiers. Increases military limit.",
     baseCost: 900, costMult: 2.15, produces: {}, needs: { workers: 4 },
     soldierPerLevel: [2, 5, 9, 14, 20, 28, 38, 50, 65, 84], buildTime: 14 },
-  tower: { name: "Wachturm", icon: "watchtower", category: "military", size: 1, cost: 600, maxLevel: 8,
-    desc: "Verteidigungsanlage. Erhöht Verteidigung & Soldatenlimit.",
+  tower: { name: "Watchtower", icon: "watchtower", category: "military", size: 1, cost: 600, maxLevel: 8,
+    desc: "Defensive structure. Increases defense & soldier limit.",
     baseCost: 600, costMult: 1.95, produces: {}, needs: { workers: 2 },
     soldierPerLevel: [1, 2, 4, 6, 9, 13, 18, 24], buildTime: 8 },
-  wall: { name: "Stadtmauer", icon: "wall", category: "military", size: 1, cost: 800, maxLevel: 8,
-    desc: "Schützt das Reich. Erhöht Verteidigung.",
+  wall: { name: "City Wall", icon: "wall", category: "military", size: 1, cost: 800, maxLevel: 8,
+    desc: "Protects the realm. Increases defense.",
     baseCost: 800, costMult: 2.0, produces: {}, needs: { workers: 3 },
     soldierPerLevel: [0, 1, 2, 4, 6, 9, 13, 18], buildTime: 7 },
   arena: { name: "Arena", icon: "arena", category: "military", size: 3, cost: 3200, maxLevel: 8,
-    desc: "Kampfarena. Trainiert Elitekämpfer und bringt Ruhm.",
+    desc: "Combat arena. Trains elite fighters and brings glory.",
     baseCost: 3200, costMult: 2.25, produces: { gold: 8 }, needs: { workers: 9 },
     soldierPerLevel: [3, 7, 12, 18, 25, 33, 42, 52],
     happyBonus: [3, 6, 10, 14, 19, 24, 30, 36],
     unlockLevel: 4, buildTime: 26 },
-  fortress: { name: "Festung", icon: "fortress", category: "military", size: 3, cost: 6000, maxLevel: 10,
-    desc: "Mächtige Militärbasis. Große Mengen Soldaten.",
+  fortress: { name: "Fortress", icon: "fortress", category: "military", size: 3, cost: 6000, maxLevel: 10,
+    desc: "Mighty military base. Large numbers of soldiers.",
     baseCost: 6000, costMult: 2.4, produces: { gold: 12 }, needs: { workers: 15 },
     soldierPerLevel: [10, 20, 35, 55, 80, 110, 150, 200, 260, 335],
     unlockLevel: 6, buildTime: 35 },
-  church: { name: "Kirche", icon: "church", category: "special", size: 2, cost: 1800, maxLevel: 8,
-    desc: "Ort des Glaubens. Bringt Zufriedenheit und Gemeinschaft.",
+  church: { name: "Church", icon: "church", category: "special", size: 2, cost: 1800, maxLevel: 8,
+    desc: "Place of worship. Brings happiness and community.",
     baseCost: 1800, costMult: 2.1, produces: { gold: 5 }, needs: { workers: 4 },
     happyBonus: [5, 10, 16, 22, 29, 37, 46, 56], buildTime: 17 },
-  fishing: { name: "Fischerhütte", icon: "fishing", category: "production", size: 1, cost: 380, maxLevel: 8,
-    desc: "Fischt in Gewässern. Liefert Nahrung und etwas Gold.",
+  fishing: { name: "Fishing Hut", icon: "fishing", category: "production", size: 1, cost: 380, maxLevel: 8,
+    desc: "Fishes in waters. Provides food and a bit of gold.",
     baseCost: 380, costMult: 1.95, produces: { food: 4, gold: 1 }, needs: { workers: 2 }, buildTime: 7 }
+};
+
+/* ---------- RESOURCE META (for tooltips) ---------- */
+const RESOURCE_META = {
+  money: { name: "Money", desc: "Main currency used to construct and upgrade buildings." },
+  gold: { name: "Gold", desc: "Precious metal. Used for advanced buildings and wealth." },
+  food: { name: "Food", desc: "Needed to feed your population. Produced by farms, bakeries, and fishing huts." },
+  wood: { name: "Wood", desc: "Basic building material. Produced by lumberjacks and windmills." },
+  stone: { name: "Stone", desc: "Solid building material. Produced by quarries and blacksmiths." },
+  pop: { name: "Population", desc: "Your residents. More people = more workers. Cap increased by houses and the main building." },
+  worker: { name: "Workers", desc: "Assigned to production buildings. More workers = more output. Hired from your population." },
+  soldier: { name: "Soldiers", desc: "Your military force. Trained in barracks. Cap increased by military buildings." },
+  star: { name: "Realm Level", desc: "Overall progress of your realm. Increases automatically as you build and upgrade." }
 };
 
 /* =========================================================
@@ -1453,7 +1646,7 @@ function buildTerrain() {
 }
 
 /* =========================================================
-   SVG BUILDING RENDERER (v3 – korrekte Türen/Fenster)
+   SVG BUILDING RENDERER
    ========================================================= */
 function buildingSVG(type, level, w, h) {
   const lvl = level;
@@ -1530,13 +1723,13 @@ function buildingSVG(type, level, w, h) {
       for (let i = 0; i < chimCount; i++) {
         const cxp = 24 + i * 26;
         const chH = 16 + i * 3 + lvl;
-        chim += `<rect x="${cxp}" y="${bodyTop - chH}" width="6" height="${chH}" fill="#37474f" stroke="#1c262b" stroke-width="1"/>`;
+        chim += `<rect x="${cxp}" y="${bodyTop - chH}" width="6" height="${chH}" fill="#37474f"/>`;
       }
       let smoke = '';
       if (lvl >= 6) smoke = `<circle cx="26" cy="${bodyTop - 20}" r="4" fill="#cfd8dc" opacity="0.7"/><circle cx="50" cy="${bodyTop - 26}" r="5" fill="#cfd8dc" opacity="0.6"/>`;
       const winY = bodyTop + bodyH * 0.35;
       let windows = '';
-      for (let i = 0; i < 5; i++) windows += `<rect x="${12 + i*15}" y="${winY}" width="9" height="9" fill="#90caf9" stroke="#37474f" stroke-width="0.6"/>`;
+      for (let i = 0; i < 5; i++) windows += `<rect x="${12 + i*15}" y="${winY}" width="9" height="9" fill="#90caf9"/>`;
       return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
         <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.2)"/>
         <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#546e7a" stroke="#2e3b42" stroke-width="1.6"/>
@@ -1550,7 +1743,7 @@ function buildingSVG(type, level, w, h) {
     let fieldRows = '';
     for (let i = 0; i < rows; i++) {
       const yy = fieldTop + i * (fieldH/rows);
-      fieldRows += `<rect x="8" y="${yy}" width="84" height="${(fieldH/rows)*0.55}" fill="${i%2?'#8bc34a':'#cddc39'}" stroke="#558b2f" stroke-width="0.5"/>`;
+      fieldRows += `<rect x="8" y="${yy}" width="84" height="${(fieldH/rows)*0.55}" fill="${i%2?'#8bc34a':'#cddc39'}"/>`;
     }
     const houseTop = 42, houseH = 32;
     let hw = '';
@@ -1953,7 +2146,6 @@ function buildingSVG(type, level, w, h) {
   }
 
   if (type === 'arena') {
-    const bodyTop = 100 - (30 + lvl * 2);
     return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
       <ellipse cx="50" cy="97" rx="46" ry="3" fill="rgba(0,0,0,0.2)"/>
       <ellipse cx="50" cy="82" rx="44" ry="18" fill="#a1887f" stroke="#4e342e" stroke-width="1.4"/>
@@ -2015,7 +2207,7 @@ function getCost(type, level) {
   return Math.round(def.baseCost * Math.pow(def.costMult, level));
 }
 function getUpgradeCost(b) { return getCost(b.type, b.level); }
-function costString(type, level) { return getCost(type, level).toLocaleString('de-DE'); }
+function costString(type, level) { return getCost(type, level).toLocaleString('en-US'); }
 function getBuildTime(type, level) {
   const def = BUILDINGS[type];
   const base = def.buildTime || 8;
@@ -2031,6 +2223,11 @@ function formatTime(sec) {
   if (m < 60) return m + 'm ' + s + 's';
   const h = Math.floor(m / 60);
   return h + 'h ' + (m % 60) + 'm';
+}
+function getSellValue(b) {
+  let sum = getCost(b.type, 0);
+  for (let i = 1; i < b.level; i++) sum += getCost(b.type, i);
+  return Math.floor(sum * 0.5);
 }
 
 function recalc() {
@@ -2148,7 +2345,12 @@ mapEl.addEventListener('click', (e) => {
       const bs = BUILDINGS[b.type].size * TILE;
       if (w.x >= b.x && w.x <= b.x + bs && w.y >= b.y && w.y <= b.y + bs) { hit = b; break; }
     }
-    if (hit) sellBuilding(hit);
+    if (hit) {
+      const refund = getSellValue(hit);
+      if (confirm(`Sell "${BUILDINGS[hit.type].name}" (Level ${hit.level})?\n\nRefund: ${refund.toLocaleString('en-US')} money`)) {
+        sellBuilding(hit);
+      }
+    }
     return;
   }
   hideDetailPanel();
@@ -2156,12 +2358,13 @@ mapEl.addEventListener('click', (e) => {
 mapEl.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('keydown', (e) => {
   if (e.key === 'q' || e.key === 'Q') {
-    if (state.placing) { cancelPlacing(); notify("Platzierung abgebrochen"); }
+    if (state.placing) { cancelPlacing(); notify("Placement cancelled"); }
   }
   if (e.key === 'Escape') {
     if (state.placing) cancelPlacing();
     if (state.sellMode) toggleSellMode();
     hideDetailPanel();
+    closePremiumModal();
   }
 });
 
@@ -2171,7 +2374,7 @@ window.addEventListener('keydown', (e) => {
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) {
-    notify(`Benötigt Realm-Level ${def.unlockLevel}`, true);
+    notify(`Requires Realm Level ${def.unlockLevel}`, true);
     return;
   }
   state.placing = type;
@@ -2182,7 +2385,7 @@ function startPlacing(type) {
   if (card) card.classList.add('active');
   const banner = document.getElementById('placeBanner');
   document.getElementById('pbIcon').innerHTML = ICONS[def.icon] || '';
-  document.getElementById('pbName').textContent = def.name + ' platzieren';
+  document.getElementById('pbName').textContent = 'Place ' + def.name;
   banner.classList.add('show');
 }
 function cancelPlacing() {
@@ -2219,12 +2422,12 @@ function placeBuilding(e) {
   const w = screenToWorld(e.clientX, e.clientY);
   const size = def.size * TILE;
   const x = w.x - size / 2, y = w.y - size / 2;
-  if (x < 0 || y < 0 || x + size > 6000 || y + size > 6000) { notify("Außerhalb der Karte!", true); return; }
+  if (x < 0 || y < 0 || x + size > 6000 || y + size > 6000) { notify("Outside the map!", true); return; }
   const cost = getCost(state.placing, 0);
-  if (state.money < cost) { notify("Nicht genug Geld!", true); return; }
+  if (state.money < cost) { notify("Not enough money!", true); return; }
   for (const b of state.buildings) {
     const bs = BUILDINGS[b.type].size * TILE;
-    if (x < b.x + bs && x + size > b.x && y < b.y + bs && y + size > b.y) { notify("Platz ist belegt!", true); return; }
+    if (x < b.x + bs && x + size > b.x && y < b.y + bs && y + size > b.y) { notify("Space is occupied!", true); return; }
   }
   state.money -= cost;
   const buildTime = getBuildTime(state.placing, 0);
@@ -2239,8 +2442,8 @@ function placeBuilding(e) {
   createBuildingEl(b);
   updateUI();
   updateMinimapBuildings();
-  notify(`${def.name} im Bau (${formatTime(buildTime)})`);
-  showFloat(e.clientX, e.clientY, `-${cost.toLocaleString('de-DE')}`, '#c9532f');
+  notify(`${def.name} under construction (${formatTime(buildTime)})`);
+  showFloat(e.clientX, e.clientY, `-${cost.toLocaleString('en-US')}`, '#c9532f');
   cancelPlacing();
   scheduleSave();
 }
@@ -2332,7 +2535,7 @@ function constructionTick() {
       b.construction = false;
       refreshBuildingEl(b);
       changed = true;
-      notify(`${BUILDINGS[b.type].name} fertiggestellt!`, false, true);
+      notify(`${BUILDINGS[b.type].name} completed!`, false, true);
     }
   }
   if (changed) { recalc(); updateUI(); updateMinimapBuildings(); scheduleSave(); }
@@ -2354,32 +2557,32 @@ function showDetailPanel(b) {
   const panel = document.getElementById('detailPanel');
   document.getElementById('dpIcon').innerHTML = ICONS[def.icon] || '';
   document.getElementById('dpName').textContent = def.name;
-  document.getElementById('dpLevel').textContent = b.construction ? 'Im Bau…' : `Level ${b.level} / ${def.maxLevel}`;
+  document.getElementById('dpLevel').textContent = b.construction ? 'Under construction…' : `Level ${b.level} / ${def.maxLevel}`;
 
   let bodyHTML = `<div class="dp-desc">${def.desc}</div>`;
   if (b.construction) {
     const now = Date.now();
     const progress = Math.min(1, (now - b.constructionStart) / b.constructionDuration);
     const remaining = Math.max(0, (b.constructionDuration - (now - b.constructionStart)) / 1000);
-    bodyHTML += `<div class="dp-progress-box"><div class="lbl">Baufortschritt</div><div class="dp-progress-bar"><div class="dp-progress-fill" id="dpProgressFill" style="width:${progress*100}%"></div></div><div class="dp-progress-time" id="dpProgressTime">${formatTime(remaining)} verbleibend</div></div>`;
+    bodyHTML += `<div class="dp-progress-box"><div class="lbl">Construction Progress</div><div class="dp-progress-bar"><div class="dp-progress-fill" id="dpProgressFill" style="width:${progress*100}%"></div></div><div class="dp-progress-time" id="dpProgressTime">${formatTime(remaining)} remaining</div></div>`;
   } else {
     let statsHTML = '';
-    if (def.produces) statsHTML += `<div class="dp-stat"><span class="k">Produktion</span><span class="v">${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</span></div>`;
-    if (def.popPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Bevölkerung</span><span class="v good">+${def.popPerLevel[b.level-1]}</span></div>`;
-    if (def.popBonus && b.type === 'main') statsHTML += `<div class="dp-stat"><span class="k">Bevölkerung</span><span class="v good">+${def.popBonus[b.level-1]}</span></div>`;
-    if (def.soldierPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Soldatenlimit</span><span class="v good">+${def.soldierPerLevel[b.level-1]}</span></div>`;
-    if (def.soldierBonus && b.type === 'main') statsHTML += `<div class="dp-stat"><span class="k">Soldatenlimit</span><span class="v good">+${def.soldierBonus[b.level-1]}</span></div>`;
-    if (def.happyBonus) statsHTML += `<div class="dp-stat"><span class="k">Zufriedenheit</span><span class="v good">+${def.happyBonus[b.level-1]}</span></div>`;
-    if (def.globalBonus) statsHTML += `<div class="dp-stat"><span class="k">Globaler Bonus</span><span class="v good">+${Math.round(def.globalBonus[b.level-1]*100)}%</span></div>`;
-    if (def.needs && def.needs.workers) statsHTML += `<div class="dp-stat"><span class="k">Arbeiter</span><span class="v">${def.needs.workers * b.level}</span></div>`;
+    if (def.produces) statsHTML += `<div class="dp-stat"><span class="k">Production</span><span class="v">${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</span></div>`;
+    if (def.popPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Population</span><span class="v good">+${def.popPerLevel[b.level-1]}</span></div>`;
+    if (def.popBonus && b.type === 'main') statsHTML += `<div class="dp-stat"><span class="k">Population</span><span class="v good">+${def.popBonus[b.level-1]}</span></div>`;
+    if (def.soldierPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Soldier Cap</span><span class="v good">+${def.soldierPerLevel[b.level-1]}</span></div>`;
+    if (def.soldierBonus && b.type === 'main') statsHTML += `<div class="dp-stat"><span class="k">Soldier Cap</span><span class="v good">+${def.soldierBonus[b.level-1]}</span></div>`;
+    if (def.happyBonus) statsHTML += `<div class="dp-stat"><span class="k">Happiness</span><span class="v good">+${def.happyBonus[b.level-1]}</span></div>`;
+    if (def.globalBonus) statsHTML += `<div class="dp-stat"><span class="k">Global Bonus</span><span class="v good">+${Math.round(def.globalBonus[b.level-1]*100)}%</span></div>`;
+    if (def.needs && def.needs.workers) statsHTML += `<div class="dp-stat"><span class="k">Workers</span><span class="v">${def.needs.workers * b.level}</span></div>`;
     bodyHTML += statsHTML;
     if (b.level < def.maxLevel) {
       const nextSize = def.size * TILE;
       const upCost = getUpgradeCost(b);
       const upTime = getBuildTime(b.type, b.level);
-      bodyHTML += `<div class="dp-upgrade-box"><div class="dp-up-title">Upgrade auf Level ${b.level + 1}</div><div class="dp-preview"><div class="prev">${buildingSVG(b.type, b.level, nextSize, nextSize)}</div><div class="arrow">→</div><div class="prev future">${buildingSVG(b.type, b.level+1, nextSize, nextSize)}</div></div><div class="dp-up-row"><span>Kosten</span><span class="v cost">${upCost.toLocaleString('de-DE')} Geld</span></div><div class="dp-up-row"><span>Bauzeit</span><span class="v time">${formatTime(upTime)}</span></div></div>`;
+      bodyHTML += `<div class="dp-upgrade-box"><div class="dp-up-title">Upgrade to Level ${b.level + 1}</div><div class="dp-preview"><div class="prev">${buildingSVG(b.type, b.level, nextSize, nextSize)}</div><div class="arrow">→</div><div class="prev future">${buildingSVG(b.type, b.level+1, nextSize, nextSize)}</div></div><div class="dp-up-row"><span>Cost</span><span class="v cost">${upCost.toLocaleString('en-US')} money</span></div><div class="dp-up-row"><span>Build time</span><span class="v time">${formatTime(upTime)}</span></div></div>`;
     } else {
-      bodyHTML += `<div class="dp-upgrade-box" style="text-align:center;color:#2e7d32;font-weight:800;">Maximales Level erreicht</div>`;
+      bodyHTML += `<div class="dp-upgrade-box" style="text-align:center;color:#2e7d32;font-weight:800;">Max level reached</div>`;
     }
   }
   document.getElementById('dpBody').innerHTML = bodyHTML;
@@ -2389,9 +2592,9 @@ function showDetailPanel(b) {
   if (b.construction) {
     const speedBtn = document.createElement('button');
     speedBtn.className = 'btn btn-primary';
-    speedBtn.textContent = 'Sofort fertig (500 Geld)';
+    speedBtn.textContent = 'Finish now (500 money)';
     speedBtn.onclick = () => {
-      if (state.money < 500) { notify("Nicht genug Geld!", true); return; }
+      if (state.money < 500) { notify("Not enough money!", true); return; }
       state.money -= 500;
       b.constructionStart = Date.now() - b.constructionDuration;
       constructionTick();
@@ -2403,15 +2606,30 @@ function showDetailPanel(b) {
   } else if (b.level < def.maxLevel) {
     const upBtn = document.createElement('button');
     upBtn.className = 'btn btn-primary';
-    upBtn.textContent = 'Upgrade starten';
+    upBtn.textContent = 'Start Upgrade';
     const cost = getUpgradeCost(b);
     if (state.money < cost) { upBtn.disabled = true; upBtn.style.opacity = '0.5'; }
     upBtn.onclick = () => startUpgrade(b);
     actions.appendChild(upBtn);
   }
+
+  if (b.type !== 'main' && !b.construction) {
+    const sellBtn = document.createElement('button');
+    sellBtn.className = 'btn btn-danger';
+    const refund = getSellValue(b);
+    sellBtn.innerHTML = `Sell (+${refund.toLocaleString('en-US')})`;
+    sellBtn.title = `Refunds 50% of total invested`;
+    sellBtn.onclick = () => {
+      if (confirm(`Sell "${def.name}" (Level ${b.level})?\n\nRefund: ${refund.toLocaleString('en-US')} money`)) {
+        sellBuilding(b);
+      }
+    };
+    actions.appendChild(sellBtn);
+  }
+
   const closeBtn = document.createElement('button');
   closeBtn.className = 'btn';
-  closeBtn.textContent = 'Schließen';
+  closeBtn.textContent = 'Close';
   closeBtn.onclick = hideDetailPanel;
   actions.appendChild(closeBtn);
   panel.classList.add('show');
@@ -2427,7 +2645,7 @@ function startUpgrade(b) {
   const def = BUILDINGS[b.type];
   if (b.level >= def.maxLevel) return;
   const cost = getUpgradeCost(b);
-  if (state.money < cost) { notify("Nicht genug Geld!", true); return; }
+  if (state.money < cost) { notify("Not enough money!", true); return; }
   state.money -= cost;
   b.level++;
   b.construction = true;
@@ -2467,7 +2685,7 @@ function startUpgrade(b) {
   recalc();
   updateUI();
   updateMinimapBuildings();
-  notify(`${def.name} Upgrade auf Level ${b.level} gestartet`);
+  notify(`${def.name} upgrade to Level ${b.level} started`);
   showDetailPanel(b);
   scheduleSave();
 }
@@ -2479,16 +2697,16 @@ function toggleSellMode() {
   state.sellMode = !state.sellMode;
   document.getElementById('btnSellMode').classList.toggle('active', state.sellMode);
   mapEl.classList.toggle('selling', state.sellMode);
-  if (state.sellMode) { cancelPlacing(); hideDetailPanel(); notify("Abriss-Modus: Klicke auf ein Gebäude"); }
+  if (state.sellMode) { cancelPlacing(); hideDetailPanel(); notify("Demolish mode: click a building"); }
 }
 function sellBuilding(b) {
-  if (b.type === 'main') { notify("Hauptgebäude kann nicht abgerissen werden!", true); return; }
-  const totalInvested = (function() {
-    let sum = getCost(b.type, 0);
-    for (let i = 1; i < b.level; i++) sum += getCost(b.type, i);
-    return sum;
-  })();
-  const refund = Math.floor(totalInvested * 0.5);
+  if (b.type === 'main') { notify("Main building cannot be sold!", true); return; }
+  if (state.sellMode) {
+    state.sellMode = false;
+    document.getElementById('btnSellMode').classList.remove('active');
+    mapEl.classList.remove('selling');
+  }
+  const refund = getSellValue(b);
   state.money += refund;
   state.buildings = state.buildings.filter(x => x.id !== b.id);
   if (b.el) b.el.remove();
@@ -2497,38 +2715,57 @@ function sellBuilding(b) {
   updateUI();
   updateMinimapBuildings();
   hideDetailPanel();
-  notify(`Abgerissen. +${refund.toLocaleString('de-DE')} Geld`, false, true);
+  notify(`Sold! +${refund.toLocaleString('en-US')} money`, false, true);
   scheduleSave();
 }
 
 /* =========================================================
-   UI UPDATE
+   UI UPDATE (with resource tooltips)
    ========================================================= */
+function makeResChip(iconKey, value, extraClass) {
+  const meta = RESOURCE_META[iconKey] || { name: iconKey, desc: '' };
+  return `<div class="res">
+    ${ICONS[iconKey]}
+    <span class="val">${value}</span>
+    <div class="res-tooltip">
+      <div class="tt-title">${meta.name}</div>
+      <div>${meta.desc}</div>
+    </div>
+  </div>`;
+}
+
 function updateUI() {
   const resGroup = document.getElementById('resGroup');
-  const fmt = (n) => Math.floor(n).toLocaleString('de-DE');
+  const fmt = (n) => Math.floor(n).toLocaleString('en-US');
   resGroup.innerHTML = `
-    <div class="res">${ICONS.money}<span class="val">${fmt(state.money)}</span></div>
-    <div class="res">${ICONS.gold}<span class="val">${fmt(state.gold)}</span></div>
-    <div class="res">${ICONS.food}<span class="val">${fmt(state.food)}</span></div>
-    <div class="res">${ICONS.wood}<span class="val">${fmt(state.wood)}</span></div>
-    <div class="res">${ICONS.stone}<span class="val">${fmt(state.stone)}</span></div>
-    <div class="res">${ICONS.pop}<span class="val">${state.population}/${state.populationCap}</span></div>
-    <div class="res">${ICONS.worker}<span class="val">${state.workers}/${state.workersNeeded}</span></div>
-    <div class="res">${ICONS.soldier}<span class="val">${state.soldiers}/${state.soldierCap}</span></div>
-    <div class="res">${ICONS.star}<span class="val">Lv.${state.level}</span></div>
+    ${makeResChip('money', fmt(state.money))}
+    ${makeResChip('gold', fmt(state.gold))}
+    ${makeResChip('food', fmt(state.food))}
+    ${makeResChip('wood', fmt(state.wood))}
+    ${makeResChip('stone', fmt(state.stone))}
+    ${makeResChip('pop', `${state.population}/${state.populationCap}`)}
+    ${makeResChip('worker', `${state.workers}/${state.workersNeeded}`)}
+    ${makeResChip('soldier', `${state.soldiers}/${state.soldierCap}`)}
+    ${makeResChip('star', `Lv.${state.level}`)}
   `;
   const statsBody = document.getElementById('statsBody');
   const workerRatio = state.workersNeeded > 0 ? Math.round(state.workers/state.workersNeeded*100) : 100;
   const workerClass = workerRatio >= 80 ? 'good' : workerRatio >= 40 ? '' : 'bad';
   const constructing = state.buildings.filter(b => b.construction).length;
   statsBody.innerHTML = `
-    <div class="sp-row"><span>Gebäude</span><span class="v">${state.buildings.length}</span></div>
-    <div class="sp-row"><span>Im Bau</span><span class="v">${constructing}</span></div>
-    <div class="sp-row"><span>Arbeiter</span><span class="v ${workerClass}">${workerRatio}%</span></div>
-    <div class="sp-row"><span>Zufriedenheit</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
-    <div class="sp-row"><span>Militär</span><span class="v">${state.soldiers}/${state.soldierCap}</span></div>
+    <div class="sp-row"><span>Buildings</span><span class="v">${state.buildings.length}</span></div>
+    <div class="sp-row"><span>Under construction</span><span class="v">${constructing}</span></div>
+    <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
+    <div class="sp-row"><span>Happiness</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
+    <div class="sp-row"><span>Playtime</span><span class="v">${formatPlaytimeShort(state.playtimeSeconds)}</span></div>
   `;
+}
+function formatPlaytimeShort(s) {
+  s = Math.floor(s || 0);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 }
 
 /* =========================================================
@@ -2548,10 +2785,10 @@ function renderBuildingList() {
     card.className = 'bcard' + (locked ? ' locked' : '');
     card.dataset.type = key;
     const buildT = getBuildTime(key, 0);
-    card.innerHTML = `<div class="icon">${ICONS[def.icon]}</div><div class="info"><div class="name">${def.name} ${locked?`<span class="lock">Lv.${def.unlockLevel}</span>`:''}</div><div class="desc">${def.desc}</div><div class="cost">${locked ? 'Gesperrt' : costString(key, 0) + ' Geld · <span class="time">' + formatTime(buildT) + '</span>'}</div></div>`;
+    card.innerHTML = `<div class="icon">${ICONS[def.icon]}</div><div class="info"><div class="name">${def.name} ${locked?`<span class="lock">Lv.${def.unlockLevel}</span>`:''}</div><div class="desc">${def.desc}</div><div class="cost">${locked ? 'Locked' : costString(key, 0) + ' money · <span class="time">' + formatTime(buildT) + '</span>'}</div></div>`;
     if (!locked) {
       card.onclick = () => {
-        if (state.money < getCost(key, 0)) { notify("Nicht genug Geld!", true); return; }
+        if (state.money < getCost(key, 0)) { notify("Not enough money!", true); return; }
         if (state.sellMode) toggleSellMode();
         startPlacing(key);
       };
@@ -2577,15 +2814,16 @@ function showTooltipForBuilding(b, ev) {
   let extra = '';
   if (b.construction) {
     const remaining = Math.max(0, (b.constructionDuration - (Date.now() - b.constructionStart)) / 1000);
-    extra = `<div class="t-row" style="color:#8d6e63;font-weight:700;">Im Bau · ${formatTime(remaining)}</div>`;
+    extra = `<div class="t-row" style="color:#8d6e63;font-weight:700;">Under construction · ${formatTime(remaining)}</div>`;
   } else {
-    if (def.produces) extra += `<div class="t-row">Produktion: ${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</div>`;
-    if (def.popPerLevel) extra += `<div class="t-row">Bevölkerung: +${def.popPerLevel[b.level-1]}</div>`;
-    if (def.soldierPerLevel) extra += `<div class="t-row">Soldaten: +${def.soldierPerLevel[b.level-1]}</div>`;
-    if (def.happyBonus) extra += `<div class="t-row">Zufriedenheit: +${def.happyBonus[b.level-1]}</div>`;
-    if (b.level < def.maxLevel) extra += `<div class="t-row" style="color:#2f6fd0;margin-top:6px;">Upgrade: ${getUpgradeCost(b).toLocaleString('de-DE')} Geld · ${formatTime(getBuildTime(b.type, b.level))}</div>`;
+    if (def.produces) extra += `<div class="t-row">Production: ${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</div>`;
+    if (def.popPerLevel) extra += `<div class="t-row">Population: +${def.popPerLevel[b.level-1]}</div>`;
+    if (def.soldierPerLevel) extra += `<div class="t-row">Soldiers: +${def.soldierPerLevel[b.level-1]}</div>`;
+    if (def.happyBonus) extra += `<div class="t-row">Happiness: +${def.happyBonus[b.level-1]}</div>`;
+    if (b.level < def.maxLevel) extra += `<div class="t-row" style="color:#2f6fd0;margin-top:6px;">Upgrade: ${getUpgradeCost(b).toLocaleString('en-US')} money · ${formatTime(getBuildTime(b.type, b.level))}</div>`;
+    if (b.type !== 'main') extra += `<div class="t-row" style="color:#c9532f;margin-top:4px;">Sell: +${getSellValue(b).toLocaleString('en-US')} money</div>`;
   }
-  tooltip.innerHTML = `<div class="t-title">${def.name} (Lv.${b.level})</div><div class="t-row">${def.desc}</div>${extra}<div class="t-row" style="color:#7b8dab;font-size:11px;margin-top:4px;">Klicken für Details</div>`;
+  tooltip.innerHTML = `<div class="t-title">${def.name} (Lv.${b.level})</div><div class="t-row">${def.desc}</div>${extra}<div class="t-row" style="color:#7b8dab;font-size:11px;margin-top:4px;">Click for details</div>`;
   tooltip.style.display = 'block';
   tooltip.style.left = (ev.clientX + 16) + 'px';
   tooltip.style.top = (ev.clientY + 16) + 'px';
@@ -2605,12 +2843,30 @@ function showFloat(clientX, clientY, text, color) {
   mapEl.appendChild(el);
   setTimeout(() => el.remove(), 1500);
 }
-function notify(msg, bad, good) {
+function notify(msg, bad, good, premium) {
   const n = document.createElement('div');
-  n.className = 'note' + (bad ? ' bad' : good ? ' good' : '');
+  n.className = 'note' + (bad ? ' bad' : good ? ' good' : premium ? ' premium' : '');
   n.textContent = msg;
   document.getElementById('notify').appendChild(n);
   setTimeout(() => n.remove(), 2200);
+}
+
+/* =========================================================
+   PREMIUM MODAL
+   ========================================================= */
+const premiumModal = document.getElementById('premiumModal');
+document.getElementById('premiumCancel').onclick = closePremiumModal;
+document.getElementById('premiumBuy').onclick = () => {
+  notify("Premium is not available yet — coming soon!", false, false, true);
+};
+premiumModal.addEventListener('click', (e) => {
+  if (e.target === premiumModal) closePremiumModal();
+});
+function openPremiumModal() {
+  premiumModal.classList.add('show');
+}
+function closePremiumModal() {
+  premiumModal.classList.remove('show');
 }
 
 /* =========================================================
@@ -2720,9 +2976,9 @@ const syncBadge = document.getElementById('syncBadge');
 const syncText = document.getElementById('syncText');
 function setSyncStatus(status) {
   syncBadge.classList.remove('saving', 'error');
-  if (status === 'saving') { syncBadge.classList.add('saving'); syncText.textContent = "Speichert…"; }
-  else if (status === 'error') { syncBadge.classList.add('error'); syncText.textContent = "Sync-Fehler"; }
-  else { syncText.textContent = "Synchronisiert"; }
+  if (status === 'saving') { syncBadge.classList.add('saving'); syncText.textContent = "Saving…"; }
+  else if (status === 'error') { syncBadge.classList.add('error'); syncText.textContent = "Sync error"; }
+  else { syncText.textContent = "Synced"; }
 }
 
 /* =========================================================
@@ -2739,6 +2995,8 @@ function serializeState() {
     happiness: Math.round(state.happiness), level: state.level,
     nextId: state.nextId, speed: 1,
     lastTick: Date.now(),
+    playtimeSeconds: state.playtimeSeconds || 0,
+    isPremium: state.isPremium || false,
     buildings: state.buildings.map(b => ({
       id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
       construction: b.construction || false,
@@ -2762,16 +3020,15 @@ async function saveGame(silent) {
     data.hwid = HWID;
     data.lastSeen = Date.now();
     await set(ref(firebase.db, 'saves/' + HWID), data);
-    // Username-Mapping aktualisieren
     await update(ref(firebase.db, 'users_by_hwid/' + HWID), {
       username: currentUser.username, lastSeen: Date.now()
     });
     setSyncStatus('ok');
-    if (!silent) notify("Reich gespeichert! ☁️", false, true);
+    if (!silent) notify("Realm saved! ☁️", false, true);
   } catch (e) {
     console.error('Save failed', e);
     setSyncStatus('error');
-    if (!silent) notify("Speichern fehlgeschlagen!", true);
+    if (!silent) notify("Save failed!", true);
   }
 }
 async function loadSave() {
@@ -2782,16 +3039,22 @@ async function loadSave() {
     if (!snap.exists()) return false;
     const data = snap.val();
     if (!data) return false;
-    // State übernehmen
-    const keys = ['money','gold','food','wood','stone','population','populationCap',
-      'workers','workersNeeded','soldiers','soldierCap','happiness','level','nextId','lastTick'];
-    keys.forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
-    state.buildings = [];
-    const savedBuildings = data.buildings || [];
-    // Firebase speichert Arrays als Objekte – konvertieren
+
+    const savedBuildings = data.buildings || {};
     const list = Array.isArray(savedBuildings) ? savedBuildings : Object.values(savedBuildings || {});
-    list.forEach(b => {
-      if (!b || !b.type) return;
+    const validBuildings = list.filter(b => b && b.type && typeof b.x === 'number' && typeof b.y === 'number');
+
+    if (validBuildings.length === 0) {
+      console.log('Empty save detected — starting new game');
+      return false;
+    }
+
+    const keys = ['money','gold','food','wood','stone','population','populationCap',
+      'workers','workersNeeded','soldiers','soldierCap','happiness','level','nextId','lastTick','playtimeSeconds','isPremium'];
+    keys.forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
+
+    state.buildings = [];
+    validBuildings.forEach(b => {
       const nb = {
         id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
         construction: b.construction || false,
@@ -2803,6 +3066,7 @@ async function loadSave() {
       state.buildings.push(nb);
     });
     state.nextId = Math.max(1, ...state.buildings.map(b => b.id || 0)) + 1;
+    console.log('Save loaded:', state.buildings.length, 'buildings');
     return true;
   } catch (e) {
     console.error('Load failed', e);
@@ -2811,7 +3075,7 @@ async function loadSave() {
 }
 
 /* =========================================================
-   OFFLINE-FORTSCHRITT
+   OFFLINE PROGRESS
    ========================================================= */
 function applyOfflineProgress() {
   const now = Date.now();
@@ -2840,7 +3104,7 @@ function applyOfflineProgress() {
     if (h > 0) timeStr += h + 'h ';
     if (m > 0) timeStr += m + 'm ';
     timeStr += s + 's';
-    document.getElementById('obText').innerHTML = `Willkommen zurück, ${escapeHtml(currentUser.username)}!<small>Offline für ${timeStr} · Produktion wurde nachgeholt${finishedCount > 0 ? ' · ' + finishedCount + ' Gebäude fertig' : ''}</small>`;
+    document.getElementById('obText').innerHTML = `Welcome back, ${escapeHtml(currentUser.username)}!<small>Offline for ${timeStr} · Production was caught up${finishedCount > 0 ? ' · ' + finishedCount + ' building(s) completed' : ''}</small>`;
     banner.classList.add('show');
   }
   state.lastTick = now;
@@ -2853,21 +3117,37 @@ document.getElementById('obClose').onclick = () => {
    START GAME
    ========================================================= */
 async function startGame() {
-  // Username anzeigen
   document.getElementById('userChipName').textContent = currentUser.username;
+
+  if (!state.playtimeSeconds) state.playtimeSeconds = 0;
+  window.__sessionStart = Date.now();
+  window.__lastPlaytimeAccum = 0;
+
+  if (window.__playtimeInterval) clearInterval(window.__playtimeInterval);
+  window.__playtimeInterval = setInterval(() => {
+    if (!window.__sessionStart) return;
+    const now = Date.now();
+    const delta = Math.floor((now - window.__sessionStart - window.__lastPlaytimeAccum) / 1000);
+    if (delta > 0) {
+      state.playtimeSeconds = (state.playtimeSeconds || 0) + delta;
+      window.__lastPlaytimeAccum += delta * 1000;
+    }
+  }, 30000);
 
   buildTerrain();
 
-  // Save laden
   const loaded = await loadSave();
+  console.log('Save loaded?', loaded);
+
   if (!loaded) {
-    // Neues Spiel
+    console.log('Starting new game');
     const mainB = { id: state.nextId++, type: 'main', x: 3000 - 1.5*TILE, y: 3000 - 1.5*TILE, level: 1 };
     state.buildings.push(mainB); createBuildingEl(mainB);
     const house = { id: state.nextId++, type: 'house', x: 3000 + 2.5*TILE, y: 3000 - TILE, level: 1 };
     state.buildings.push(house); createBuildingEl(house);
     const farm = { id: state.nextId++, type: 'farm', x: 3000 - 6*TILE, y: 3000 - TILE, level: 1 };
     state.buildings.push(farm); createBuildingEl(farm);
+    setTimeout(() => saveGame(true), 500);
   } else {
     applyOfflineProgress();
   }
@@ -2878,15 +3158,15 @@ async function startGame() {
   updateMinimapBuildings();
   centerCamera();
 
-  // Presence
   if (firebase) {
-    const { ref, onDisconnect, set, serverTimestamp } = firebase;
-    const presenceRef = ref(firebase.db, 'presence/' + HWID);
-    await set(presenceRef, { username: currentUser.username, online: true, lastSeen: serverTimestamp() });
-    onDisconnect(presenceRef).set({ username: currentUser.username, online: false, lastSeen: serverTimestamp() });
+    try {
+      const { ref, onDisconnect, set, serverTimestamp } = firebase;
+      const presenceRef = ref(firebase.db, 'presence/' + HWID);
+      await set(presenceRef, { username: currentUser.username, online: true, lastSeen: serverTimestamp() });
+      onDisconnect(presenceRef).set({ username: currentUser.username, online: false, lastSeen: serverTimestamp() });
+    } catch(e) { console.warn('Presence failed', e); }
   }
 
-  // Game Loop
   let last = performance.now();
   let prodAccum = 0;
   let saveAccum = 0;
@@ -2912,7 +3192,7 @@ async function startGame() {
   requestAnimationFrame(loop);
 
   setInterval(checkLevel, 2000);
-  notify(`Willkommen, ${escapeHtml(currentUser.username)}!`, false, true);
+  notify(`Welcome, ${escapeHtml(currentUser.username)}!`, false, true);
 }
 
 function checkLevel() {
@@ -2922,7 +3202,7 @@ function checkLevel() {
     state.level = newLevel;
     updateUI();
     renderBuildingList();
-    notify(`Realm-Level ${newLevel} erreicht!`, false, true);
+    notify(`Realm Level ${newLevel} reached!`, false, true);
     scheduleSave();
   }
 }
@@ -2941,22 +3221,34 @@ document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6
 document.getElementById('btnZoomOut').onclick = () => { state.zoom = Math.max(0.35, state.zoom / 1.2); applyTransform(); };
 document.getElementById('btnCenter').onclick = centerCamera;
 document.getElementById('btnSellMode').onclick = toggleSellMode;
+
+// PREMIUM Speed button
 document.getElementById('btnSpeed').onclick = () => {
+  if (!state.isPremium) {
+    openPremiumModal();
+    return;
+  }
+  // (Wird nur erreicht wenn User Premium hat — zurzeit unmöglich)
   const speeds = [1, 2, 3];
   state.speed = speeds[(speeds.indexOf(state.speed) + 1) % speeds.length];
-  document.getElementById('btnSpeed').textContent = '×' + state.speed;
-  notify(`Geschwindigkeit: ×${state.speed}`);
+  document.getElementById('btnSpeed').innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13 2 L3 14h7l-1 8 10-12h-7z"/>
+    </svg>
+    ×${state.speed}`;
+  notify(`Speed: ×${state.speed}`, false, false, true);
 };
+
 document.getElementById('btnSave').onclick = () => saveGame(false);
 document.getElementById('btnLogout').onclick = () => {
-  if (confirm("Wirklich ausloggen? Nicht gespeicherte Änderungen gehen verloren.")) {
+  if (confirm("Really log out? Unsaved changes will be lost.")) {
     saveGame(true).finally(() => {
       localStorage.removeItem('br_hwid_seed');
       location.reload();
     });
   }
 };
-document.getElementById('pbCancel').onclick = () => { cancelPlacing(); notify("Platzierung abgebrochen"); };
+document.getElementById('pbCancel').onclick = () => { cancelPlacing(); notify("Placement cancelled"); };
 
 window.addEventListener('beforeunload', () => {
   saveGame(true);
