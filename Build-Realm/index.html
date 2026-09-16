@@ -1055,7 +1055,7 @@ function generateHWID() {
   // Stabile Kombination aus Browser-Fingerprint-Elementen
   const nav = window.navigator;
   const scr = window.screen;
-  const parts = [
+  let parts = [
     nav.userAgent || '',
     nav.language || '',
     nav.platform || '',
