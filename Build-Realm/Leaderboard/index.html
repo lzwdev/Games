@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build a Realm — Rangliste</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; min-height: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #eef2f8; color: #1a2233;
+    overflow-x: hidden;
+  }
+
+  /* ============ BACKGROUND ============ */
+  .bg-deco {
+    position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle, rgba(120,160,220,0.18), transparent 70%);
+    animation: floatCircle 10s ease-in-out infinite;
+  }
+  @keyframes floatCircle {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(30px,-40px) scale(1.1); }
+  }
+
+  /* ============ HEADER ============ */
+  header {
+    position: relative; z-index: 2;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid #d3dded;
+    box-shadow: 0 2px 14px rgba(40,70,120,0.08);
+    padding: 0 24px;
+    height: 62px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 17px; font-weight: 900; letter-spacing: 0.5px;
+    color: #1e355e; white-space: nowrap;
+  }
+  .logo svg { width: 28px; height: 28px; }
+  .logo .txt-accent {
+    background: linear-gradient(90deg,#2f6fd0,#5b9bf5);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-nav { display: flex; gap: 6px; margin-left: 12px; }
+  .nav-link {
+    padding: 7px 14px; border-radius: 9px;
+    font-size: 13px; font-weight: 700; color: #6b7d99;
+    text-decoration: none; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .nav-link:hover { background: #eef4fd; color: #2f6fd0; }
+  .nav-link.active { background: #e6efff; color: #2f6fd0; }
+  .nav-link svg { width: 15px; height: 15px; }
+
+  .header-right {
+    margin-left: auto; display: flex; align-items: center; gap: 10px;
+  }
+  .status-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 12px; background: #f2f6fc;
+    border: 1px solid #e0e8f4; border-radius: 20px;
+    font-size: 11.5px; font-weight: 700; color: #6b7d99;
+  }
+  .status-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #4caf50;
+    box-shadow: 0 0 6px #4caf50;
+  }
+  .status-pill.loading .dot { background: #ffb300; box-shadow: 0 0 6px #ffb300; animation: blink 0.8s infinite; }
+  .status-pill.error .dot { background: #e53935; box-shadow: 0 0 6px #e53935; }
+  @keyframes blink { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* ============ HERO ============ */
+  .hero {
+    position: relative; z-index: 2;
+    text-align: center; padding: 42px 20px 26px;
+  }
+  .hero h1 {
+    font-size: 40px; font-weight: 900; letter-spacing: 2px;
+    color: #1e355e; line-height: 1.1;
+    display: inline-flex; align-items: center; gap: 14px;
+    animation: fadeInUp 0.6s ease both;
+  }
+  .hero h1 .accent {
+    background: linear-gradient(90deg, #2f6fd0, #5b9bf5, #2f6fd0);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shineText 3s linear infinite;
+  }
+  @keyframes shineText { to { background-position: 200% 50%; } }
+  @keyframes fadeInUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .hero p {
+    margin-top: 10px; font-size: 14px; color: #6b7d99;
+    letter-spacing: 1px;
+    animation: fadeInUp 0.6s ease 0.1s both;
+  }
+
+  /* ============ TOOLBAR ============ */
+  .toolbar {
+    position: relative; z-index: 2;
+    max-width: 1100px; margin: 0 auto 20px;
+    padding: 0 20px;
+    display: flex; gap: 10px; flex-wrap: wrap;
+    animation: fadeInUp 0.6s ease 0.2s both;
+  }
+  .search-box {
+    flex: 1; min-width: 220px;
+    position: relative;
+  }
+  .search-box svg {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; color: #8fa3c8; pointer-events: none;
+  }
+  .search-box input {
+    width: 100%; padding: 11px 14px 11px 42px;
+    border: 1.5px solid #d3dded; border-radius: 11px;
+    background: #fff; color: #1e355e;
+    font-size: 13.5px; font-weight: 600;
+    font-family: inherit; outline: none;
+    transition: all 0.15s;
+    box-shadow: 0 3px 12px rgba(40,70,120,0.05);
+  }
+  .search-box input:focus {
+    border-color: #2f6fd0;
+    box-shadow: 0 0 0 3px rgba(47,111,208,0.15), 0 3px 12px rgba(40,70,120,0.08);
+  }
+  .filter-btn {
+    padding: 11px 16px;
+    background: #fff; border: 1.5px solid #d3dded; border-radius: 11px;
+    font-size: 13px; font-weight: 700; color: #6b7d99;
+    cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 7px;
+    box-shadow: 0 3px 12px rgba(40,70,120,0.05);
+  }
+  .filter-btn:hover { background: #eef4fd; border-color: #a8c8f0; color: #2f6fd0; }
+  .filter-btn.active { background: #2f6fd0; border-color: #2f6fd0; color: #fff; }
+  .filter-btn svg { width: 15px; height: 15px; }
+
+  /* ============ PODIUM ============ */
+  .podium-wrap {
+    position: relative; z-index: 2;
+    max-width: 1100px; margin: 0 auto 34px;
+    padding: 0 20px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px; align-items: end;
+    animation: fadeInUp 0.6s ease 0.25s both;
+  }
+  .podium-card {
+    background: #fff;
+    border: 1px solid #e0e8f4;
+    border-radius: 16px;
+    padding: 20px 16px 18px;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(40,70,120,0.10);
+    cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .podium-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 34px rgba(40,70,120,0.16);
+  }
+  .podium-card.place-1 { padding-top: 14px; padding-bottom: 24px; border-color: #ffd66b; box-shadow: 0 10px 30px rgba(220,170,50,0.20); }
+  .podium-card.place-2 { border-color: #c5d2e6; }
+  .podium-card.place-3 { border-color: #e0b98c; }
+
+  .podium-medal {
+    font-size: 30px; margin-bottom: 8px;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
+  }
+  .podium-rank-badge {
+    position: absolute; top: 12px; left: 12px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 900; letter-spacing: 0.5px;
+  }
+  .place-1 .podium-rank-badge { background: #fff3c2; color: #9a7700; }
+  .place-2 .podium-rank-badge { background: #eef2f8; color: #5a6b85; }
+  .place-3 .podium-rank-badge { background: #f5e1c8; color: #8a5a20; }
+
+  .podium-avatar {
+    width: 68px; height: 68px; margin: 0 auto 10px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 900; color: #fff;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 14px rgba(40,70,120,0.18);
+  }
+  .place-1 .podium-avatar { width: 84px; height: 84px; font-size: 32px; box-shadow: 0 6px 20px rgba(220,170,50,0.45); }
+  .place-2 .podium-avatar { background: linear-gradient(135deg, #90a4ae, #cfd8dc); }
+  .place-3 .podium-avatar { background: linear-gradient(135deg, #d7a86e, #f0c080); }
+  .place-1 .podium-avatar { background: linear-gradient(135deg, #ffb300, #ffd54f); }
+
+  .podium-name {
+    font-size: 15px; font-weight: 800; color: #1e355e;
+    margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .place-1 .podium-name { font-size: 17px; }
+  .podium-level {
+    font-size: 12px; color: #6b7d99; font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .podium-score {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 20px;
+    background: #e6efff; color: #2f6fd0;
+    font-size: 12px; font-weight: 800;
+  }
+  .podium-score svg { width: 13px; height: 13px; }
+
+  /* ============ LIST ============ */
+  .list-wrap {
+    position: relative; z-index: 2;
+    max-width: 1100px; margin: 0 auto 60px;
+    padding: 0 20px;
+    animation: fadeInUp 0.6s ease 0.3s both;
+  }
+  .list-header {
+    display: grid; grid-template-columns: 60px 1fr 110px 110px 130px;
+    padding: 12px 18px; gap: 10px;
+    font-size: 11px; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #8fa3c8;
+    border-bottom: 1px solid #e0e8f4;
+  }
+  .list-body { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+  .lb-row {
+    display: grid; grid-template-columns: 60px 1fr 110px 110px 130px;
+    padding: 14px 18px; gap: 10px;
+    background: #fff;
+    border: 1px solid #e0e8f4; border-radius: 12px;
+    align-items: center; cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(40,70,120,0.04);
+  }
+  .lb-row:hover {
+    background: #f7faff; border-color: #a8c8f0;
+    transform: translateX(3px);
+    box-shadow: 0 6px 18px rgba(47,111,208,0.12);
+  }
+  .lb-row.rank-1 { border-left: 4px solid #ffd66b; }
+  .lb-row.rank-2 { border-left: 4px solid #c5d2e6; }
+  .lb-row.rank-3 { border-left: 4px solid #e0b98c; }
+
+  .lb-rank {
+    font-size: 15px; font-weight: 900; color: #8fa3c8;
+    text-align: center;
+  }
+  .lb-row.rank-1 .lb-rank { color: #c99a00; }
+  .lb-row.rank-2 .lb-rank { color: #7b8dab; }
+  .lb-row.rank-3 .lb-rank { color: #b8834a; }
+
+  .lb-user {
+    display: flex; align-items: center; gap: 12px;
+    min-width: 0;
+  }
+  .lb-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 900; color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(40,70,120,0.15);
+  }
+  .lb-name {
+    font-size: 14px; font-weight: 800; color: #1e355e;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lb-sub {
+    font-size: 11px; color: #8fa3c8; font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+    margin-top: 2px;
+  }
+  .online-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #4caf50;
+    box-shadow: 0 0 5px #4caf50;
+  }
+  .offline-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #cfd8dc;
+  }
+
+  .lb-cell {
+    font-size: 13px; font-weight: 700; color: #26344e;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lb-cell .val { color: #1e355e; font-weight: 800; }
+  .lb-cell svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .lb-cell.level { color: #2f6fd0; }
+  .lb-cell.score { color: #c99a00; font-weight: 900; }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: #8fa3c8;
+  }
+  .empty-state svg { width: 60px; height: 60px; opacity: 0.5; margin-bottom: 16px; }
+  .empty-state h3 { font-size: 16px; color: #6b7d99; margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; }
+
+  .skeleton-row {
+    height: 68px; border-radius: 12px;
+    background: linear-gradient(90deg, #eef2f8 25%, #e2e9f4 50%, #eef2f8 75%);
+    background-size: 200% 100%;
+    animation: skeleton 1.4s ease infinite;
+    margin-bottom: 8px;
+  }
+  @keyframes skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ============ MODAL ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(30,53,94,0.42);
+    backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: #fff;
+    border: 1px solid #d3dded;
+    border-radius: 20px;
+    width: min(480px, 100%);
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 30px 80px rgba(30,53,94,0.35);
+    animation: popIn 0.3s cubic-bezier(0.2,0.9,0.3,1.2);
+  }
+  @keyframes popIn {
+    from { transform: scale(0.9) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .modal-hero {
+    padding: 26px 26px 20px;
+    background: linear-gradient(135deg, #eaf2ff, #f7faff);
+    border-bottom: 1px solid #e0e8f4;
+    border-radius: 20px 20px 0 0;
+    display: flex; gap: 16px; align-items: center;
+    position: relative;
+  }
+  .modal-avatar {
+    width: 74px; height: 74px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 900; color: #fff;
+    flex-shrink: 0;
+    border: 3px solid #fff;
+    box-shadow: 0 6px 18px rgba(40,70,120,0.2);
+  }
+  .modal-info { flex: 1; min-width: 0; }
+  .modal-name {
+    font-size: 22px; font-weight: 900; color: #1e355e;
+    margin-bottom: 4px;
+    word-break: break-word;
+  }
+  .modal-rank-line {
+    font-size: 12px; font-weight: 700; color: #6b7d99;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .modal-rank-badge {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 900;
+    background: #e6efff; color: #2f6fd0;
+  }
+  .modal-rank-badge.top1 { background: #fff3c2; color: #9a7700; }
+  .modal-rank-badge.top2 { background: #eef2f8; color: #5a6b85; }
+  .modal-rank-badge.top3 { background: #f5e1c8; color: #8a5a20; }
+
+  .modal-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,0.85); border: 1px solid #d3dded;
+    border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: #6b7d99; transition: all 0.15s;
+  }
+  .modal-close:hover { background: #ffeaea; color: #c9532f; border-color: #f2b8b8; }
+  .modal-close svg { width: 16px; height: 16px; }
+
+  .modal-body { padding: 22px 26px 26px; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-box {
+    padding: 14px;
+    background: #f7faff;
+    border: 1px solid #e0e8f4; border-radius: 12px;
+  }
+  .stat-box .stat-label {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; color: #8fa3c8;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stat-box .stat-label svg { width: 13px; height: 13px; }
+  .stat-box .stat-value {
+    font-size: 18px; font-weight: 900; color: #1e355e;
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .stat-box .stat-value .unit {
+    font-size: 12px; font-weight: 700; color: #8fa3c8;
+  }
+  .stat-box.accent { background: #eaf2ff; border-color: #bcd0ec; }
+  .stat-box.accent .stat-value { color: #2f6fd0; }
+  .stat-box.gold { background: #fff8e1; border-color: #ffe082; }
+  .stat-box.gold .stat-value { color: #9a7700; }
+
+  .stat-section-title {
+    font-size: 11px; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #8fa3c8;
+    margin: 20px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eef2f8;
+  }
+  .stat-list { display: flex; flex-direction: column; gap: 8px; }
+  .stat-line {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+    padding: 8px 12px;
+    background: #f7faff; border-radius: 9px;
+    border: 1px solid #eef2f8;
+  }
+  .stat-line .k { color: #6b7d99; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .stat-line .k svg { width: 14px; height: 14px; }
+  .stat-line .v { color: #1e355e; font-weight: 800; }
+  .stat-line .v.good { color: #2e7d32; }
+  .stat-line .v.muted { color: #8fa3c8; font-weight: 600; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    position: relative; z-index: 2;
+    text-align: center; padding: 30px 20px;
+    color: #8fa3c8; font-size: 12px;
+  }
+  footer .heart { color: #e57373; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 780px) {
+    header { padding: 0 12px; gap: 10px; }
+    .header-nav { display: none; }
+    .hero h1 { font-size: 28px; }
+    .podium-wrap { grid-template-columns: 1fr; }
+    .podium-card.place-2 { order: -1; }
+    .list-header { display: none; }
+    .lb-row {
+      grid-template-columns: 40px 1fr auto;
+      padding: 12px;
+    }
+    .lb-row .lb-cell.hide-mobile { display: none; }
+    .lb-row .lb-cell.score { grid-column: 3; }
+    .modal-hero { flex-direction: column; text-align: center; }
+    .modal-info { text-align: center; }
+    .stat-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============ AVATAR COLORS ============ */
+  .av-1 { background: linear-gradient(135deg, #2f6fd0, #5b9bf5); }
+  .av-2 { background: linear-gradient(135deg, #e53935, #ef5350); }
+  .av-3 { background: linear-gradient(135deg, #43a047, #66bb6a); }
+  .av-4 { background: linear-gradient(135deg, #fb8c00, #ffa726); }
+  .av-5 { background: linear-gradient(135deg, #8e24aa, #ab47bc); }
+  .av-6 { background: linear-gradient(135deg, #00acc1, #26c6da); }
+  .av-7 { background: linear-gradient(135deg, #d81b60, #ec407a); }
+  .av-8 { background: linear-gradient(135deg, #5e35b1, #7e57c2); }
+  .av-9 { background: linear-gradient(135deg, #00897b, #26a69a); }
+  .av-10 { background: linear-gradient(135deg, #f4511e, #ff7043); }
+</style>
+</head>
+<body>
+
+<div class="bg-deco" style="width:500px;height:500px;top:-100px;left:-100px;"></div>
+<div class="bg-deco" style="width:400px;height:400px;bottom:-80px;right:-80px;animation-delay:3s;"></div>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M4 19 L6 9 L10 13 L12 6 L14 13 L18 9 L20 19 Z" fill="#2f6fd0" stroke="#1e355e" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="4" y="19" width="16" height="2.5" rx="1" fill="#2f6fd0" stroke="#1e355e" stroke-width="1"/>
+    </svg>
+    <span>BUILD A <span class="txt-accent">REALM</span></span>
+  </div>
+
+  <nav class="header-nav">
+    <a class="nav-link" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10h14V10"/>
+      </svg>
+      Spiel
+    </a>
+    <a class="nav-link active" href="leaderboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/>
+        <path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2"/>
+      </svg>
+      Rangliste
+    </a>
+  </nav>
+
+  <div class="header-right">
+    <div class="status-pill loading" id="statusPill">
+      <div class="dot"></div>
+      <span id="statusText">Lade Rangliste…</span>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>
+    <svg viewBox="0 0 24 24" width="42" height="42" fill="none">
+      <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z" stroke="#ffb300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2" stroke="#ffb300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span><span class="accent">Rangliste</span> der Herrscher</span>
+  </h1>
+  <p>Die mächtigsten Reiche im ganzen Realm</p>
+</section>
+
+<div class="toolbar">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Spieler suchen…" autocomplete="off" spellcheck="false">
+  </div>
+  <button class="filter-btn active" data-sort="level">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+    </svg>
+    Nach Level
+  </button>
+  <button class="filter-btn" data-sort="buildings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="10" width="16" height="11"/><polygon points="2,10 12,3 22,10"/>
+    </svg>
+    Nach Gebäuden
+  </button>
+  <button class="filter-btn" data-sort="money">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a2 2 0 0 1 0 4H9"/>
+    </svg>
+    Nach Geld
+  </button>
+  <button class="filter-btn" data-sort="playtime">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+    </svg>
+    Nach Spielzeit
+  </button>
+</div>
+
+<div class="podium-wrap" id="podiumWrap">
+  <!-- Wird dynamisch befüllt -->
+</div>
+
+<div class="list-wrap">
+  <div class="list-header">
+    <div style="text-align:center;">#</div>
+    <div>Spieler</div>
+    <div>Level</div>
+    <div>Gebäude</div>
+    <div>Punkte</div>
+  </div>
+  <div class="list-body" id="listBody">
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+    <div class="skeleton-row"></div>
+  </div>
+</div>
+
+<footer>
+  Build a Realm · Rangliste · Made with <span class="heart">♥</span>
+</footer>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <!-- Wird dynamisch befüllt -->
+  </div>
+</div>
+
+<!-- ============ FIREBASE SDK ============ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, get, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCy7BHQ04daaUViCJZ6q4MQjPgI_lztLnk",
+  authDomain: "build-realm.firebaseapp.com",
+  projectId: "build-realm",
+  storageBucket: "build-realm.firebasestorage.app",
+  messagingSenderId: "178474064555",
+  appId: "1:178474064555:web:bc88c8cb41c5b3bbd5b5ee",
+  measurementId: "G-QX9MPZ75FH",
+  databaseURL: "https://build-realm-default-rtdb.europe-west1.firebasedatabase.app/"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window.__LB_db = db;
+window.__LB_fns = { ref, get, onValue };
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+/* =========================================================
+   LEADERBOARD
+   ========================================================= */
+
+let firebase = null;
+let allPlayers = [];
+let filteredPlayers = [];
+let currentSort = 'level';
+
+/* ---------- Avatar-Farben ---------- */
+const AVATAR_CLASSES = ['av-1','av-2','av-3','av-4','av-5','av-6','av-7','av-8','av-9','av-10'];
+function avatarClass(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash + name.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_CLASSES[hash % AVATAR_CLASSES.length];
+}
+function initials(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+}
+
+/* ---------- Score-Berechnung (Gesamtpunkte) ---------- */
+function calculateScore(p) {
+  if (!p) return 0;
+  return (
+    (p.level || 0) * 1000 +
+    (p.buildings ? p.buildings.length : 0) * 150 +
+    Math.floor((p.money || 0) / 100) +
+    Math.floor((p.gold || 0) / 50) +
+    (p.population || 0) * 20 +
+    (p.soldiers || 0) * 30 +
+    (p.playtimeSeconds ? Math.floor(p.playtimeSeconds / 60) : 0)
+  );
+}
+
+/* ---------- Zeit formatieren ---------- */
+function timeAgo(ts) {
+  if (!ts) return 'Unbekannt';
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return 'gerade eben';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `vor ${m} Min.`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `vor ${d} Tg.`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `vor ${mo} Mon.`;
+  return `vor ${Math.floor(mo/12)} Jahr${Math.floor(mo/12) === 1 ? '' : 'en'}`;
+}
+function formatDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+function formatPlaytime(seconds) {
+  if (!seconds || seconds < 0) return '0 Min.';
+  seconds = Math.floor(seconds);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h >= 24) {
+    const d = Math.floor(h / 24);
+    const rh = h % 24;
+    return `${d}T ${rh}Std. ${m}Min.`;
+  }
+  if (h > 0) return `${h}Std. ${m}Min.`;
+  return `${m} Min.`;
+}
+
+/* ---------- Firebase laden ---------- */
+function whenFirebaseReady(cb) {
+  if (window.__LB_db) { cb(); return; }
+  window.addEventListener('firebase-ready', cb, { once: true });
+}
+
+whenFirebaseReady(() => {
+  firebase = { db: window.__LB_db, ...window.__LB_fns };
+  setStatus('loading', 'Lade Rangliste…');
+  loadLeaderboard();
+});
+
+async function loadLeaderboard() {
+  try {
+    const { ref, get } = firebase;
+
+    // Alle Saves laden
+    const savesSnap = await get(ref(firebase.db, 'saves'));
+    const usersSnap = await get(ref(firebase.db, 'users_by_hwid'));
+    const presenceSnap = await get(ref(firebase.db, 'presence'));
+
+    const saves = savesSnap.exists() ? savesSnap.val() : {};
+    const users = usersSnap.exists() ? usersSnap.val() : {};
+    const presence = presenceSnap.exists() ? presenceSnap.val() : {};
+
+    // In Array umwandeln
+    const list = [];
+    const now = Date.now();
+    const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5 Minuten
+
+    Object.keys(saves).forEach(hwid => {
+      const save = saves[hwid] || {};
+      const user = users[hwid] || {};
+      const pres = presence[hwid] || {};
+
+      // Nur Spieler mit tatsächlichem Spielstand
+      const buildingsObj = save.buildings || {};
+      const buildingsArr = Array.isArray(buildingsObj) ? buildingsObj : Object.values(buildingsObj || {});
+      if (buildingsArr.length === 0 && !save.level) return;
+
+      const playtime = save.playtimeSeconds || 0;
+
+      // Online-Status
+      const lastSeenPresence = pres.lastSeen || 0;
+      const isOnline = pres.online === true && (now - lastSeenPresence) < ONLINE_THRESHOLD;
+
+      list.push({
+        hwid: hwid,
+        username: save.username || user.username || 'Unbekannt',
+        level: save.level || 1,
+        money: save.money || 0,
+        gold: save.gold || 0,
+        food: save.food || 0,
+        wood: save.wood || 0,
+        stone: save.stone || 0,
+        population: save.population || 0,
+        populationCap: save.populationCap || 0,
+        workers: save.workers || 0,
+        soldiers: save.soldiers || 0,
+        soldierCap: save.soldierCap || 0,
+        happiness: save.happiness || 0,
+        buildings: buildingsArr,
+        buildingsCount: buildingsArr.length,
+        createdAt: user.createdAt || save.createdAt || 0,
+        lastSeen: Math.max(save.lastSeen || 0, user.lastSeen || 0, lastSeenPresence || 0),
+        isOnline: isOnline,
+        playtimeSeconds: playtime
+      });
+    });
+
+    // Score berechnen
+    list.forEach(p => { p.score = calculateScore(p); });
+    allPlayers = list;
+
+    if (allPlayers.length === 0) {
+      setStatus('', `${allPlayers.length} Spieler`);
+      renderEmpty();
+      return;
+    }
+
+    setStatus('', `${allPlayers.length} Spieler`);
+    applySort();
+  } catch (e) {
+    console.error('Leaderboard load failed', e);
+    setStatus('error', 'Fehler beim Laden');
+    document.getElementById('listBody').innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+        </svg>
+        <h3>Fehler beim Laden</h3>
+        <p>${escapeHtml(e.message || String(e))}</p>
+      </div>
+    `;
+  }
+}
+
+function setStatus(type, text) {
+  const pill = document.getElementById('statusPill');
+  const txt = document.getElementById('statusText');
+  pill.classList.remove('loading', 'error');
+  if (type === 'loading') pill.classList.add('loading');
+  else if (type === 'error') pill.classList.add('error');
+  txt.textContent = text;
+}
+
+/* ---------- Sortieren ---------- */
+function applySort() {
+  const sorters = {
+    level: (a,b) => (b.level - a.level) || (b.score - a.score),
+    buildings: (a,b) => (b.buildingsCount - a.buildingsCount) || (b.score - a.score),
+    money: (a,b) => (b.money - a.money) || (b.score - a.score),
+    playtime: (a,b) => (b.playtimeSeconds - a.playtimeSeconds) || (b.score - a.score)
+  };
+  filteredPlayers = [...allPlayers].sort(sorters[currentSort] || sorters.level);
+  render();
+}
+
+/* ---------- Render ---------- */
+function render() {
+  const search = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+  let display = filteredPlayers;
+  if (search) {
+    display = filteredPlayers.filter(p => p.username.toLowerCase().includes(search));
+  }
+
+  renderPodium(display);
+  renderList(display);
+}
+
+function renderPodium(players) {
+  const wrap = document.getElementById('podiumWrap');
+  const top3 = players.slice(0, 3);
+
+  if (top3.length === 0) {
+    wrap.innerHTML = '';
+    return;
+  }
+
+  // Anordnung: 2. Platz (links), 1. Platz (mitte), 3. Platz (rechts)
+  const order = top3.length >= 3 ? [top3[1], top3[0], top3[2]] :
+                top3.length === 2 ? [top3[1], top3[0]] :
+                [top3[0]];
+  const rankOf = (p) => top3.indexOf(p) + 1;
+  const medals = ['🥇', '🥈', '🥉'];
+
+  wrap.innerHTML = order.map(p => {
+    const rank = rankOf(p);
+    return `
+      <div class="podium-card place-${rank}" data-hwid="${escapeHtml(p.hwid)}">
+        <div class="podium-rank-badge">#${rank}</div>
+        <div class="podium-avatar ${avatarClass(p.username)}">${escapeHtml(initials(p.username))}</div>
+        <div class="podium-name">${escapeHtml(p.username)}</div>
+        <div class="podium-level">Level ${p.level} · ${p.buildingsCount} Gebäude</div>
+        <div class="podium-score">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+          </svg>
+          ${p.score.toLocaleString('de-DE')} Punkte
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Klick-Handler
+  wrap.querySelectorAll('.podium-card').forEach(el => {
+    el.onclick = () => showPlayerDetail(el.dataset.hwid);
+  });
+}
+
+function renderList(players) {
+  const body = document.getElementById('listBody');
+
+  if (players.length === 0) {
+    renderEmpty();
+    return;
+  }
+
+  body.innerHTML = players.map((p, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+    return `
+      <div class="lb-row ${rankClass}" data-hwid="${escapeHtml(p.hwid)}">
+        <div class="lb-rank">#${rank}</div>
+        <div class="lb-user">
+          <div class="lb-avatar ${avatarClass(p.username)}">${escapeHtml(initials(p.username))}</div>
+          <div style="min-width:0;">
+            <div class="lb-name">${escapeHtml(p.username)}</div>
+            <div class="lb-sub">
+              <span class="${p.isOnline ? 'online-dot' : 'offline-dot'}"></span>
+              ${p.isOnline ? 'Online' : timeAgo(p.lastSeen)}
+            </div>
+          </div>
+        </div>
+        <div class="lb-cell level">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+          </svg>
+          <span class="val">Lv.${p.level}</span>
+        </div>
+        <div class="lb-cell hide-mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="10" width="16" height="11"/><polygon points="2,10 12,3 22,10"/>
+          </svg>
+          <span class="val">${p.buildingsCount}</span>
+        </div>
+        <div class="lb-cell score">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+          </svg>
+          <span class="val">${p.score.toLocaleString('de-DE')}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  body.querySelectorAll('.lb-row').forEach(el => {
+    el.onclick = () => showPlayerDetail(el.dataset.hwid);
+  });
+}
+
+function renderEmpty() {
+  document.getElementById('podiumWrap').innerHTML = '';
+  document.getElementById('listBody').innerHTML = `
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#8fa3c8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/>
+        <path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2"/>
+      </svg>
+      <h3>Noch keine Spieler</h3>
+      <p>Es wurden noch keine Reiche in der Datenbank gefunden.</p>
+    </div>
+  `;
+}
+
+/* ---------- Detail-Modal ---------- */
+function showPlayerDetail(hwid) {
+  const p = allPlayers.find(x => x.hwid === hwid);
+  if (!p) return;
+
+  const rank = filteredPlayers.findIndex(x => x.hwid === hwid) + 1;
+  const rankBadge = rank > 0 ? `#${rank}` : '—';
+  const rankClass = rank <= 3 ? `top${rank}` : '';
+
+  const modal = document.getElementById('modalBox');
+  modal.innerHTML = `
+    <div class="modal-hero">
+      <button class="modal-close" id="modalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="modal-avatar ${avatarClass(p.username)}">${escapeHtml(initials(p.username))}</div>
+      <div class="modal-info">
+        <div class="modal-name">${escapeHtml(p.username)}</div>
+        <div class="modal-rank-line">
+          <span class="modal-rank-badge ${rankClass}">Rang ${rankBadge}</span>
+          <span class="${p.isOnline ? 'online-dot' : 'offline-dot'}"></span>
+          <span>${p.isOnline ? 'Jetzt online' : 'Zuletzt ' + timeAgo(p.lastSeen)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="stat-grid">
+        <div class="stat-box accent">
+          <div class="stat-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+            </svg>
+            Level
+          </div>
+          <div class="stat-value">${p.level}</div>
+        </div>
+        <div class="stat-box gold">
+          <div class="stat-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+            </svg>
+            Gesamtpunkte
+          </div>
+          <div class="stat-value">${p.score.toLocaleString('de-DE')}</div>
+        </div>
+      </div>
+
+      <div class="stat-section-title">Zeitliche Informationen</div>
+      <div class="stat-list">
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+            Beigetreten
+          </span>
+          <span class="v">${formatDate(p.createdAt)}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+            </svg>
+            Zuletzt online
+          </span>
+          <span class="v ${p.isOnline ? 'good' : ''}">${p.isOnline ? 'Jetzt online' : formatDate(p.lastSeen)}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+            </svg>
+            Gespielte Zeit
+          </span>
+          <span class="v ${p.playtimeSeconds > 0 ? 'good' : 'muted'}">${p.playtimeSeconds > 0 ? formatPlaytime(p.playtimeSeconds) : 'Keine Daten'}</span>
+        </div>
+      </div>
+
+      <div class="stat-section-title">Reich-Statistiken</div>
+      <div class="stat-list">
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="10" width="16" height="11"/><polygon points="2,10 12,3 22,10"/>
+            </svg>
+            Gebäude
+          </span>
+          <span class="v">${p.buildingsCount}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a2 2 0 0 1 0 4H9"/>
+            </svg>
+            Geld
+          </span>
+          <span class="v">${Math.floor(p.money).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="18" rx="8" ry="3"/><ellipse cx="12" cy="14" rx="8" ry="3"/><ellipse cx="12" cy="10" rx="8" ry="3"/>
+            </svg>
+            Gold
+          </span>
+          <span class="v">${Math.floor(p.gold).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="8" r="3"/><path d="M3 20 C3 15 6 13 9 13 C12 13 15 15 15 20 Z"/>
+            </svg>
+            Bevölkerung
+          </span>
+          <span class="v">${p.population} / ${p.populationCap}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z"/>
+            </svg>
+            Soldaten
+          </span>
+          <span class="v">${p.soldiers} / ${p.soldierCap}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M8 14 Q12 18 16 14" stroke-linecap="round"/>
+            </svg>
+            Zufriedenheit
+          </span>
+          <span class="v ${p.happiness >= 70 ? 'good' : ''}">${Math.round(p.happiness)}%</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+/* ---------- UI Events ---------- */
+document.getElementById('searchInput').addEventListener('input', () => render());
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSort = btn.dataset.sort;
+    applySort();
+  };
+});
+
+/* ---------- Helpers ---------- */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+</script>
+</body>
+</html>
