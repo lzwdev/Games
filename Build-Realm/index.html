@@ -255,7 +255,6 @@
   }
   .terrain-patch { position: absolute; border-radius: 50%; pointer-events: none; }
   .tree-deco, .rock-deco { position: absolute; pointer-events: none; }
-  .water-deco { position: absolute; pointer-events: none; }
 
   .building {
     position: absolute; transform-origin: center bottom;
@@ -275,7 +274,6 @@
     0% { filter: brightness(1) drop-shadow(0 0 0 rgba(255,0,0,0)); }
     100% { filter: brightness(1.3) drop-shadow(0 0 14px rgba(255,0,0,0.9)); }
   }
-
   .owner-label {
     position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
     background: rgba(30,53,94,0.9); color: #fff;
@@ -283,8 +281,7 @@
     padding: 3px 9px; border-radius: 8px;
     white-space: nowrap; pointer-events: none;
     border: 1px solid rgba(255,255,255,0.2);
-    z-index: 15;
-    letter-spacing: 0.3px;
+    z-index: 15; letter-spacing: 0.3px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
   .owner-label.self { background: rgba(47,111,208,0.95); }
@@ -293,7 +290,6 @@
     background: rgba(255,255,255,0.2); padding: 1px 5px;
     border-radius: 4px; margin-left: 4px; font-size: 9px;
   }
-
   .construction-overlay {
     position: absolute; inset: 0; pointer-events: none;
     display: flex; align-items: center; justify-content: center; z-index: 6;
@@ -343,7 +339,6 @@
     z-index: 20;
   }
   .soldier-unit.attacking { z-index: 25; filter: drop-shadow(0 0 4px rgba(220,50,50,0.7)); }
-  .soldier-unit.enemy-unit { filter: drop-shadow(0 0 4px rgba(183,28,28,0.6)); }
 
   .float-text {
     position: absolute; font-weight: 800; font-size: 15px;
@@ -398,7 +393,6 @@
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.3); opacity: 0.7; }
   }
-
   .res-group { display: flex; gap: 6px; flex: 1; overflow-x: auto; padding: 4px 0; }
   .res-group::-webkit-scrollbar { height: 5px; }
   .res-group::-webkit-scrollbar-thumb { background: #c3d4ec; border-radius: 3px; }
@@ -873,7 +867,6 @@
   #syncBadge.saving .dot { background: #ffb300; box-shadow: 0 0 6px #ffb300; animation: blink 0.6s infinite; }
   #syncBadge.error .dot { background: #e53935; box-shadow: 0 0 6px #e53935; }
 
-  /* ============ CHAT ============ */
   #chatPanel {
     position: absolute; bottom: 62px; left: 12px; z-index: 46;
     width: 320px; max-height: 400px;
@@ -897,16 +890,6 @@
     font-size: 16px; color: #2e7d32; padding: 0 4px; line-height: 1;
   }
   .chat-head .close-chat:hover { color: #c62828; }
-  .chat-tabs {
-    display: flex; padding: 6px 8px 0; gap: 4px;
-    border-bottom: 1px solid #e0e8f4;
-  }
-  .chat-tab {
-    flex: 1; padding: 6px; font-size: 11px; font-weight: 700;
-    background: transparent; border: none; cursor: pointer;
-    color: #6b7d99; border-radius: 6px 6px 0 0;
-  }
-  .chat-tab.active { background: #f2f6fc; color: #2f6fd0; }
   .chat-body {
     flex: 1; overflow-y: auto; padding: 10px 12px;
     font-size: 12.5px; line-height: 1.45;
@@ -940,7 +923,6 @@
   }
   .chat-send:hover { background: #2559ab; }
 
-  /* ============ LEADERBOARD-PANEL ============ */
   #onlineList {
     position: absolute; top: 74px; right: 346px; z-index: 62;
     width: 260px; max-height: 400px;
@@ -982,10 +964,6 @@
   .ol-sub {
     font-size: 10.5px; color: #6b7d99; font-weight: 600;
     display: flex; align-items: center; gap: 4px; margin-top: 1px;
-  }
-  .ol-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #4caf50;
-    box-shadow: 0 0 4px #4caf50;
   }
   .ol-lvl {
     font-size: 11px; font-weight: 800; color: #2f6fd0;
@@ -1135,7 +1113,6 @@
     <div class="mm-inner" id="mmInner"></div>
   </div>
 
-  <!-- ONLINE PLAYER LIST -->
   <div id="onlineList">
     <div class="ol-head">
       <span>🌐 Online Rulers</span>
@@ -1200,7 +1177,6 @@
     <button class="ob-close" id="obClose">OK</button>
   </div>
 
-  <!-- CHAT PANEL -->
   <div id="chatPanel">
     <div class="chat-head">
       <span>💬 Global Chat</span>
@@ -1233,6 +1209,14 @@
         <path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6 M16 16 l4 4"/>
       </svg>
       Attack
+    </button>
+    <button class="btn" id="btnOnlineList" title="Show online players">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Players
     </button>
     <div class="spacer"></div>
     <span class="hint" id="hintText">Drag = Move · Wheel = Zoom · Q = Cancel</span>
@@ -1328,24 +1312,22 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — ONLINE v6
-   Multiplayer, Soldaten, Angriffe, Chat, größere Map
+   BUILD A REALM — ONLINE v6.2 (Spawn-Distanz + Placement Fix)
    ========================================================= */
 
-/* ---------- SVG ICONS (gekürzt, wichtige behalten) ---------- */
 const ICONS = {
   money: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#ffd54f" stroke="#c99a00" stroke-width="1.5"/><text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="#7a5c00">$</text></svg>`,
   gold: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="18" rx="8" ry="3" fill="#ffca28" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="14" rx="8" ry="3" fill="#ffd54f" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="10" rx="8" ry="3" fill="#ffe082" stroke="#b8860b" stroke-width="1.3"/></svg>`,
   food: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22 V8" stroke="#8d6e00" stroke-width="1.8"/><path d="M12 8 C8 8 6 5 6 2 C10 2 12 5 12 8 Z" fill="#ffd54f" stroke="#8d6e00" stroke-width="1.2"/><path d="M12 8 C16 8 18 5 18 2 C14 2 12 5 12 8 Z" fill="#ffecb3" stroke="#8d6e00" stroke-width="1.2"/></svg>`,
   wood: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="4" rx="2" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/><rect x="3" y="12" width="18" height="4" rx="2" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/><rect x="3" y="17" width="18" height="4" rx="2" fill="#a1887f" stroke="#4e342e" stroke-width="1.3"/></svg>`,
-  stone: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 20 L6 9 L12 6 L18 9 L20 20 Z" fill="#b0bec5" stroke="#455a64" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 13 L11 11 L14 13 L13 16 L10 16 Z" fill="#78909c" stroke="#455a64" stroke-width="1"/></svg>`,
+  stone: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 20 L6 9 L12 6 L18 9 L20 20 Z" fill="#b0bec5" stroke="#455a64" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
   pop: `<svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" fill="#90caf9" stroke="#2f6fd0" stroke-width="1.3"/><path d="M3 20 C3 15 6 13 9 13 C12 13 15 15 15 20 Z" fill="#90caf9" stroke="#2f6fd0" stroke-width="1.3"/></svg>`,
   worker: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="6" r="3" fill="#ffb74d" stroke="#bf6a00" stroke-width="1.3"/><path d="M6 21 V14 C6 11 9 10 12 10 C15 10 18 11 18 14 V21 Z" fill="#ffcc80" stroke="#bf6a00" stroke-width="1.3"/></svg>`,
   soldier: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z" fill="#ef5350" stroke="#b71c1c" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="10.5" r="1.6" fill="#fff"/></svg>`,
   star: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z" fill="#ffd54f" stroke="#c99a00" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
   main: `<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.3"/><polygon points="2,10 12,3 22,10" fill="#8d3b2a" stroke="#5a1a1a" stroke-width="1.3" stroke-linejoin="round"/><rect x="10" y="15" width="4" height="6" fill="#4a2f10"/></svg>`,
-  house: `<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="12" width="14" height="9" fill="#d98e5a" stroke="#7a3b1a" stroke-width="1.3"/><polygon points="3,12 12,4 21,12" fill="#a83232" stroke="#5a1a1a" stroke-width="1.3" stroke-linejoin="round"/><rect x="10.5" y="16" width="3" height="5" fill="#4a2f10"/></svg>`,
-  farm: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="14" width="18" height="7" fill="#8bc34a" stroke="#558b2f" stroke-width="1.3"/><rect x="14" y="7" width="7" height="7" fill="#a1887f" stroke="#5d4037" stroke-width="1.3"/><polygon points="13,7 17.5,3 22,7" fill="#8d3b2a"/></svg>`,
+  house: `<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="12" width="14" height="9" fill="#d98e5a" stroke="#7a3b1a" stroke-width="1.3"/><polygon points="3,12 12,4 21,12" fill="#a83232" stroke="#5a1a1a" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+  farm: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="14" width="18" height="7" fill="#8bc34a" stroke="#558b2f" stroke-width="1.3"/><rect x="14" y="7" width="7" height="7" fill="#a1887f" stroke="#5d4037" stroke-width="1.3"/></svg>`,
   lumber: `<svg viewBox="0 0 24 24" fill="none"><rect x="6" y="11" width="12" height="10" fill="#795548" stroke="#4e342e" stroke-width="1.3"/><polygon points="4,11 12,3 20,11" fill="#5d4037"/></svg>`,
   quarry: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 21 L6 10 L11 13 L15 7 L22 21 Z" fill="#b0bec5" stroke="#546e7a" stroke-width="1.3"/></svg>`,
   market: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="11" fill="#ffe0b2" stroke="#bf8f5a" stroke-width="1.3"/><polygon points="2,10 4,5 8,5 10,10" fill="#e53935"/><polygon points="10,10 12,5 16,5 18,10" fill="#43a047"/></svg>`,
@@ -1375,7 +1357,6 @@ const ICONS = {
   workshop: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="12" fill="#78909c" stroke="#37474f" stroke-width="1.3"/><circle cx="12" cy="15" r="3" fill="#ffb74d"/></svg>`
 };
 
-/* ---------- LOADING TIPS ---------- */
 const tips = [
   "Tip: Mouse wheel to zoom · Drag to move",
   "Tip: Q cancels building placement",
@@ -1384,8 +1365,7 @@ const tips = [
   "Tip: Attack enemy buildings to expand your power",
   "Tip: Your base spawns far from other players",
   "Tip: Open the Global Chat to talk with other rulers",
-  "Tip: Speed Multiplier is a Premium feature",
-  "Tip: Hover over resource icons to see what they are"
+  "Tip: Speed Multiplier is a Premium feature"
 ];
 const statuses = [
   "Initializing engine…","Loading terrain textures…","Connecting to realm server…",
@@ -1420,7 +1400,7 @@ setInterval(() => {
 }, 2600);
 
 /* =========================================================
-   HWID GENERATOR
+   HWID
    ========================================================= */
 function generateHWID() {
   const nav = window.navigator;
@@ -1443,9 +1423,6 @@ function generateHWID() {
   return raw.match(/.{1,8}/g).join('-').slice(0, 39);
 }
 
-/* =========================================================
-   LOGIN FLOW
-   ========================================================= */
 const HWID = generateHWID();
 let currentUser = null;
 let firebase = null;
@@ -1474,12 +1451,8 @@ whenFirebaseReady(() => {
   checkExistingUser();
 });
 
-function sanitizeUsername(name) {
-  return String(name).trim().replace(/\s+/g, ' ').slice(0, 20);
-}
-function usernameKey(name) {
-  return name.toLowerCase().replace(/[.#$\[\]\/]/g, '_');
-}
+function sanitizeUsername(name) { return String(name).trim().replace(/\s+/g, ' ').slice(0, 20); }
+function usernameKey(name) { return name.toLowerCase().replace(/[.#$\[\]\/]/g, '_'); }
 function validateUsername(name) {
   if (name.length < 3) return "Nickname must be at least 3 characters";
   if (name.length > 20) return "Nickname can be at most 20 characters";
@@ -1569,7 +1542,7 @@ function beginGameTransition() {
 }
 
 /* =========================================================
-   LOADING SCREEN
+   LOADING
    ========================================================= */
 let loadProgress = 0, loadDone = false;
 function runLoadingScreen() {
@@ -1621,13 +1594,11 @@ const state = {
 
 const TILE = 48;
 let saveTimeout = null;
-let otherPlayers = {};        // hwid -> { username, baseX, baseY, buildings: [], lastSeen }
-let otherPlayerEls = {};      // hwid -> { container }
-let activeSoldiers = [];      // { x, y, target, hp, owner, el, targetBuilding, speed }
+let otherPlayers = {};
+let otherPlayerEls = {};
+let activeSoldiers = [];
 let attackMode = false;
-let attackTarget = null;
 
-/* ---------- BUILDING DEFINITIONS ---------- */
 const BUILDINGS = {
   main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm.", baseCost: 900, costMult: 2.4, produces: {}, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32] },
   house: { name: "House", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10, desc: "Provides space for residents.", baseCost: 250, costMult: 1.95, produces: {}, needs: { workers: 1 }, popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160], buildTime: 8 },
@@ -1651,31 +1622,27 @@ const BUILDINGS = {
   theater: { name: "Theater", icon: "theater", category: "civic", size: 2, cost: 2200, maxLevel: 8, desc: "Cultural center.", baseCost: 2200, costMult: 2.2, produces: { gold: 6 }, needs: { workers: 7 }, happyBonus: [6, 12, 19, 27, 36, 46, 57, 69], unlockLevel: 3, buildTime: 20 },
   temple: { name: "Temple", icon: "temple", category: "civic", size: 3, cost: 4000, maxLevel: 8, desc: "Sacred place.", baseCost: 4000, costMult: 2.3, produces: { gold: 12 }, needs: { workers: 10 }, happyBonus: [8, 16, 25, 35, 46, 58, 71, 85], unlockLevel: 5, buildTime: 30 },
   stable: { name: "Stable", icon: "stable", category: "production", size: 2, cost: 1600, maxLevel: 8, desc: "Animal breeding.", baseCost: 1600, costMult: 2.1, produces: { food: 6, gold: 3 }, needs: { workers: 5 }, soldierPerLevel: [0, 1, 2, 3, 5, 7, 9, 12], buildTime: 15 },
-  barracks: { name: "Barracks", icon: "barracks", category: "military", size: 2, cost: 900, maxLevel: 10, desc: "Trains soldiers. Spawns soldier units.", baseCost: 900, costMult: 2.15, produces: {}, needs: { workers: 4 }, soldierPerLevel: [2, 5, 9, 14, 20, 28, 38, 50, 65, 84], buildTime: 14, spawnsSoldiers: true },
+  barracks: { name: "Barracks", icon: "barracks", category: "military", size: 2, cost: 900, maxLevel: 10, desc: "Trains soldiers.", baseCost: 900, costMult: 2.15, produces: {}, needs: { workers: 4 }, soldierPerLevel: [2, 5, 9, 14, 20, 28, 38, 50, 65, 84], buildTime: 14, spawnsSoldiers: true },
   tower: { name: "Watchtower", icon: "watchtower", category: "military", size: 1, cost: 600, maxLevel: 8, desc: "Defensive structure.", baseCost: 600, costMult: 1.95, produces: {}, needs: { workers: 2 }, soldierPerLevel: [1, 2, 4, 6, 9, 13, 18, 24], buildTime: 8 },
   wall: { name: "City Wall", icon: "wall", category: "military", size: 1, cost: 800, maxLevel: 8, desc: "Protects the realm.", baseCost: 800, costMult: 2.0, produces: {}, needs: { workers: 3 }, soldierPerLevel: [0, 1, 2, 4, 6, 9, 13, 18], buildTime: 7 },
   arena: { name: "Arena", icon: "arena", category: "military", size: 3, cost: 3200, maxLevel: 8, desc: "Combat arena.", baseCost: 3200, costMult: 2.25, produces: { gold: 8 }, needs: { workers: 9 }, soldierPerLevel: [3, 7, 12, 18, 25, 33, 42, 52], happyBonus: [3, 6, 10, 14, 19, 24, 30, 36], unlockLevel: 4, buildTime: 26, spawnsSoldiers: true },
-  fortress: { name: "Fortress", icon: "fortress", category: "military", size: 3, cost: 6000, maxLevel: 10, desc: "Mighty military base. Spawns elite soldiers.", baseCost: 6000, costMult: 2.4, produces: { gold: 12 }, needs: { workers: 15 }, soldierPerLevel: [10, 20, 35, 55, 80, 110, 150, 200, 260, 335], unlockLevel: 6, buildTime: 35, spawnsSoldiers: true },
+  fortress: { name: "Fortress", icon: "fortress", category: "military", size: 3, cost: 6000, maxLevel: 10, desc: "Mighty military base.", baseCost: 6000, costMult: 2.4, produces: { gold: 12 }, needs: { workers: 15 }, soldierPerLevel: [10, 20, 35, 55, 80, 110, 150, 200, 260, 335], unlockLevel: 6, buildTime: 35, spawnsSoldiers: true },
   church: { name: "Church", icon: "church", category: "special", size: 2, cost: 1800, maxLevel: 8, desc: "Place of worship.", baseCost: 1800, costMult: 2.1, produces: { gold: 5 }, needs: { workers: 4 }, happyBonus: [5, 10, 16, 22, 29, 37, 46, 56], buildTime: 17 },
   fishing: { name: "Fishing Hut", icon: "fishing", category: "production", size: 1, cost: 380, maxLevel: 8, desc: "Fishes in waters.", baseCost: 380, costMult: 1.95, produces: { food: 4, gold: 1 }, needs: { workers: 2 }, buildTime: 7 }
 };
 
-/* ---------- RESOURCE META ---------- */
 const RESOURCE_META = {
-  money: { name: "Money", desc: "Main currency used to construct and upgrade buildings." },
-  gold: { name: "Gold", desc: "Precious metal. Used for advanced buildings." },
-  food: { name: "Food", desc: "Feeds your population. Produced by farms and bakeries." },
-  wood: { name: "Wood", desc: "Basic building material. Produced by lumberjacks." },
-  stone: { name: "Stone", desc: "Solid building material. Produced by quarries." },
-  pop: { name: "Population", desc: "Residents = workers. Cap raised by houses." },
-  worker: { name: "Workers", desc: "Assigned to buildings. More workers = more output." },
-  soldier: { name: "Soldiers", desc: "Your military force. Trained in barracks." },
-  star: { name: "Realm Level", desc: "Overall progress. Increases as you build." }
+  money: { name: "Money", desc: "Main currency." },
+  gold: { name: "Gold", desc: "Precious metal." },
+  food: { name: "Food", desc: "Feeds your population." },
+  wood: { name: "Wood", desc: "Basic building material." },
+  stone: { name: "Stone", desc: "Solid building material." },
+  pop: { name: "Population", desc: "Residents = workers." },
+  worker: { name: "Workers", desc: "Assigned to buildings." },
+  soldier: { name: "Soldiers", desc: "Your military force." },
+  star: { name: "Realm Level", desc: "Overall progress." }
 };
 
-/* =========================================================
-   TERRAIN (größere Map)
-   ========================================================= */
 const worldEl = document.getElementById('world');
 function buildTerrain() {
   const colors = ['#b8d99a', '#a8cd88', '#c6e0a8', '#9fc47f', '#b0d490'];
@@ -1710,32 +1677,20 @@ function buildTerrain() {
   }
 }
 
-/* =========================================================
-   BUILDING SVG RENDERER (kompakt, aber volle LOD-Stufen)
-   ========================================================= */
 function buildingSVG(type, level, w, h) {
   const lvl = level;
-  // Main
   if (type === 'main') {
     const bodyTop = 100 - (30 + lvl * 4);
     const bodyH = 100 - bodyTop;
     let extras = '';
-    if (lvl >= 2) extras += `<polygon points="14,${bodyTop} 50,${bodyTop-20} 86,${bodyTop}" fill="#8d3b2a" stroke="#3a2f10" stroke-width="1.6"/>`;
-    if (lvl >= 3) extras += `<rect x="42" y="${bodyTop-28}" width="16" height="20" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.4"/><polygon points="40,${bodyTop-28} 50,${bodyTop-40} 60,${bodyTop-28}" fill="#8d3b2a"/>`;
+    if (lvl >= 2) extras += `<polygon points="14,${bodyTop} 50,${bodyTop-20} 86,${bodyTop}" fill="#8d3b2a"/>`;
+    if (lvl >= 3) extras += `<rect x="42" y="${bodyTop-28}" width="16" height="20" fill="#c9a84c"/><polygon points="40,${bodyTop-28} 50,${bodyTop-40} 60,${bodyTop-28}" fill="#8d3b2a"/>`;
     if (lvl >= 4) extras += `<rect x="18" y="${bodyTop-12}" width="10" height="12" fill="#b8860b"/><rect x="72" y="${bodyTop-12}" width="10" height="12" fill="#b8860b"/>`;
     if (lvl >= 5) extras += `<circle cx="50" cy="${bodyTop-46}" r="3" fill="#ffd66b"/>`;
-    if (lvl >= 7) extras += `<rect x="49" y="${bodyTop-58}" width="2" height="12" fill="#555"/><polygon points="51,${bodyTop-58} 62,${bodyTop-54} 51,${bodyTop-50}" fill="#b71c1c"/>`;
     if (lvl >= 8) extras += `<circle cx="30" cy="${bodyTop-24}" r="3" fill="#90caf9"/><circle cx="70" cy="${bodyTop-24}" r="3" fill="#90caf9"/>`;
-    if (lvl >= 9) extras += `<rect x="36" y="${bodyTop-40}" width="28" height="6" fill="#ffd54f"/>`;
-    if (lvl >= 10) extras += `<circle cx="50" cy="${bodyTop-70}" r="5" fill="#ffd54f"/>`;
     const winY = bodyTop + 8;
     let windows = '';
-    const wc = lvl >= 5 ? 4 : 2;
-    const sx = wc === 4 ? 16 : 24;
-    for (let i = 0; i < wc; i++) {
-      const wx = sx + i * (wc === 4 ? 16 : 30);
-      if (wx > 12 && wx < 84) windows += `<rect x="${wx}" y="${winY}" width="8" height="10" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
-    }
+    for (let i = 0; i < 2; i++) windows += `<rect x="${24 + i*30}" y="${winY}" width="8" height="10" fill="#ffe08a"/>`;
     return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
       <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.18)"/>
       <rect x="18" y="${bodyTop}" width="64" height="${bodyH}" rx="2" fill="#c9a84c" stroke="#7a5c10" stroke-width="1.8"/>
@@ -1743,48 +1698,36 @@ function buildingSVG(type, level, w, h) {
       <rect x="44" y="80" width="12" height="20" fill="#4a2f10"/>
     </svg>`;
   }
-  // House
   if (type === 'house') {
     const bodyH = 26 + lvl * 3.5;
     const bodyTop = 100 - bodyH;
     const roofH = 14 + lvl * 1.6;
-    const winY = bodyTop + bodyH * 0.35;
-    let windows = `<rect x="20" y="${winY}" width="9" height="8" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
-    if (lvl >= 2) windows += `<rect x="71" y="${winY}" width="9" height="8" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
-    else windows += `<rect x="45" y="${winY}" width="9" height="8" fill="#ffe08a" stroke="#7a5c10" stroke-width="0.8"/>`;
-    let extras = '';
-    if (lvl >= 3) extras += `<rect x="46" y="${bodyTop - roofH + 4}" width="8" height="12" fill="#8d6e63"/>`;
-    if (lvl >= 4) extras += `<rect x="44" y="${bodyTop - roofH * 0.55}" width="12" height="7" fill="#4fc3f7"/>`;
-    if (lvl >= 6) extras += `<path d="M38 74 L62 74 L58 68 L42 68 Z" fill="#8d6e63"/>`;
-    if (lvl >= 8) extras += `<rect x="49" y="${bodyTop - roofH - 10}" width="2" height="12" fill="#555"/><polygon points="51,${bodyTop-roofH-10} 60,${bodyTop-roofH-6} 51,${bodyTop-roofH-2}" fill="#b71c1c"/>`;
-    const doorW = 12, doorH = 22;
-    const doorX = 50 - doorW/2, doorY = 100 - doorH;
     return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
       <ellipse cx="50" cy="97" rx="40" ry="3" fill="rgba(0,0,0,0.16)"/>
       <rect x="14" y="${bodyTop}" width="72" height="${bodyH}" fill="#d98e5a" stroke="#7a3b1a" stroke-width="1.6"/>
       <polygon points="8,${bodyTop} 50,${bodyTop - roofH} 92,${bodyTop}" fill="#a83232" stroke="#5a1a1a" stroke-width="1.6"/>
-      ${windows}${extras}
-      <rect x="${doorX}" y="${doorY}" width="${doorW}" height="${doorH}" fill="#4a2f10"/>
+      <rect x="20" y="${bodyTop + bodyH*0.35}" width="9" height="8" fill="#ffe08a"/>
+      <rect x="71" y="${bodyTop + bodyH*0.35}" width="9" height="8" fill="#ffe08a"/>
+      <rect x="44" y="78" width="12" height="22" fill="#4a2f10"/>
     </svg>`;
   }
-  // Farm -> factory
-  if (type === 'farm') {
-    if (lvl >= 5) {
-      const bodyTop = 100 - (20 + lvl * 2);
-      const bodyH = 100 - bodyTop;
-      let chim = '';
-      for (let i = 0; i < Math.min(3, Math.floor(lvl/2)); i++) {
-        chim += `<rect x="${24 + i*26}" y="${bodyTop - (16 + i*3 + lvl)}" width="6" height="${16 + i*3 + lvl}" fill="#37474f"/>`;
-      }
-      let windows = '';
-      for (let i = 0; i < 5; i++) windows += `<rect x="${12 + i*15}" y="${bodyTop + bodyH*0.35}" width="9" height="9" fill="#90caf9"/>`;
-      return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
-        <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.2)"/>
-        <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#546e7a" stroke="#2e3b42" stroke-width="1.6"/>
-        ${windows}${chim}
-        <rect x="42" y="82" width="16" height="18" fill="#263238"/>
-      </svg>`;
+  if (type === 'farm' && lvl >= 5) {
+    const bodyTop = 100 - (20 + lvl * 2);
+    const bodyH = 100 - bodyTop;
+    let chim = '';
+    for (let i = 0; i < Math.min(3, Math.floor(lvl/2)); i++) {
+      chim += `<rect x="${24 + i*26}" y="${bodyTop - (16 + i*3 + lvl)}" width="6" height="${16 + i*3 + lvl}" fill="#37474f"/>`;
     }
+    let windows = '';
+    for (let i = 0; i < 5; i++) windows += `<rect x="${12 + i*15}" y="${bodyTop + bodyH*0.35}" width="9" height="9" fill="#90caf9"/>`;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="97" rx="44" ry="3" fill="rgba(0,0,0,0.2)"/>
+      <rect x="6" y="${bodyTop}" width="88" height="${bodyH}" fill="#546e7a" stroke="#2e3b42" stroke-width="1.6"/>
+      ${windows}${chim}
+      <rect x="42" y="82" width="16" height="18" fill="#263238"/>
+    </svg>`;
+  }
+  if (type === 'farm') {
     const rows = 2 + Math.min(lvl, 6);
     const fieldH = 26;
     const fieldTop = 100 - fieldH;
@@ -1802,7 +1745,6 @@ function buildingSVG(type, level, w, h) {
       <rect x="68" y="86" width="8" height="14" fill="#4a2f10"/>
     </svg>`;
   }
-  // Generic houses (lumber, quarry, market, mine, blacksmith, bakery, etc.)
   const colors = {
     lumber: '#795548', quarry: '#9e9e9e', market: '#ffe0b2', mine: '#6d4c41',
     blacksmith: '#6d4c41', bakery: '#f0c080', tavern: '#d7a86e',
@@ -1817,28 +1759,18 @@ function buildingSVG(type, level, w, h) {
   const bodyH = 24 + lvl * 2.5;
   const bodyTop = 100 - bodyH - 8;
   const roofH = 12;
-  let windows = '';
-  if (lvl >= 2) windows += `<rect x="20" y="${bodyTop + 8}" width="9" height="9" fill="#ffe08a"/>`;
-  if (lvl >= 3) windows += `<rect x="71" y="${bodyTop + 8}" width="9" height="9" fill="#ffe08a"/>`;
   let decor = '';
-  if (type === 'watchtower' || type === 'tower') {
-    decor = `<polygon points="40,${bodyTop} 50,${bodyTop-14} 60,${bodyTop}" fill="#b71c1c"/>`;
-  } else if (type === 'barracks' || type === 'fortress') {
-    decor = `<polygon points="8,${bodyTop} 50,${bodyTop-16} 92,${bodyTop}" fill="#5d4037"/>`;
-  } else if (type === 'arena') {
-    decor = `<ellipse cx="50" cy="${bodyTop + bodyH*0.6}" rx="34" ry="12" fill="#6d4c41"/>`;
-  } else {
-    decor = `<polygon points="10,${bodyTop} 50,${bodyTop-roofH} 90,${bodyTop}" fill="#8d3b2a"/>`;
-  }
+  if (type === 'watchtower' || type === 'tower') decor = `<polygon points="40,${bodyTop} 50,${bodyTop-14} 60,${bodyTop}" fill="#b71c1c"/>`;
+  else if (type === 'barracks' || type === 'fortress') decor = `<polygon points="8,${bodyTop} 50,${bodyTop-16} 92,${bodyTop}" fill="#5d4037"/>`;
+  else decor = `<polygon points="10,${bodyTop} 50,${bodyTop-roofH} 90,${bodyTop}" fill="#8d3b2a"/>`;
   return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
     <ellipse cx="50" cy="97" rx="42" ry="3" fill="rgba(0,0,0,0.18)"/>
     <rect x="12" y="${bodyTop}" width="76" height="${bodyH}" fill="${baseColor}" stroke="#3a2a1a" stroke-width="1.5"/>
-    ${decor}${windows}
+    ${decor}
     <rect x="44" y="${100-20}" width="12" height="20" fill="#3a2a1a"/>
   </svg>`;
 }
 
-/* ---------- BUILDER / SOLDIER SVG ---------- */
 function builderSVG(color) {
   const c = color || '#ffb74d';
   const skin = '#e0ac69';
@@ -1860,14 +1792,9 @@ function soldierSVG(color, isEnemy) {
     <rect x="5" y="10" width="10" height="10" rx="2" fill="${c}"/>
     <rect x="5.5" y="20" width="3.5" height="6" fill="#263238"/>
     <rect x="11" y="20" width="3.5" height="6" fill="#263238"/>
-    <rect x="15" y="10" width="1.5" height="12" fill="#b0bec5"/>
-    <polygon points="15,10 17,7 18,10" fill="#b0bec5"/>
   </svg>`;
 }
 
-/* =========================================================
-   HELPERS
-   ========================================================= */
 function getCost(type, level) {
   const def = BUILDINGS[type];
   if (level === 0) return Math.round(def.cost);
@@ -1896,32 +1823,7 @@ function getSellValue(b) {
   for (let i = 1; i < b.level; i++) sum += getCost(b.type, i);
   return Math.floor(sum * 0.5);
 }
-function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-/* =========================================================
-   BASE SPAWN — random position with min distance
-   ========================================================= */
-function pickBasePosition() {
-  // Mindestabstand zu anderen Basen: 3000 px
-  const MIN_DIST = 3000;
-  const MARGIN = 1500;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const x = MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2);
-    const y = MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2);
-    let ok = true;
-    for (const hwid in otherPlayers) {
-      const op = otherPlayers[hwid];
-      if (Math.hypot(x - op.baseX, y - op.baseY) < MIN_DIST) { ok = false; break; }
-    }
-    if (ok) return { x, y };
-  }
-  // Fallback
-  return { x: MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2), y: MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2) };
-}
-
-/* =========================================================
-   RECALC / PRODUCTION
-   ========================================================= */
 function recalc() {
   let popCap = 0, workerNeed = 0, soldierCap = 0, happy = 0;
   state.buildings.forEach(b => {
@@ -1981,12 +1883,65 @@ function productionTick(dt) {
 }
 
 /* =========================================================
+   BASE SPAWN — mit garantiertem Mindestabstand
+   ========================================================= */
+function pickBasePosition() {
+  const MIN_DIST = 4000;
+  const MARGIN = 2000;
+
+  // Alle anderen Basen sammeln
+  const occupied = [];
+  for (const hwid in otherPlayers) {
+    const op = otherPlayers[hwid];
+    if (!op) continue;
+    if (typeof op.baseX === 'number' && typeof op.baseY === 'number') {
+      occupied.push({ x: op.baseX, y: op.baseY });
+    }
+    if (op.buildings && Array.isArray(op.buildings)) {
+      op.buildings.forEach(b => {
+        if (b.type === 'main' && typeof b.x === 'number') {
+          const s = BUILDINGS.main.size * TILE;
+          occupied.push({ x: b.x + s/2, y: b.y + s/2 });
+        }
+      });
+    }
+  }
+
+  console.log('Occupied positions:', occupied.length, occupied);
+
+  let bestPos = null;
+  let bestMinDist = -1;
+
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const x = MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2);
+    const y = MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2);
+
+    let minDist = Infinity;
+    for (const o of occupied) {
+      const d = Math.hypot(x - o.x, y - o.y);
+      if (d < minDist) minDist = d;
+    }
+    if (occupied.length === 0) minDist = WORLD_SIZE;
+
+    if (minDist >= MIN_DIST) {
+      console.log('Found spot with distance', minDist.toFixed(0), 'at', x, y);
+      return { x, y };
+    }
+    if (minDist > bestMinDist) {
+      bestMinDist = minDist;
+      bestPos = { x, y };
+    }
+  }
+  console.log('Fallback best position, distance:', bestMinDist.toFixed(0));
+  return bestPos || { x: MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2), y: MARGIN + Math.random() * (WORLD_SIZE - MARGIN * 2) };
+}
+
+/* =========================================================
    MAP / CAMERA
    ========================================================= */
 const mapEl = document.getElementById('map');
 const tooltip = document.getElementById('tooltip');
 const ghost = document.getElementById('placeGhost');
-
 let isDragging = false, dragStart = {x:0,y:0}, dragMoved = false;
 
 function applyTransform() {
@@ -2066,9 +2021,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-/* =========================================================
-   PLACEMENT
-   ========================================================= */
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) { notify(`Requires Realm Level ${def.unlockLevel}`, true); return; }
@@ -2094,6 +2046,28 @@ function screenToWorld(clientX, clientY) {
   const rect = mapEl.getBoundingClientRect();
   return { x: (clientX - rect.left - state.camX) / state.zoom, y: (clientY - rect.top - state.camY) / state.zoom };
 }
+
+function checkPlacementCollision(x, y, size) {
+  if (x < 0 || y < 0 || x + size > WORLD_SIZE || y + size > WORLD_SIZE) return true;
+  for (const b of state.buildings) {
+    const bs = BUILDINGS[b.type].size * TILE;
+    if (x < b.x + bs && x + size > b.x && y < b.y + bs && y + size > b.y) return true;
+  }
+  for (const hwid in otherPlayerEls) {
+    const entry = otherPlayerEls[hwid];
+    if (!entry || !entry.buildings) continue;
+    for (const id in entry.buildings) {
+      const ob = entry.buildings[id];
+      if (!ob || typeof ob.x !== 'number' || typeof ob.y !== 'number') continue;
+      const defE = BUILDINGS[ob.type];
+      if (!defE) continue;
+      const obs = defE.size * TILE;
+      if (x < ob.x + obs && x + size > ob.x && y < ob.y + obs && y + size > ob.y) return true;
+    }
+  }
+  return false;
+}
+
 function updateGhost(e) {
   if (!state.placing) return;
   const def = BUILDINGS[state.placing];
@@ -2104,39 +2078,47 @@ function updateGhost(e) {
   ghost.style.left = '0'; ghost.style.top = '0';
   ghost.style.transform = `translate(${state.camX + gx * state.zoom}px, ${state.camY + gy * state.zoom}px) scale(${state.zoom})`;
   ghost.style.transformOrigin = '0 0';
-  let collision = false;
-  for (const b of state.buildings) {
-    const bs = BUILDINGS[b.type].size * TILE;
-    if (gx < b.x + bs && gx + size > b.x && gy < b.y + bs && gy + size > b.y) { collision = true; break; }
-  }
-  // Check other players
-  for (const hwid in otherPlayerEls) {
-    for (const ob of (otherPlayers[hwid].buildings || [])) {
-      const obs = BUILDINGS[ob.type].size * TILE;
-      if (gx < ob.x + obs && gx + size > ob.x && gy < ob.y + obs && gy + size > ob.y) { collision = true; break; }
-    }
-  }
-  if (gx < 0 || gy < 0 || gx + size > WORLD_SIZE || gy + size > WORLD_SIZE) collision = true;
-  ghost.classList.toggle('invalid', collision);
+  ghost.classList.toggle('invalid', checkPlacementCollision(gx, gy, size));
 }
+
 function placeBuilding(e) {
   const def = BUILDINGS[state.placing];
   const w = screenToWorld(e.clientX, e.clientY);
   const size = def.size * TILE;
   const x = w.x - size / 2, y = w.y - size / 2;
-  if (x < 0 || y < 0 || x + size > WORLD_SIZE || y + size > WORLD_SIZE) { notify("Outside the map!", true); return; }
+
+  if (x < 0 || y < 0 || x + size > WORLD_SIZE || y + size > WORLD_SIZE) {
+    notify("Outside the map!", true);
+    return;
+  }
   const cost = getCost(state.placing, 0);
   if (state.money < cost) { notify("Not enough money!", true); return; }
+
+  // Own collision
   for (const b of state.buildings) {
     const bs = BUILDINGS[b.type].size * TILE;
-    if (x < b.x + bs && x + size > b.x && y < b.y + bs && y + size > b.y) { notify("Space is occupied!", true); return; }
-  }
-  for (const hwid in otherPlayers) {
-    for (const ob of (otherPlayers[hwid].buildings || [])) {
-      const obs = BUILDINGS[ob.type].size * TILE;
-      if (x < ob.x + obs && x + size > ob.x && y < ob.y + obs && y + size > ob.y) { notify("Enemy territory!", true); return; }
+    if (x < b.x + bs && x + size > b.x && y < b.y + bs && y + size > b.y) {
+      notify("Overlaps your own building!", true);
+      return;
     }
   }
+  // Enemy collision
+  for (const hwid in otherPlayerEls) {
+    const entry = otherPlayerEls[hwid];
+    if (!entry || !entry.buildings) continue;
+    for (const id in entry.buildings) {
+      const ob = entry.buildings[id];
+      if (!ob || typeof ob.x !== 'number' || typeof ob.y !== 'number') continue;
+      const defE = BUILDINGS[ob.type];
+      if (!defE) continue;
+      const obs = defE.size * TILE;
+      if (x < ob.x + obs && x + size > ob.x && y < ob.y + obs && y + size > ob.y) {
+        notify("Overlaps an enemy building!", true);
+        return;
+      }
+    }
+  }
+
   state.money -= cost;
   const buildTime = getBuildTime(state.placing, 0);
   const b = {
@@ -2157,9 +2139,6 @@ function placeBuilding(e) {
   scheduleSave();
 }
 
-/* =========================================================
-   CREATE / REFRESH (with owner labels)
-   ========================================================= */
 function createBuildingEl(b, isEnemy, ownerName) {
   const def = BUILDINGS[b.type];
   const size = def.size * TILE;
@@ -2171,7 +2150,6 @@ function createBuildingEl(b, isEnemy, ownerName) {
   el.style.zIndex = Math.floor(b.y);
   el.innerHTML = buildingSVG(b.type, b.level, size, size);
 
-  // Owner label only on main building
   if (b.type === 'main' && ownerName) {
     const lbl = document.createElement('div');
     lbl.className = 'owner-label' + (isEnemy ? ' enemy' : ' self');
@@ -2243,7 +2221,6 @@ function refreshBuildingEl(b) {
   if (b._builders) { b._builders.forEach(el => el.remove()); b._builders = null; }
   b.el.classList.remove('under-construction');
   b.el.innerHTML = buildingSVG(b.type, b.level, size, size);
-  // Re-add owner label
   if (b.type === 'main') {
     const lbl = document.createElement('div');
     lbl.className = 'owner-label self';
@@ -2271,9 +2248,6 @@ function constructionTick() {
   if (changed) { recalc(); updateUI(); updateMinimapBuildings(); scheduleSave(); }
 }
 
-/* =========================================================
-   DETAIL PANEL
-   ========================================================= */
 function selectBuilding(id) {
   const b = state.buildings.find(x => x.id === id);
   if (!b) return;
@@ -2283,7 +2257,6 @@ function selectBuilding(id) {
   showDetailPanel(b);
 }
 function selectEnemyBuilding(b, ownerName) {
-  // Just show info panel with attack button
   const def = BUILDINGS[b.type];
   const panel = document.getElementById('detailPanel');
   document.getElementById('dpHead').classList.add('enemy-head');
@@ -2306,7 +2279,7 @@ function selectEnemyBuilding(b, ownerName) {
     if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
     const dmg = Math.max(1, Math.floor(state.soldiers * 0.5));
     b.hp = Math.max(0, (b.hp || 100) - dmg);
-    notify(`Attacked ${ownerName}'s ${def.name} for ${dmg} damage!`, false, false, false);
+    notify(`Attacked ${ownerName}'s ${def.name} for ${dmg} damage!`, false, false, false, true);
     if (b.el) {
       b.el.classList.add('under-attack');
       setTimeout(() => b.el.classList.remove('under-attack'), 1500);
@@ -2462,9 +2435,6 @@ function startUpgrade(b) {
   scheduleSave();
 }
 
-/* =========================================================
-   SELL
-   ========================================================= */
 function toggleSellMode() {
   state.sellMode = !state.sellMode;
   document.getElementById('btnSellMode').classList.toggle('active', state.sellMode);
@@ -2491,9 +2461,6 @@ function sellBuilding(b) {
   scheduleSave();
 }
 
-/* =========================================================
-   ATTACK MODE
-   ========================================================= */
 function toggleAttackMode() {
   attackMode = !attackMode;
   document.getElementById('btnAttackMode').classList.toggle('active', attackMode);
@@ -2512,11 +2479,16 @@ function cancelAttack() {
   document.getElementById('attackBanner').classList.remove('show');
 }
 function tryAttack(e) {
-  // Find enemy building under click
   const w = screenToWorld(e.clientX, e.clientY);
-  for (const hwid in otherPlayers) {
-    for (const ob of (otherPlayers[hwid].buildings || [])) {
-      const obs = BUILDINGS[ob.type].size * TILE;
+  for (const hwid in otherPlayerEls) {
+    const entry = otherPlayerEls[hwid];
+    if (!entry || !entry.buildings) continue;
+    for (const id in entry.buildings) {
+      const ob = entry.buildings[id];
+      if (!ob || typeof ob.x !== 'number') continue;
+      const def = BUILDINGS[ob.type];
+      if (!def) continue;
+      const obs = def.size * TILE;
       if (w.x >= ob.x && w.x <= ob.x + obs && w.y >= ob.y && w.y <= ob.y + obs) {
         attackBuilding(hwid, ob);
         return;
@@ -2530,7 +2502,7 @@ function tryAttackOnBuilding(b, isEnemy, ownerName) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
   const dmg = Math.max(1, Math.floor(state.soldiers * 0.5));
   b.hp = Math.max(0, (b.hp || 100) - dmg);
-  notify(`Attacked ${ownerName}'s ${BUILDINGS[b.type].name} for ${dmg} damage!`, false, false, false);
+  notify(`Attacked ${ownerName}'s ${BUILDINGS[b.type].name} for ${dmg} damage!`, false, false, false, true);
   if (b.el) {
     b.el.classList.add('under-attack');
     setTimeout(() => b.el.classList.remove('under-attack'), 1500);
@@ -2546,7 +2518,7 @@ function attackBuilding(hwid, ob) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
   const dmg = Math.max(1, Math.floor(state.soldiers * 0.5));
   ob.hp = Math.max(0, (ob.hp || 100) - dmg);
-  notify(`Attacked ${op.username}'s ${BUILDINGS[ob.type].name} for ${dmg} damage!`, false, false, false);
+  notify(`Attacked ${op.username}'s ${BUILDINGS[ob.type].name} for ${dmg} damage!`, false, false, false, true);
   if (ob.el) {
     ob.el.classList.add('under-attack');
     setTimeout(() => ob.el.classList.remove('under-attack'), 1500);
@@ -2558,18 +2530,16 @@ function attackBuilding(hwid, ob) {
 }
 
 /* =========================================================
-   SOLDIER SPAWNING & MOVEMENT
+   SOLDIERS
    ========================================================= */
 function trySpawnSoldiers() {
   const now = Date.now();
-  if (now - state.lastSoldierSpawn < 8000) return; // every 8s
+  if (now - state.lastSoldierSpawn < 8000) return;
   state.lastSoldierSpawn = now;
-  // Find military buildings that spawn soldiers
   state.buildings.forEach(b => {
     if (b.construction) return;
     const def = BUILDINGS[b.type];
     if (!def.spawnsSoldiers) return;
-    // Spawn 1 soldier per military building
     if (activeSoldiers.filter(s => s.owner === 'self').length < state.soldiers) {
       spawnSoldier(b);
     }
@@ -2587,7 +2557,6 @@ function spawnSoldier(b) {
   el.style.top = sy + 'px';
   el.style.zIndex = Math.floor(sy) + 22;
   worldEl.appendChild(el);
-  // Pick a random patrol target nearby
   const angle = Math.random() * Math.PI * 2;
   const dist = 300 + Math.random() * 500;
   const tx = sx + Math.cos(angle) * dist;
@@ -2604,7 +2573,6 @@ function updateSoldiers(dt) {
     if (dist < 8) {
       s.patrolTimer -= dt;
       if (s.patrolTimer <= 0) {
-        // new target
         const angle = Math.random() * Math.PI * 2;
         const dist = 250 + Math.random() * 400;
         s.tx = s.x + Math.cos(angle) * dist;
@@ -2668,9 +2636,6 @@ function formatPlaytimeShort(s) {
   return `${m}m`;
 }
 
-/* =========================================================
-   BUILDING LIST
-   ========================================================= */
 const buildingList = document.getElementById('buildingList');
 function renderBuildingList() {
   buildingList.innerHTML = '';
@@ -2707,9 +2672,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   };
 });
 
-/* =========================================================
-   TOOLTIP
-   ========================================================= */
 function showTooltipForBuilding(b, ev) {
   const def = BUILDINGS[b.type];
   let extra = '';
@@ -2734,9 +2696,6 @@ function showTooltipForEnemy(b, ownerName, ev) {
   tooltip.style.top = (ev.clientY + 16) + 'px';
 }
 
-/* =========================================================
-   FLOAT / NOTIFY
-   ========================================================= */
 function showFloat(clientX, clientY, text, color) {
   const rect = mapEl.getBoundingClientRect();
   const el = document.createElement('div');
@@ -2756,18 +2715,12 @@ function notify(msg, bad, good, premium, attack) {
   setTimeout(() => n.remove(), 3000);
 }
 
-/* =========================================================
-   PREMIUM MODAL
-   ========================================================= */
 const premiumModal = document.getElementById('premiumModal');
 document.getElementById('premiumCancel').onclick = () => premiumModal.classList.remove('show');
 document.getElementById('premiumBuy').onclick = () => notify("Premium not available yet!", false, false, true);
 premiumModal.addEventListener('click', (e) => { if (e.target === premiumModal) premiumModal.classList.remove('show'); });
 function closePremiumModal() { premiumModal.classList.remove('show'); }
 
-/* =========================================================
-   WORKERS
-   ========================================================= */
 const workers = [];
 function spawnWorker() {
   const el = document.createElement('div');
@@ -2815,14 +2768,10 @@ function updateWorkers(dt) {
   });
 }
 
-/* =========================================================
-   MINIMAP
-   ========================================================= */
 const mmInner = document.getElementById('mmInner');
 const MM_SCALE = 200 / WORLD_SIZE;
 function updateMinimapBuildings() {
   [...mmInner.querySelectorAll('.mm-dot')].forEach(d => d.remove());
-  // Own buildings
   state.buildings.forEach(b => {
     const dot = document.createElement('div');
     dot.className = 'mm-dot';
@@ -2838,10 +2787,10 @@ function updateMinimapBuildings() {
     if (b.type === 'main') dot.classList.add('self');
     mmInner.appendChild(dot);
   });
-  // Other players
   for (const hwid in otherPlayers) {
     const op = otherPlayers[hwid];
     (op.buildings || []).forEach(b => {
+      if (typeof b.x !== 'number') return;
       const dot = document.createElement('div');
       dot.className = 'mm-dot';
       dot.style.width = '3px'; dot.style.height = '3px';
@@ -2883,9 +2832,6 @@ mmInner.addEventListener('click', (e) => {
   applyTransform();
 });
 
-/* =========================================================
-   SYNC STATUS
-   ========================================================= */
 function setSyncStatus(status) {
   const badge = document.getElementById('syncBadge');
   const text = document.getElementById('syncText');
@@ -2895,9 +2841,6 @@ function setSyncStatus(status) {
   else { text.textContent = "Synced"; }
 }
 
-/* =========================================================
-   SAVE / LOAD
-   ========================================================= */
 function serializeState() {
   return {
     money: Math.floor(state.money), gold: Math.floor(state.gold),
@@ -2935,9 +2878,7 @@ async function saveGame(silent) {
     data.username = currentUser.username;
     data.hwid = HWID;
     data.lastSeen = Date.now();
-    // Save to my own slot
     await set(ref(firebase.db, 'saves/' + HWID), data);
-    // Also update world/players node for other players to see
     await set(ref(firebase.db, 'world/' + HWID), {
       username: currentUser.username,
       baseX: state.baseX,
@@ -2959,6 +2900,24 @@ async function saveGame(silent) {
     setSyncStatus('error');
     if (!silent) notify("Save failed!", true);
   }
+}
+async function updateWorldNode() {
+  if (!currentUser || !firebase) return;
+  try {
+    const { ref, set } = firebase;
+    await set(ref(firebase.db, 'world/' + HWID), {
+      username: currentUser.username,
+      baseX: state.baseX,
+      baseY: state.baseY,
+      level: state.level,
+      buildings: state.buildings.map(b => ({
+        id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
+        hp: b.hp || 100, maxHp: b.maxHp || 100
+      })),
+      lastSeen: Date.now(),
+      online: true
+    });
+  } catch(e) {}
 }
 async function loadSave() {
   if (!currentUser || !firebase) return false;
@@ -3000,9 +2959,6 @@ async function loadSave() {
   }
 }
 
-/* =========================================================
-   MULTIPLAYER — Listen to world node
-   ========================================================= */
 let worldListener = null;
 function startWorldListener() {
   const { ref, onValue } = firebase;
@@ -3010,17 +2966,17 @@ function startWorldListener() {
   worldListener = onValue(worldRef, (snap) => {
     const data = snap.val() || {};
     const now = Date.now();
-    const ONLINE_THRESHOLD = 30000;
+    const ONLINE_THRESHOLD = 60000;
     const seen = new Set();
     for (const hwid in data) {
       if (hwid === HWID) continue;
       const p = data[hwid];
       if (!p || !p.username) continue;
       if (now - (p.lastSeen || 0) > ONLINE_THRESHOLD) continue;
+      if (typeof p.baseX !== 'number' || typeof p.baseY !== 'number') continue;
       seen.add(hwid);
       updateOtherPlayer(hwid, p);
     }
-    // Remove offline
     for (const hwid in otherPlayerEls) {
       if (!seen.has(hwid)) removeOtherPlayer(hwid);
     }
@@ -3039,7 +2995,6 @@ function updateOtherPlayer(hwid, p) {
   const newBuildings = p.buildings || [];
   const newIds = new Set(newBuildings.map(b => b.id));
 
-  // Remove old
   for (const id in entry.buildings) {
     if (!newIds.has(parseInt(id))) {
       const el = entry.buildings[id];
@@ -3047,24 +3002,28 @@ function updateOtherPlayer(hwid, p) {
       delete entry.buildings[id];
     }
   }
-  // Add/update
   newBuildings.forEach(b => {
+    if (typeof b.x !== 'number') return;
     if (entry.buildings[b.id]) {
       const ob = entry.buildings[b.id];
       if (ob.level !== b.level) {
         const def = BUILDINGS[b.type];
+        if (!def) return;
         const size = def.size * TILE;
         ob.el.innerHTML = buildingSVG(b.type, b.level, size, size);
-        // re-add owner label if main
         if (b.type === 'main') {
           const lbl = document.createElement('div');
           lbl.className = 'owner-label enemy';
           lbl.innerHTML = `${escapeHtml(p.username)} <span class="lvl">Lv.${b.level}</span>`;
           ob.el.appendChild(lbl);
         }
+        ob.level = b.level;
       }
       ob.hp = b.hp;
+      ob.x = b.x; ob.y = b.y;
     } else {
+      const def = BUILDINGS[b.type];
+      if (!def) return;
       const nb = {
         id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
         hp: b.hp, maxHp: b.maxHp
@@ -3140,9 +3099,6 @@ function stringToColor(str) {
   return colors[h % colors.length];
 }
 
-/* =========================================================
-   CHAT
-   ========================================================= */
 let chatListener = null;
 function startChatListener() {
   const { ref, onValue, query, limitToLast } = firebase;
@@ -3202,7 +3158,7 @@ async function startGame() {
 
   buildTerrain();
 
-  // First: fetch other players to know their positions (for spawn distance)
+  // 1) ALLE anderen Spieler aus Firebase laden BEVOR wir spawnen
   if (firebase) {
     try {
       const { ref, get } = firebase;
@@ -3213,28 +3169,53 @@ async function startGame() {
         if (hwid === HWID) continue;
         const p = data[hwid];
         if (!p || !p.username) continue;
-        if (now - (p.lastSeen || 0) > 30000) continue;
+        if (now - (p.lastSeen || 0) > 60000) continue;
+        if (typeof p.baseX !== 'number' || typeof p.baseY !== 'number') continue;
         otherPlayers[hwid] = {
           username: p.username,
           baseX: p.baseX,
           baseY: p.baseY,
-          level: p.level,
+          level: p.level || 1,
           buildings: p.buildings || [],
           lastSeen: p.lastSeen
         };
+        console.log('Loaded other player:', p.username, 'at', p.baseX, p.baseY);
       }
-    } catch(e) {}
+      console.log('Total other players loaded:', Object.keys(otherPlayers).length);
+    } catch(e) { console.warn('Could not load other players', e); }
   }
 
+  // 2) Save laden
   const loaded = await loadSave();
   console.log('Save loaded?', loaded);
 
   if (!loaded) {
-    console.log('Starting new game — picking base position');
+    console.log('Starting new game');
+
+    // 3) Base-Position wählen MIT Rücksicht auf andere
     const pos = pickBasePosition();
     state.baseX = pos.x;
     state.baseY = pos.y;
-    // Place main building at base position
+    console.log('My base position:', state.baseX, state.baseY);
+
+    // 4) SOFORT in Firebase reservieren
+    if (firebase) {
+      try {
+        const { ref, set } = firebase;
+        await set(ref(firebase.db, 'world/' + HWID), {
+          username: currentUser.username,
+          baseX: state.baseX,
+          baseY: state.baseY,
+          level: 1,
+          buildings: [],
+          lastSeen: Date.now(),
+          online: true
+        });
+        console.log('Base position reserved');
+      } catch(e) { console.warn('Could not reserve position', e); }
+    }
+
+    // 5) Startgebäude erstellen
     const mainSize = BUILDINGS.main.size * TILE;
     const mainB = { id: state.nextId++, type: 'main', x: pos.x - mainSize/2, y: pos.y - mainSize/2, level: 1, hp: 200, maxHp: 200 };
     state.buildings.push(mainB); createBuildingEl(mainB, false, currentUser.username);
@@ -3242,13 +3223,14 @@ async function startGame() {
     state.buildings.push(house); createBuildingEl(house, false, currentUser.username);
     const farm = { id: state.nextId++, type: 'farm', x: pos.x - 5*TILE, y: pos.y - TILE, level: 1, hp: 100, maxHp: 100 };
     state.buildings.push(farm); createBuildingEl(farm, false, currentUser.username);
-    // Save immediately so others can see us
-    setTimeout(() => saveGame(true), 500);
+
+    // 6) Sofort speichern
+    setTimeout(() => saveGame(true), 300);
   } else {
     applyOfflineProgress();
   }
 
-  // If baseX not set (old save), derive from main building
+  // Base-X/Y Fallback
   if (!state.baseX || !state.baseY) {
     const mainB = state.buildings.find(b => b.type === 'main');
     if (mainB) {
@@ -3267,27 +3249,23 @@ async function startGame() {
   updateMinimapBuildings();
   centerCamera();
 
-  // Presence
   if (firebase) {
     try {
       const { ref, onDisconnect, set, serverTimestamp } = firebase;
       const presenceRef = ref(firebase.db, 'presence/' + HWID);
       await set(presenceRef, { username: currentUser.username, online: true, lastSeen: serverTimestamp() });
       onDisconnect(presenceRef).set({ username: currentUser.username, online: false, lastSeen: serverTimestamp() });
+      onDisconnect(ref(firebase.db, 'world/' + HWID)).set(null);
     } catch(e) {}
     startWorldListener();
     startChatListener();
-    // Ensure our world entry is removed when we leave
-    try {
-      const { ref, onDisconnect, set } = firebase;
-      onDisconnect(ref(firebase.db, 'world/' + HWID)).set(null);
-    } catch(e) {}
   }
 
   let last = performance.now();
   let prodAccum = 0;
   let saveAccum = 0;
   let soldierAccum = 0;
+  let worldAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -3309,6 +3287,11 @@ async function startGame() {
     if (saveAccum >= 15) {
       saveGame(true);
       saveAccum = 0;
+    }
+    worldAccum += dt;
+    if (worldAccum >= 3) {
+      updateWorldNode();
+      worldAccum = 0;
     }
     if (state.selected && state.selected.construction) showDetailPanel(state.selected);
     requestAnimationFrame(loop);
@@ -3339,9 +3322,6 @@ function centerCamera() {
   applyTransform();
 }
 
-/* =========================================================
-   OFFLINE PROGRESS
-   ========================================================= */
 function applyOfflineProgress() {
   const now = Date.now();
   const last = state.lastTick || now;
@@ -3375,14 +3355,15 @@ function applyOfflineProgress() {
 }
 document.getElementById('obClose').onclick = () => document.getElementById('offlineBanner').classList.remove('show');
 
-/* =========================================================
-   BUTTONS
-   ========================================================= */
 document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6, state.zoom * 1.2); applyTransform(); };
 document.getElementById('btnZoomOut').onclick = () => { state.zoom = Math.max(0.3, state.zoom / 1.2); applyTransform(); };
 document.getElementById('btnCenter').onclick = centerCamera;
 document.getElementById('btnSellMode').onclick = toggleSellMode;
 document.getElementById('btnAttackMode').onclick = toggleAttackMode;
+document.getElementById('btnOnlineList').onclick = () => {
+  document.getElementById('onlineList').classList.toggle('show');
+  updateOnlineList();
+};
 document.getElementById('abCancel').onclick = cancelAttack;
 
 document.getElementById('btnSpeed').onclick = () => {
@@ -3404,7 +3385,6 @@ document.getElementById('btnLogout').onclick = () => {
 };
 document.getElementById('pbCancel').onclick = () => { cancelPlacing(); notify("Placement cancelled"); };
 
-/* Chat buttons */
 document.getElementById('btnChat').onclick = () => {
   const p = document.getElementById('chatPanel');
   p.classList.toggle('show');
@@ -3419,9 +3399,6 @@ window.addEventListener('beforeunload', () => {
   saveGame(true);
 });
 
-/* =========================================================
-   INIT
-   ========================================================= */
 loginBtn.disabled = true;
 </script>
 </body>
