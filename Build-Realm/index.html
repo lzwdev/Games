@@ -1009,7 +1009,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v11 (Level, Bevölkerung, Bewohner, Produktion sichtbar)
+   BUILD A REALM — v12 (Playtime fix)
    ========================================================= */
 
 const ICONS = {
@@ -1468,18 +1468,6 @@ const BUILDINGS = {
   garrison: { name: "Garrison", icon: "garrison", category: "military", size: 2, cost: 2800, maxLevel: 8, desc: "Elite troops spawn here.", baseCost: 2800, costMult: 2.25, produces: { gold: 4 }, needs: { workers: 8 }, soldierPerLevel: [5, 11, 19, 29, 42, 58, 77, 100], unlockLevel: 5, buildTime: 24, spawnsSoldiers: true, defenseBonus: [3, 6, 11, 18, 28, 40, 55, 75] }
 };
 
-const RESOURCE_META = {
-  money: { name: "Money", desc: "Main currency." },
-  gold: { name: "Gold", desc: "Precious metal." },
-  food: { name: "Food", desc: "Feeds your population." },
-  wood: { name: "Wood", desc: "Basic building material." },
-  stone: { name: "Stone", desc: "Solid building material." },
-  pop: { name: "Population", desc: "Residents = workers." },
-  worker: { name: "Workers", desc: "Assigned to buildings." },
-  soldier: { name: "Soldiers", desc: "Your military force." },
-  star: { name: "Realm Level", desc: "Overall progress." }
-};
-
 const worldEl = document.getElementById('world');
 function buildTerrain() {
   const colors = ['#b8d99a', '#a8cd88', '#c6e0a8', '#9fc47f', '#b0d490'];
@@ -1668,6 +1656,15 @@ function formatTime(sec) {
   if (m < 60) return m + 'm ' + s + 's';
   return Math.floor(m/60) + 'h ' + (m % 60) + 'm';
 }
+function formatPlaytime(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
 function getSellValue(b) {
   let sum = getCost(b.type, 0);
   for (let i = 1; i < b.level; i++) sum += getCost(b.type, i);
@@ -1740,7 +1737,6 @@ function productionTick(dt) {
   const tax = Math.floor((state.population * 1.4 + state.buildings.length * 0.9) * dt * (state.happiness/100));
   state.money += tax;
 
-  // Bevölkerungswachstum: braucht Wohnraum + genug Essen + Zufriedenheit
   if (state.population < state.populationCap && state.food > state.population * 3) {
     const growthChance = 0.35 * dt * (state.happiness / 100);
     if (Math.random() < growthChance) {
@@ -1760,7 +1756,6 @@ function productionTick(dt) {
     }
   }
 
-  // Sichtbare Produktionszahlen alle paar Sekunden
   if (Math.random() < 0.15 * dt) {
     state.buildings.forEach(b => {
       if (b.construction) return;
@@ -2468,6 +2463,7 @@ function updateUI() {
   statsBody.innerHTML = `
     <div class="sp-row"><span>Level</span><span class="v">${state.level}</span></div>
     <div class="sp-row"><span>XP</span><span class="v">${Math.floor(state.xp)} / ${state.xpNeeded}</span></div>
+    <div class="sp-row"><span>Playtime</span><span class="v">${formatPlaytime(state.playtimeSeconds || 0)}</span></div>
     <div class="sp-row"><span>Buildings</span><span class="v">${state.buildings.length}</span></div>
     <div class="sp-row"><span>Under construction</span><span class="v ${constructing >= MAX_CONCURRENT_BUILDS ? 'bad' : ''}">${constructing}/${MAX_CONCURRENT_BUILDS}</span></div>
     <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
@@ -2630,9 +2626,9 @@ async function saveGame(silent) {
       workers: state.workers, workersNeeded: state.workersNeeded,
       soldiers: state.soldiers, soldierCap: state.soldierCap,
       happiness: Math.round(state.happiness), level: state.level,
-      xp: state.xp, xpNeeded: state.xpNeeded,
+      xp: Math.floor(state.xp), xpNeeded: state.xpNeeded,
       nextId: state.nextId, lastTick: Date.now(),
-      playtimeSeconds: state.playtimeSeconds || 0,
+      playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
       baseX: state.baseX, baseY: state.baseY,
       username: currentUser.username, hwid: HWID,
       buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp || 100, maxHp: b.maxHp || 100 }))
@@ -2640,7 +2636,9 @@ async function saveGame(silent) {
     await set(ref(firebase.db, 'saves/' + HWID), data);
     await set(ref(firebase.db, 'world/' + HWID), {
       username: currentUser.username, baseX: state.baseX, baseY: state.baseY,
-      level: state.level, buildings: data.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, hp: b.hp })),
+      level: state.level,
+      playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
+      buildings: data.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, hp: b.hp })),
       lastSeen: Date.now(), online: true
     });
     document.getElementById('syncBadge').classList.remove('saving');
@@ -2658,7 +2656,8 @@ async function loadSave() {
     const list = Array.isArray(sb) ? sb : Object.values(sb || {});
     const valid = list.filter(b => b && b.type && typeof b.x === 'number');
     if (valid.length === 0) return false;
-    ['money','gold','food','wood','stone','population','populationCap','workers','workersNeeded','soldiers','soldierCap','happiness','level','xp','xpNeeded','nextId','lastTick','playtimeSeconds','baseX','baseY'].forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
+    ['money','gold','food','wood','stone','population','populationCap','workers','workersNeeded','soldiers','soldierCap','happiness','level','xp','xpNeeded','nextId','lastTick','baseX','baseY'].forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
+    state.playtimeSeconds = Number(data.playtimeSeconds) || 0;
     state.buildings = [];
     clearVillagers();
     valid.forEach(b => {
@@ -2782,7 +2781,7 @@ async function startGame() {
     if (firebase) {
       try {
         const { ref, set } = firebase;
-        await set(ref(firebase.db, 'world/' + HWID), { username: currentUser.username, baseX: state.baseX, baseY: state.baseY, level: 1, buildings: [], lastSeen: Date.now(), online: true });
+        await set(ref(firebase.db, 'world/' + HWID), { username: currentUser.username, baseX: state.baseX, baseY: state.baseY, level: 1, playtimeSeconds: 0, buildings: [], lastSeen: Date.now(), online: true });
       } catch(e) {}
     }
     const ms = BUILDINGS.main.size * TILE;
@@ -2835,10 +2834,11 @@ async function startGame() {
   }
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0;
+  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0, uiAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
+    state.playtimeSeconds = (state.playtimeSeconds || 0) + dt;
     updateSoldiers(dt);
     updateVillagers(dt);
     constructionTick();
@@ -2855,6 +2855,7 @@ async function startGame() {
         set(ref(firebase.db, 'world/' + HWID), {
           username: currentUser.username, baseX: state.baseX, baseY: state.baseY,
           level: state.level,
+          playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
           buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, hp: b.hp })),
           lastSeen: Date.now(), online: true
         }).catch(()=>{});
