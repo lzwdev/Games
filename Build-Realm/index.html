@@ -1009,7 +1009,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v12 (Playtime fix)
+   BUILD A REALM — v13 (Online List fix)
    ========================================================= */
 
 const ICONS = {
@@ -2377,6 +2377,51 @@ function clearVillagers() {
   villagerUnits = [];
 }
 
+/* ONLINE LIST */
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
+  return h;
+}
+
+function renderOnlineList() {
+  const body = document.getElementById('olBody');
+  const count = document.getElementById('olCount');
+  if (!body) return;
+  const entries = Object.entries(otherPlayers);
+  if (count) count.textContent = entries.length;
+  if (entries.length === 0) {
+    body.innerHTML = '<div class="ef-item info">No other rulers online right now.</div>';
+    return;
+  }
+  const colors = ['#2f6fd0','#c62828','#2e7d32','#8d6e63','#7c4dbb','#e65100','#00838f','#5d4037'];
+  body.innerHTML = entries.map(([hwid, p]) => {
+    const initial = (p.username || '?').charAt(0).toUpperCase();
+    const color = colors[Math.abs(hashCode(hwid)) % colors.length];
+    return `<div class="ol-row" data-hwid="${hwid}">
+      <div class="ol-avatar" style="background:${color}">${escapeHtml(initial)}</div>
+      <div class="ol-info">
+        <div class="ol-name">${escapeHtml(p.username || 'Unknown')}</div>
+        <div class="ol-sub">Base at ${Math.round(p.baseX||0)}, ${Math.round(p.baseY||0)}</div>
+      </div>
+      <div class="ol-lvl">Lv.${p.level || 1}</div>
+    </div>`;
+  }).join('');
+  body.querySelectorAll('.ol-row').forEach(row => {
+    row.onclick = () => {
+      const hwid = row.dataset.hwid;
+      const p = otherPlayers[hwid];
+      if (!p) return;
+      const mapRect = mapEl.getBoundingClientRect();
+      state.camX = mapRect.width / 2 - p.baseX * state.zoom;
+      state.camY = mapRect.height / 2 - p.baseY * state.zoom;
+      applyTransform();
+      notify(`Centered on ${p.username}`);
+      document.getElementById('onlineList').classList.remove('show');
+    };
+  });
+}
+
 /* EVENTS */
 function publishEvent(type, text, targetHwid) {
   if (!firebase || !currentUser) return;
@@ -2688,6 +2733,7 @@ function startWorldListener() {
     }
     for (const hwid in otherPlayerEls) if (!seen.has(hwid)) removeOtherPlayer(hwid);
     document.getElementById('onlineCount').textContent = `${Object.keys(otherPlayers).length + 1} online`;
+    renderOnlineList();
   });
 }
 function updateOtherPlayer(hwid, p) {
@@ -2718,6 +2764,7 @@ function updateOtherPlayer(hwid, p) {
     }
   });
   otherPlayers[hwid] = { username: p.username, baseX: p.baseX, baseY: p.baseY, level: p.level, buildings: newBuildings, lastSeen: p.lastSeen };
+  renderOnlineList();
 }
 function removeOtherPlayer(hwid) {
   const entry = otherPlayerEls[hwid];
@@ -2727,6 +2774,7 @@ function removeOtherPlayer(hwid) {
   delete otherPlayerEls[hwid];
   delete otherPlayers[hwid];
   updateMinimapBuildings();
+  renderOnlineList();
 }
 function startChatListener() {
   const { ref, onValue, query, limitToLast } = firebase;
@@ -2808,6 +2856,7 @@ async function startGame() {
   updateUI();
   renderBuildingList();
   updateMinimapBuildings();
+  renderOnlineList();
   centerCamera();
 
   if (firebase) {
@@ -2834,7 +2883,7 @@ async function startGame() {
   }
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0, uiAccum = 0;
+  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -2881,7 +2930,9 @@ document.getElementById('btnCenter').onclick = centerCamera;
 document.getElementById('btnSellMode').onclick = toggleSellMode;
 document.getElementById('btnAttackMode').onclick = toggleAttackMode;
 document.getElementById('btnOnlineList').onclick = () => {
-  document.getElementById('onlineList').classList.toggle('show');
+  const list = document.getElementById('onlineList');
+  list.classList.toggle('show');
+  if (list.classList.contains('show')) renderOnlineList();
 };
 document.getElementById('abCancel').onclick = cancelAttack;
 document.getElementById('btnSpeed').onclick = () => {
