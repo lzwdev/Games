@@ -63,6 +63,28 @@
   .login-existing { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e0e8f4; font-size: 12px; color: #6b7d99; text-align: center; line-height: 1.6; }
   .login-existing .link { color: #2f6fd0; font-weight: 800; cursor: pointer; text-decoration: underline; }
 
+  .google-btn {
+    width: 100%; padding: 12px; background: #fff;
+    border: 1.5px solid #d3dded; border-radius: 10px;
+    font-size: 14px; font-weight: 700; color: #26344e;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 10px; transition: all 0.15s;
+    font-family: inherit; margin-bottom: 14px;
+  }
+  .google-btn:hover { background: #f7faff; border-color: #a8c8f0; box-shadow: 0 4px 12px rgba(40,70,120,0.12); }
+  .google-btn:disabled { opacity: 0.5; cursor: wait; }
+  .login-divider {
+    text-align: center; font-size: 11px; color: #8fa3c8;
+    margin: 14px 0; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; position: relative;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; position: absolute; top: 50%; width: 35%; height: 1px;
+    background: #e0e8f4;
+  }
+  .login-divider::before { left: 0; }
+  .login-divider::after { right: 0; }
+
   /* ============ LOADER ============ */
   #loader {
     position: fixed; inset: 0; z-index: 9999;
@@ -233,16 +255,6 @@
   .res:hover { background: #e8f0fc; border-color: #bcd0ec; }
   .res svg { width: 15px; height: 15px; flex-shrink: 0; }
   .res .val { color: #1e355e; }
-  .res-tooltip { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(-4px); background: #1e355e; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 600; white-space: nowrap; line-height: 1.4; box-shadow: 0 6px 20px rgba(30,53,94,0.3); opacity: 0; pointer-events: none; transition: all 0.18s ease; z-index: 100; text-align: left; max-width: 240px; }
-  .res-tooltip::before { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-bottom-color: #1e355e; }
-  .res-tooltip .tt-title { font-weight: 800; color: #ffd54f; margin-bottom: 2px; font-size: 12px; }
-  .res:hover .res-tooltip { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .res:first-child .res-tooltip { left: 0; transform: translateX(0) translateY(-4px); }
-  .res:first-child:hover .res-tooltip { transform: translateX(0) translateY(0); }
-  .res:first-child .res-tooltip::before { left: 20px; }
-  .res:last-child .res-tooltip { left: auto; right: 0; transform: translateX(0) translateY(-4px); }
-  .res:last-child:hover .res-tooltip { transform: translateX(0) translateY(0); }
-  .res:last-child .res-tooltip::before { left: auto; right: 20px; }
 
   #rightPanel { position: absolute; top: 58px; right: 0; bottom: 0; width: 330px; background: rgba(255,255,255,0.96); backdrop-filter: blur(14px); border-left: 1px solid #d3dded; z-index: 40; display: flex; flex-direction: column; box-shadow: -4px 0 20px rgba(40,70,120,0.08); }
   .panel-head { padding: 12px 16px; font-size: 11.5px; letter-spacing: 1.8px; text-transform: uppercase; color: #2f6fd0; font-weight: 800; border-bottom: 1px solid #e0e8f4; display: flex; justify-content: space-between; align-items: center; }
@@ -721,7 +733,14 @@
       </svg>
       Welcome, Ruler
     </h2>
-    <div class="hint-text">Choose a nickname to start your realm. Your HWID is saved so your progress is bound to this device.</div>
+    <div class="hint-text">Sign in with Google or pick a nickname. Your progress is bound to this account/device.</div>
+
+    <button class="google-btn" id="googleLoginBtn">
+      <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.3 5.3C41 35.5 44 30.2 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="login-divider"><span>or use a nickname</span></div>
+
     <div class="login-field">
       <label>Nickname</label>
       <input type="text" class="login-input" id="usernameInput" placeholder="e.g. KingLukas" maxlength="20" autocomplete="off" spellcheck="false">
@@ -1024,6 +1043,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, get, set, update, onValue, onDisconnect, serverTimestamp, remove, push, query, limitToLast }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCy7BHQ04daaUViCJZ6q4MQjPgI_lztLnk",
@@ -1038,14 +1059,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 window.__BR_db = db;
+window.__BR_auth = auth;
+window.__BR_authFns = { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut };
 window.__BR_fns = { ref, get, set, update, onValue, onDisconnect, serverTimestamp, remove, push, query, limitToLast };
 window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
 <script>
 /* =========================================================
-   BUILD A REALM — v15 (Combat: Soldaten, HP-Bars, Damage, Angriffe)
+   BUILD A REALM — v16 (Google Login, Live Multiplayer Visuals, Combat)
    ========================================================= */
 
 const ICONS = {
@@ -1100,12 +1124,12 @@ const tips = [
   "Tip: Build Barracks or Fortress to spawn soldiers",
   "Tip: Soldiers respawn every 20 seconds",
   "Tip: Repair damaged buildings with Wood + Stone",
-  "Tip: Destroy the enemy Main Building to steal 90% of their money!",
+  "Tip: Destroy the enemy Main Building to steal 50% of their money!",
   "Tip: Buildings become visibly damaged at low HP",
   "Tip: Attack mode requires soldiers",
-  "Tip: Speed Multiplier is a Premium feature",
+  "Tip: Sign in with Google to save your progress across devices",
   "Tip: Houses increase your population cap",
-  "Tip: Farms and bakeries feed your villagers"
+  "Tip: You can watch other players' soldiers move live"
 ];
 const statuses = [
   "Initializing engine…","Loading terrain textures…","Connecting to realm server…",
@@ -1157,7 +1181,9 @@ function generateHWID() {
   return raw.match(/.{1,8}/g).join('-').slice(0, 39);
 }
 
-const HWID = generateHWID();
+const LOCAL_HWID = generateHWID();
+let ACTIVE_HWID = LOCAL_HWID;   // mutable: set to google UID after Google login
+
 let currentUser = null;
 let firebase = null;
 let banCheckInterval = null;
@@ -1166,11 +1192,12 @@ let gameStarted = false;
 
 const usernameInput = document.getElementById('usernameInput');
 const loginBtn = document.getElementById('loginBtn');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
 const loginError = document.getElementById('loginError');
 const loginStatus = document.getElementById('loginStatus');
 const loginExisting = document.getElementById('loginExisting');
 const loginScreen = document.getElementById('loginScreen');
-document.getElementById('hwidText').textContent = HWID;
+document.getElementById('hwidText').textContent = LOCAL_HWID;
 
 let firebaseReady = false;
 function whenFirebaseReady(cb) {
@@ -1201,17 +1228,99 @@ usernameInput.addEventListener('input', () => {
 loginBtn.onclick = () => doLogin();
 usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !loginBtn.disabled) doLogin(); });
 
+/* Google Login */
+googleLoginBtn.onclick = async () => {
+  if (!window.__BR_auth) { loginError.textContent = "Auth not ready"; return; }
+  googleLoginBtn.disabled = true;
+  loginStatus.textContent = "Opening Google sign-in…";
+  loginStatus.className = "login-status";
+  loginError.textContent = '';
+  try {
+    const { GoogleAuthProvider, signInWithPopup } = window.__BR_authFns;
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await signInWithPopup(window.__BR_auth, provider);
+    const user = result.user;
+    const email = user.email || '';
+    let displayName = (user.displayName || email.split('@')[0] || 'Player').replace(/[^A-Za-z0-9_\-äöüÄÖÜß ]/g, '').trim().slice(0, 20);
+    if (displayName.length < 3) displayName = 'Player' + Math.floor(Math.random()*1000);
+    const googleHwid = 'GOOGLE-' + user.uid.slice(0, 32);
+    await loginWithIdentity(displayName, googleHwid, email);
+  } catch(e) {
+    loginError.textContent = "Google sign-in failed: " + (e.message || e);
+    googleLoginBtn.disabled = false;
+    loginStatus.textContent = "";
+  }
+};
+
+async function loginWithIdentity(name, identityHwid, email) {
+  loginBtn.disabled = true;
+  googleLoginBtn.disabled = true;
+  loginStatus.textContent = "Checking account…";
+  loginStatus.className = "login-status";
+  loginError.textContent = '';
+  try {
+    const { ref, get, set, update } = firebase;
+    // Ban check on both local HWID and google HWID
+    for (const h of [identityHwid, LOCAL_HWID]) {
+      const banSnap = await get(ref(firebase.db, 'bans/' + h));
+      if (banSnap.exists()) {
+        const ban = banSnap.val();
+        if (ban && ban.deleted === true) { showDeletedPopup(); return; }
+        if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
+          showBanPopup({ banner: ban.banner || 'Admin', reason: ban.reason || 'No reason provided.', bannedUntil: ban.bannedUntil });
+          return;
+        }
+      }
+    }
+    // Username conflict
+    let finalName = name;
+    let key = usernameKey(finalName);
+    let nameSnap = await get(ref(firebase.db, 'usernames/' + key));
+    if (nameSnap.exists() && nameSnap.val() !== identityHwid) {
+      finalName = name + Math.floor(Math.random() * 9999);
+      key = usernameKey(finalName);
+    }
+    await set(ref(firebase.db, 'usernames/' + key), identityHwid);
+    await set(ref(firebase.db, 'users_by_hwid/' + identityHwid), {
+      username: finalName, hwid: identityHwid, email: email || null,
+      google: identityHwid.startsWith('GOOGLE-'), createdAt: Date.now(), lastSeen: Date.now()
+    });
+    ACTIVE_HWID = identityHwid;
+    currentUser = { username: finalName, hwid: identityHwid };
+    loginStatus.textContent = "Success!";
+    loginStatus.className = "login-status ok";
+    setTimeout(() => beginGameTransition(), 400);
+  } catch(e) {
+    loginError.textContent = "Error: " + (e.message || e);
+    googleLoginBtn.disabled = false;
+    loginBtn.disabled = false;
+  }
+}
+
 async function checkExistingUser() {
   try {
     const { ref, get } = firebase;
-    const snap = await get(ref(firebase.db, 'users_by_hwid/' + HWID));
+    // Prefer Google-linked account if there's an active Auth session
+    const auth = window.__BR_auth;
+    if (auth && auth.currentUser) {
+      const googleHwid = 'GOOGLE-' + auth.currentUser.uid.slice(0, 32);
+      const snap = await get(ref(firebase.db, 'users_by_hwid/' + googleHwid));
+      if (snap.exists()) {
+        const data = snap.val();
+        currentUser = { username: data.username, hwid: googleHwid };
+        loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>! (Google)<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
+        document.getElementById('continueLink').onclick = async () => { await handleAccountStatusCheck(); };
+        return;
+      }
+    }
+    // Fall back to local HWID
+    const snap = await get(ref(firebase.db, 'users_by_hwid/' + LOCAL_HWID));
     if (snap.exists()) {
       const data = snap.val();
-      currentUser = { username: data.username, hwid: HWID };
+      currentUser = { username: data.username, hwid: LOCAL_HWID };
       loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>!<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
-      document.getElementById('continueLink').onclick = async () => {
-        await handleAccountStatusCheck();
-      };
+      document.getElementById('continueLink').onclick = async () => { await handleAccountStatusCheck(); };
       usernameInput.value = data.username;
       usernameInput.dispatchEvent(new Event('input'));
     }
@@ -1226,36 +1335,23 @@ async function checkAccountStatus() {
   if (!firebase) return { ban: null, deleted: false, reset: null };
   try {
     const { ref, get } = firebase;
-    const banSnap = await get(ref(firebase.db, 'bans/' + HWID));
-    if (banSnap.exists()) {
-      const ban = banSnap.val();
-      if (ban && ban.deleted === true) {
-        return { ban: null, deleted: true, reset: null };
+    const targetHwids = [ACTIVE_HWID];
+    if (ACTIVE_HWID !== LOCAL_HWID) targetHwids.push(LOCAL_HWID);
+    for (const h of targetHwids) {
+      const banSnap = await get(ref(firebase.db, 'bans/' + h));
+      if (banSnap.exists()) {
+        const ban = banSnap.val();
+        if (ban && ban.deleted === true) return { ban: null, deleted: true, reset: null };
+        if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
+          return { ban: { banner: ban.banner || 'Admin', reason: ban.reason || 'No reason provided.', bannedUntil: ban.bannedUntil }, deleted: false, reset: null };
+        }
       }
-      if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
-        return {
-          ban: {
-            banner: ban.banner || 'Admin',
-            reason: ban.reason || 'No reason provided.',
-            bannedUntil: ban.bannedUntil
-          },
-          deleted: false,
-          reset: null
-        };
-      }
-    }
-    const resetSnap = await get(ref(firebase.db, 'bans/' + HWID + '/resetFlag'));
-    if (resetSnap.exists()) {
-      const reset = resetSnap.val();
-      if (reset && reset.acknowledged !== true) {
-        return {
-          ban: null,
-          deleted: false,
-          reset: {
-            reason: reset.reason || 'Data reset by admin',
-            resetAt: reset.resetAt || Date.now()
-          }
-        };
+      const resetSnap = await get(ref(firebase.db, 'bans/' + h + '/resetFlag'));
+      if (resetSnap.exists()) {
+        const reset = resetSnap.val();
+        if (reset && reset.acknowledged !== true) {
+          return { ban: null, deleted: false, reset: { reason: reset.reason || 'Data reset by admin', resetAt: reset.resetAt || Date.now() } };
+        }
       }
     }
     return { ban: null, deleted: false, reset: null };
@@ -1278,7 +1374,7 @@ async function acknowledgeReset() {
   if (!firebase) return;
   try {
     const { ref, update } = firebase;
-    await update(ref(firebase.db, 'bans/' + HWID + '/resetFlag'), { acknowledged: true });
+    await update(ref(firebase.db, 'bans/' + ACTIVE_HWID + '/resetFlag'), { acknowledged: true });
   } catch(e) {}
 }
 
@@ -1302,7 +1398,6 @@ function showBanPopup(info) {
   });
   popup.classList.add('show');
   window.__banTarget = info.bannedUntil;
-
   updateBanCountdown();
   if (banCountdownInterval) clearInterval(banCountdownInterval);
   banCountdownInterval = setInterval(() => {
@@ -1349,56 +1444,13 @@ function showResetPopup(info) {
 }
 
 /* =========================================================
-   LOGIN
+   LOGIN (nickname)
    ========================================================= */
 async function doLogin() {
   const name = sanitizeUsername(usernameInput.value);
   const err = validateUsername(name);
   if (err) { loginError.textContent = err; return; }
-  loginBtn.disabled = true;
-  loginStatus.textContent = "Checking…";
-  loginStatus.className = "login-status";
-  loginError.textContent = '';
-
-  try {
-    const { ref, get, set, update } = firebase;
-    const hwidSnap = await get(ref(firebase.db, 'users_by_hwid/' + HWID));
-    const status = await checkAccountStatus();
-    if (status.ban) { showBanPopup(status.ban); loginBtn.disabled = false; return; }
-    if (status.deleted && hwidSnap.exists()) { showDeletedPopup(); loginBtn.disabled = false; return; }
-    if (status.reset && hwidSnap.exists()) { showResetPopup(status.reset); loginBtn.disabled = false; return; }
-
-    if (!hwidSnap.exists() && (status.deleted || status.reset)) {
-      await update(ref(firebase.db, 'bans/' + HWID), {
-        deleted: null,
-        deletedAt: null,
-        deletedUsername: null,
-        resetFlag: null
-      });
-    }
-
-    const key = usernameKey(name);
-    const nameSnap = await get(ref(firebase.db, 'usernames/' + key));
-    if (nameSnap.exists() && nameSnap.val() !== HWID) {
-      loginError.textContent = "This nickname is already taken!";
-      loginBtn.disabled = false;
-      loginStatus.textContent = "";
-      return;
-    }
-    if (hwidSnap.exists()) {
-      const data = hwidSnap.val();
-      if (data.username !== name) await set(ref(firebase.db, 'usernames/' + usernameKey(data.username)), null);
-    }
-    await set(ref(firebase.db, 'usernames/' + key), HWID);
-    await set(ref(firebase.db, 'users_by_hwid/' + HWID), { username: name, hwid: HWID, createdAt: Date.now(), lastSeen: Date.now() });
-    currentUser = { username: name, hwid: HWID };
-    loginStatus.textContent = "Success!";
-    loginStatus.className = "login-status ok";
-    setTimeout(() => beginGameTransition(), 400);
-  } catch (e) {
-    loginError.textContent = "Error: " + (e.message || e);
-    loginBtn.disabled = false;
-  }
+  await loginWithIdentity(name, LOCAL_HWID, null);
 }
 
 function beginGameTransition() {
@@ -1460,18 +1512,17 @@ const TILE = 48;
 let saveTimeout = null;
 let otherPlayers = {};
 let otherPlayerEls = {};
-let activeSoldiers = [];
-let soldierUnits = [];      // visible army units
-let villagerUnits = [];
+let soldierUnits = [];        // my own army units
+let villagerUnits = [];       // my own villagers
+let activeAttackWaves = [];   // live attack visuals (all players)
 let lastVillagerSpawn = 0;
 let attackMode = false;
 let eventFeedCollapsed = false;
-let lastSoldierRespawn = 0;
-const SOLDIER_RESPAWN_INTERVAL = 20000; // 20s
+const SOLDIER_RESPAWN_INTERVAL = 20000;
 
 /* BUILDINGS */
 const BUILDINGS = {
-  main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 90% of your money.", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 } },
+  main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 50% of your money to the attacker.", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 } },
   house: { name: "House", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10, desc: "Provides space for residents. Produces a bit of wood & stone.", baseCost: 250, costMult: 1.95, produces: { wood: 1, stone: 1 }, needs: { workers: 1 }, popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160], buildTime: 8, resourceCost: { wood: 20, stone: 10 } },
   tavern: { name: "Tavern", icon: "tavern", category: "civic", size: 2, cost: 500, maxLevel: 8, desc: "Increases happiness.", baseCost: 500, costMult: 2.0, produces: { gold: 2 }, needs: { workers: 2 }, happyBonus: [3, 6, 10, 14, 19, 25, 32, 40], buildTime: 10, resourceCost: { wood: 60, stone: 30 } },
   well: { name: "Well", icon: "well", category: "civic", size: 1, cost: 220, maxLevel: 6, desc: "Supplies water.", baseCost: 220, costMult: 1.9, produces: {}, needs: { workers: 1 }, happyBonus: [2, 4, 7, 10, 14, 19], buildTime: 5, resourceCost: { wood: 15, stone: 40 } },
@@ -1668,35 +1719,24 @@ function builderSVG() {
   return `<svg viewBox="0 0 20 26"><circle cx="10" cy="6" r="4" fill="#e0ac69"/><path d="M5 6 Q10 1 15 6 L15 5 Q10 0 5 5 Z" fill="#ffd54f"/><rect x="5" y="10" width="10" height="10" rx="2" fill="#ffb74d"/><rect x="5.5" y="20" width="3.5" height="6" fill="#37474f"/><rect x="11" y="20" width="3.5" height="6" fill="#37474f"/><g class="hammer"><rect x="14" y="12" width="2" height="8" fill="#8d6e63"/><rect x="12" y="10" width="6" height="3" fill="#78909c"/></g></svg>`;
 }
 
-/* Soldier: armored warrior with sword & shield */
 function soldierSVG(facing, unitColor) {
   const armorColor = unitColor || '#2f6fd0';
   const darker = unitColor === '#c62828' ? '#7f0000' : '#1a3a6e';
   const flip = facing === 'left' ? 'transform="scale(-1,1) translate(-20,0)"' : '';
   return `<svg viewBox="0 0 20 26">
     <g ${flip}>
-      <!-- Shadow -->
       <ellipse cx="10" cy="25" rx="7" ry="1.5" fill="rgba(0,0,0,0.35)"/>
-      <!-- Legs (armored) -->
       <rect x="5.5" y="19" width="3.5" height="6" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
       <rect x="11" y="19" width="3.5" height="6" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
-      <!-- Body armor -->
       <path d="M4 10 Q10 8 16 10 L16 19 Q10 20 4 19 Z" fill="${armorColor}" stroke="${darker}" stroke-width="0.8"/>
-      <!-- Chest plate detail -->
       <path d="M6 11 L10 13 L14 11" fill="none" stroke="${darker}" stroke-width="0.8"/>
-      <!-- Shoulder pads -->
       <ellipse cx="4" cy="11" rx="2.5" ry="2" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
       <ellipse cx="16" cy="11" rx="2.5" ry="2" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
-      <!-- Helmet -->
       <path d="M5 6 Q10 2 15 6 L15 8 Q10 9 5 8 Z" fill="${armorColor}" stroke="${darker}" stroke-width="0.8"/>
-      <!-- Face slit -->
       <rect x="7.5" y="6.5" width="5" height="1.5" fill="#1a1a1a"/>
-      <!-- Face (under helmet) -->
       <circle cx="10" cy="8" r="1.8" fill="#e0ac69"/>
-      <!-- Shield (left hand) -->
       <ellipse cx="4.5" cy="15" rx="2.8" ry="3.5" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>
       <ellipse cx="4.5" cy="15" rx="1.3" ry="1.8" fill="#8d6e63"/>
-      <!-- Sword (right hand, raised) -->
       <g class="soldier-sword" style="transform-origin: 16px 14px;">
         <rect x="15.5" y="8" width="1.8" height="6" fill="#e0e0e0" stroke="#555" stroke-width="0.4"/>
         <polygon points="15.5,8 17.3,8 16.4,6" fill="#f5f5f5" stroke="#555" stroke-width="0.4"/>
@@ -1720,10 +1760,7 @@ function getResourceCost(type, level) {
   const def = BUILDINGS[type];
   if (!def.resourceCost) return { wood: 0, stone: 0 };
   const mult = level === 0 ? 1 : Math.pow(1.6, level);
-  return {
-    wood: Math.round(def.resourceCost.wood * mult),
-    stone: Math.round(def.resourceCost.stone * mult)
-  };
+  return { wood: Math.round(def.resourceCost.wood * mult), stone: Math.round(def.resourceCost.stone * mult) };
 }
 function getBuildTime(type, level) {
   const def = BUILDINGS[type];
@@ -2066,7 +2103,6 @@ function createBuildingEl(b, isEnemy, ownerName) {
   el.style.width = size + 'px'; el.style.height = size + 'px';
   el.style.zIndex = Math.floor(b.y);
   el.innerHTML = buildingSVG(b.type, b.level, size, size);
-  // Damage overlay (cracks)
   const dmgOverlay = document.createElement('div');
   dmgOverlay.className = 'damage-overlay';
   dmgOverlay.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -2126,7 +2162,7 @@ function createBuildingEl(b, isEnemy, ownerName) {
   b.el = el;
   b.isEnemy = isEnemy;
   b.ownerName = ownerName;
-  b.ownerHwid = isEnemy ? (ownerName && otherPlayers ? null : null) : HWID;
+  b.ownerHwid = isEnemy ? b.ownerHwid : ACTIVE_HWID;
   updateBuildingHpVisual(b);
 }
 function refreshBuildingEl(b) {
@@ -2443,15 +2479,13 @@ function tryAttack(e) {
 
 function performAttack(b, ownerName, ownerHwid) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
-
-  // Spawn attacking soldiers that march to the target
   const mainB = state.buildings.find(x => x.type === 'main');
-  const startX = mainB ? mainB.x : state.baseX;
-  const startY = mainB ? mainB.y : state.baseY;
+  const startX = mainB ? mainB.x + BUILDINGS.main.size * TILE / 2 : state.baseX;
+  const startY = mainB ? mainB.y + BUILDINGS.main.size * TILE / 2 : state.baseY;
   const targetCX = b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
   const targetCY = b.y + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
 
-  const attackCount = Math.min(state.soldiers, 6);
+  const attackCount = Math.min(state.soldiers, 8);
   for (let i = 0; i < attackCount; i++) {
     spawnSoldierUnit(
       startX + (Math.random() - 0.5) * 80,
@@ -2460,12 +2494,29 @@ function performAttack(b, ownerName, ownerHwid) {
     );
   }
 
-  // Immediate damage on target
+  // Broadcast the attack globally so everyone sees it
+  if (firebase) {
+    try {
+      const { ref, push, set } = firebase;
+      const aid = push(ref(firebase.db, 'attacks')).key;
+      set(ref(firebase.db, 'attacks/' + aid), {
+        attackerHwid: ACTIVE_HWID,
+        attackerName: currentUser.username,
+        targetHwid: ownerHwid || 'unknown',
+        targetName: ownerName,
+        fromX: startX, fromY: startY,
+        toX: targetCX, toY: targetCY,
+        soldierCount: attackCount,
+        ts: Date.now()
+      });
+      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 30000);
+    } catch(e) {}
+  }
+
   const dmg = Math.max(1, Math.floor(state.soldiers * 0.6));
   b.hp = Math.max(0, (b.hp || 100) - dmg);
   updateBuildingHpVisual(b);
   showFloatText(b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2, b.y, `-${dmg} HP`, '#e53935');
-
   notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name} for ${dmg} damage!`, false, false, false, true);
   publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${BUILDINGS[b.type].name} for ${dmg} damage!`, ownerHwid);
 
@@ -2475,6 +2526,7 @@ function performAttack(b, ownerName, ownerHwid) {
       push(ref(firebase.db, 'notifications/' + ownerHwid), {
         type: 'attack',
         attackerName: currentUser.username,
+        attackerHwid: ACTIVE_HWID,
         buildingName: BUILDINGS[b.type].name,
         damage: dmg,
         buildingX: b.x,
@@ -2486,7 +2538,7 @@ function performAttack(b, ownerName, ownerHwid) {
 
   if (b.el) {
     b.el.classList.add('under-attack');
-    setTimeout(() => b.el.classList.remove('under-attack'), 2000);
+    setTimeout(() => { if (b.el) b.el.classList.remove('under-attack'); }, 2000);
   }
 
   if (b.hp <= 0) {
@@ -2496,21 +2548,66 @@ function performAttack(b, ownerName, ownerHwid) {
 
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   const def = BUILDINGS[b.type];
-  if (b.type === 'main') {
-    // 90% of money stolen
-    const stolen = Math.floor(state.money * 0.9);
-    if (stolen > 0) {
-      state.money -= stolen;
-      notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (90%).`, true);
-      publishEvent('attack', `${ownerName} destroyed ${currentUser.username}'s Main Building and stole ${stolen} money!`, ownerHwid);
-    } else {
-      notify(`💀 Your Main Building was destroyed!`, true);
-    }
-  } else {
-    notify(`Destroyed ${ownerName}'s ${def.name}!`, false, true);
+  const iAmOwner = (b.ownerHwid === ACTIVE_HWID) || (!b.isEnemy && b.type !== 'main' && state.buildings.includes(b));
+  const iAmAttacker = (b.ownerHwid && b.ownerHwid !== ACTIVE_HWID);
+
+  // Visual collapse animation
+  if (b.el) {
+    b.el.style.transition = 'opacity 0.8s, transform 0.8s';
+    b.el.style.opacity = '0';
+    b.el.style.transform = 'scale(0.7) rotate(-8deg)';
+    setTimeout(() => { if (b.el) b.el.remove(); }, 800);
+    showFloatText(b.x + (def.size * TILE / 2), b.y, '💥 DESTROYED', '#e53935');
   }
-  if (b.el) b.el.remove();
   if (b._builders) b._builders.forEach(el => el.remove());
+
+  // Main building destroyed -> 50% money stolen, transferred to attacker
+  if (b.type === 'main' && iAmOwner) {
+    const stolen = Math.floor(state.money * 0.5);
+    state.money -= stolen;
+    notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (50%) to the attacker.`, true);
+    publishEvent('attack', `${ownerName} destroyed ${currentUser.username}'s Main Building and stole ${stolen} money!`, ownerHwid);
+    // Send money to attacker via Firebase
+    if (ownerHwid && firebase) {
+      try {
+        const { ref, runTransaction } = firebase;
+        // We use update with a transaction-like approach: read current money, add stolen
+        const { get, update } = firebase;
+        (async () => {
+          try {
+            const snap = await get(ref(firebase.db, 'saves/' + ownerHwid));
+            if (snap.exists()) {
+              const theirData = snap.val();
+              const theirMoney = (theirData.money || 0) + stolen;
+              await update(ref(firebase.db, 'saves/' + ownerHwid), { money: theirMoney });
+            }
+          } catch(e) {}
+        })();
+      } catch(e) {}
+    }
+  } else if (iAmOwner) {
+    notify(`💀 Your ${def.name} was destroyed!`, true);
+  } else if (iAmAttacker) {
+    notify(`💥 Destroyed ${ownerName}'s ${def.name}!`, false, true);
+  } else {
+    notify(`💥 ${ownerName}'s ${def.name} was destroyed!`, false, false, false, true);
+  }
+
+  // Broadcast destruction
+  if (firebase) {
+    try {
+      const { ref, push, set } = firebase;
+      const id = push(ref(firebase.db, 'destroyed')).key;
+      set(ref(firebase.db, 'destroyed/' + id), {
+        x: b.x, y: b.y, type: b.type,
+        ownerName: b.ownerName || ownerName || currentUser.username,
+        destroyerName: currentUser.username,
+        ts: Date.now()
+      });
+      setTimeout(() => { try { set(ref(firebase.db, 'destroyed/' + id), null); } catch(e){} }, 10000);
+    } catch(e) {}
+  }
+
   const idx = state.buildings.indexOf(b);
   if (idx >= 0) state.buildings.splice(idx, 1);
   recalc();
@@ -2524,19 +2621,20 @@ function triggerDefense(attackerX, attackerY) {
   if (!mainB) return;
   const size = BUILDINGS.main.size * TILE;
   const cx = mainB.x + size/2, cy = mainB.y + size/2;
-  const count = Math.min(8, Math.max(1, state.soldiers));
+  const count = Math.min(10, Math.max(1, state.soldiers));
   for (let i = 0; i < count; i++) {
     spawnSoldierUnit(
       cx + (Math.random() - 0.5) * 200,
       cy + (Math.random() - 0.5) * 200,
-      attackerX || cx, attackerY || cy,
+      attackerX || cx + (Math.random()-0.5) * 800,
+      attackerY || cy + (Math.random()-0.5) * 800,
       'friendly', null
     );
   }
   notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
 }
 
-/* Soldier Units */
+/* Soldier Units (my own) */
 function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
   const el = document.createElement('div');
   el.className = 'soldier-unit ' + (side === 'friendly' ? 'friendly' : 'enemy');
@@ -2546,16 +2644,7 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
   el.style.top = y + 'px';
   el.style.zIndex = Math.floor(y) + 25;
   worldEl.appendChild(el);
-
-  const unit = {
-    x, y, tx, ty, el,
-    hp: 100, maxHp: 100,
-    speed: 1.8,
-    side,
-    targetBuilding,
-    fighting: false,
-    hpFill: el.querySelector('.shf')
-  };
+  const unit = { x, y, tx, ty, el, hp: 100, maxHp: 100, speed: 1.8, side, targetBuilding, fighting: false, hpFill: el.querySelector('.shf') };
   soldierUnits.push(unit);
   return unit;
 }
@@ -2571,15 +2660,11 @@ function updateSoldierUnits(dt) {
       s.el.style.left = s.x + 'px';
       s.el.style.top = s.y + 'px';
       s.el.style.zIndex = Math.floor(s.y) + 25;
-      if (!s.fighting) {
-        s.el.classList.remove('fighting');
-      }
+      if (!s.fighting) s.el.classList.remove('fighting');
     } else {
-      // In range - fight
       if (s.targetBuilding && s.targetBuilding.el && s.targetBuilding.hp > 0) {
         s.fighting = true;
         s.el.classList.add('fighting');
-        // Damage target over time
         s._hitTimer = (s._hitTimer || 0) + dt;
         if (s._hitTimer >= 1.5) {
           s._hitTimer = 0;
@@ -2587,10 +2672,10 @@ function updateSoldierUnits(dt) {
           s.targetBuilding.hp = Math.max(0, s.targetBuilding.hp - dmg);
           updateBuildingHpVisual(s.targetBuilding);
           showFloatText(s.x, s.y - 20, `-${dmg}`, '#e53935');
-          s.targetBuilding.el.classList.add('under-attack');
-          setTimeout(() => {
-            if (s.targetBuilding.el) s.targetBuilding.el.classList.remove('under-attack');
-          }, 400);
+          if (s.targetBuilding.el) {
+            s.targetBuilding.el.classList.add('under-attack');
+            setTimeout(() => { if (s.targetBuilding && s.targetBuilding.el) s.targetBuilding.el.classList.remove('under-attack'); }, 400);
+          }
           if (s.targetBuilding.hp <= 0) {
             const owner = s.targetBuilding.ownerName || 'Enemy';
             const ownerHwid = s.targetBuilding.ownerHwid;
@@ -2603,7 +2688,6 @@ function updateSoldierUnits(dt) {
           }
         }
       } else {
-        // Idle: wander near home
         s.fighting = false;
         s.el.classList.remove('fighting');
         s._idle = (s._idle || 0) + dt;
@@ -2623,7 +2707,6 @@ function clearSoldierUnits() {
 }
 
 function respawnSoldiers() {
-  // Called every 20s - spawn soldiers up to state.soldiers count
   const currentCount = soldierUnits.filter(s => s.side === 'friendly').length;
   const needed = state.soldiers - currentCount;
   if (needed <= 0) return;
@@ -2645,23 +2728,299 @@ function respawnSoldiers() {
   }
 }
 
-/* VILLAGERS */
+/* =========================================================
+   LIVE MULTIPLAYER VISUALS
+   ========================================================= */
+
+/* --- My units broadcast --- */
+let unitsBroadcastAccum = 0;
+function broadcastMyUnits() {
+  if (!firebase || !currentUser) return;
+  try {
+    const { ref, set } = firebase;
+    const mySoldiers = soldierUnits.filter(s => s.side === 'friendly').map(s => ({
+      x: Math.round(s.x), y: Math.round(s.y),
+      tx: Math.round(s.tx), ty: Math.round(s.ty),
+      hp: Math.round(s.hp), maxHp: s.maxHp,
+      fighting: !!s.fighting
+    }));
+    const myVillagers = villagerUnits.map(v => ({ x: Math.round(v.x), y: Math.round(v.y) }));
+    const myBuilders = [];
+    state.buildings.forEach(b => {
+      if (b.construction && b._builders) {
+        b._builders.forEach(bel => {
+          const lx = parseFloat(bel.style.left) || 0;
+          const ly = parseFloat(bel.style.top) || 0;
+          myBuilders.push({ x: Math.round(lx), y: Math.round(ly) });
+        });
+      }
+    });
+    set(ref(firebase.db, 'units/' + ACTIVE_HWID), {
+      username: currentUser.username,
+      soldiers: mySoldiers,
+      villagers: myVillagers,
+      builders: myBuilders,
+      baseX: state.baseX, baseY: state.baseY,
+      ts: Date.now()
+    }).catch(()=>{});
+  } catch(e) {}
+}
+
+/* --- Remote units listener --- */
+let remoteUnitsEls = {};
+function startUnitsListener() {
+  if (!firebase) return;
+  const { ref, onValue } = firebase;
+  onValue(ref(firebase.db, 'units'), (snap) => {
+    const data = snap.val() || {};
+    const now = Date.now();
+    const seen = new Set();
+    for (const hwid in data) {
+      if (hwid === ACTIVE_HWID) continue;
+      const u = data[hwid];
+      if (!u || now - (u.ts || 0) > 12000) continue;
+      seen.add(hwid);
+      renderRemoteUnits(hwid, u);
+    }
+    for (const hwid in remoteUnitsEls) {
+      if (!seen.has(hwid)) clearRemoteUnits(hwid);
+    }
+  });
+}
+
+function renderRemoteUnits(hwid, u) {
+  if (!remoteUnitsEls[hwid]) {
+    const container = document.createElement('div');
+    worldEl.appendChild(container);
+    remoteUnitsEls[hwid] = { container, soldiers: [], villagers: [], builders: [] };
+  }
+  const entry = remoteUnitsEls[hwid];
+
+  // Soldiers
+  const sArr = u.soldiers || [];
+  while (entry.soldiers.length < sArr.length) {
+    const el = document.createElement('div');
+    el.className = 'soldier-unit enemy';
+    el.innerHTML = soldierSVG('right', '#c62828') + `<div class="soldier-hp"><div class="shf"></div></div>`;
+    worldEl.appendChild(el);
+    entry.soldiers.push({ el, fill: el.querySelector('.shf') });
+  }
+  while (entry.soldiers.length > sArr.length) {
+    const s = entry.soldiers.pop();
+    if (s && s.el) s.el.remove();
+  }
+  sArr.forEach((sd, i) => {
+    const e = entry.soldiers[i];
+    if (!e) return;
+    e.el.style.left = sd.x + 'px';
+    e.el.style.top = sd.y + 'px';
+    e.el.style.zIndex = Math.floor(sd.y) + 25;
+    if (sd.fighting) e.el.classList.add('fighting');
+    else e.el.classList.remove('fighting');
+    if (e.fill) {
+      const pct = (sd.hp / sd.maxHp) * 100;
+      e.fill.style.width = pct + '%';
+      e.fill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
+    }
+  });
+
+  // Villagers
+  const vArr = u.villagers || [];
+  while (entry.villagers.length < vArr.length) {
+    const el = document.createElement('div');
+    el.className = 'worker';
+    el.innerHTML = villagerSVG();
+    el.style.filter = 'hue-rotate(-30deg)';
+    worldEl.appendChild(el);
+    entry.villagers.push(el);
+  }
+  while (entry.villagers.length > vArr.length) {
+    const el = entry.villagers.pop();
+    if (el) el.remove();
+  }
+  vArr.forEach((vd, i) => {
+    const el = entry.villagers[i];
+    if (!el) return;
+    el.style.left = vd.x + 'px';
+    el.style.top = vd.y + 'px';
+    el.style.zIndex = Math.floor(vd.y) + 4;
+  });
+
+  // Builders (remote construction workers)
+  const bArr = u.builders || [];
+  while (entry.builders.length < bArr.length) {
+    const el = document.createElement('div');
+    el.className = 'builder';
+    el.innerHTML = builderSVG();
+    el.style.opacity = '0.9';
+    worldEl.appendChild(el);
+    entry.builders.push(el);
+  }
+  while (entry.builders.length > bArr.length) {
+    const el = entry.builders.pop();
+    if (el) el.remove();
+  }
+  bArr.forEach((bd, i) => {
+    const el = entry.builders[i];
+    if (!el) return;
+    el.style.left = bd.x + 'px';
+    el.style.top = bd.y + 'px';
+    el.style.zIndex = Math.floor(bd.y) + 20;
+  });
+}
+
+function clearRemoteUnits(hwid) {
+  const e = remoteUnitsEls[hwid];
+  if (!e) return;
+  e.soldiers.forEach(s => s && s.el && s.el.remove());
+  e.villagers.forEach(v => v && v.remove());
+  e.builders.forEach(b => b && b.remove());
+  if (e.container) e.container.remove();
+  delete remoteUnitsEls[hwid];
+}
+
+/* --- Live attack waves (visible to everyone) --- */
+let liveAttackWaves = [];
+function startAttacksListener() {
+  if (!firebase) return;
+  const { ref, onValue } = firebase;
+  const seenAttacks = new Set();
+  onValue(ref(firebase.db, 'attacks'), (snap) => {
+    const data = snap.val() || {};
+    const now = Date.now();
+    for (const id in data) {
+      if (seenAttacks.has(id)) continue;
+      const a = data[id];
+      if (!a || now - (a.ts || 0) > 20000) continue;
+      seenAttacks.add(id);
+      // Skip if I'm the attacker (I already spawned my own soldiers)
+      if (a.attackerHwid === ACTIVE_HWID) continue;
+      spawnAttackWave(a);
+      if (a.targetHwid === ACTIVE_HWID) {
+        showAttackPopup(a.attackerName, 'your base', 0);
+      }
+    }
+  });
+}
+
+function spawnAttackWave(a) {
+  const count = Math.min(a.soldierCount || 3, 8);
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'soldier-unit enemy';
+    el.innerHTML = soldierSVG('right', '#c62828') + `<div class="soldier-hp"><div class="shf"></div></div>`;
+    const sx = a.fromX + (Math.random() - 0.5) * 60;
+    const sy = a.fromY + (Math.random() - 0.5) * 60;
+    el.style.left = sx + 'px';
+    el.style.top = sy + 'px';
+    el.style.zIndex = Math.floor(sy) + 25;
+    worldEl.appendChild(el);
+    liveAttackWaves.push({
+      el, x: sx, y: sy,
+      tx: a.toX + (Math.random()-0.5)*40,
+      ty: a.toY + (Math.random()-0.5)*40,
+      fill: el.querySelector('.shf'),
+      hp: 100, maxHp: 100, done: false
+    });
+  }
+}
+
+function updateLiveAttackWaves(dt) {
+  for (let i = liveAttackWaves.length - 1; i >= 0; i--) {
+    const w = liveAttackWaves[i];
+    if (w.done) {
+      if (w.el && !w._removed) {
+        w._removed = true;
+        w.el.style.transition = 'opacity 0.4s';
+        w.el.style.opacity = '0';
+        setTimeout(() => w.el && w.el.remove(), 500);
+      }
+      if (w._removed) liveAttackWaves.splice(i, 1);
+      continue;
+    }
+    const dx = w.tx - w.x, dy = w.ty - w.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 15) {
+      w.x += (dx / dist) * 2.2 * dt * 60;
+      w.y += (dy / dist) * 2.2 * dt * 60;
+      w.el.style.left = w.x + 'px';
+      w.el.style.top = w.y + 'px';
+      w.el.style.zIndex = Math.floor(w.y) + 25;
+    } else {
+      w.el.classList.add('fighting');
+      w.hp -= dt * 25;
+      if (w.fill) {
+        const pct = Math.max(0, (w.hp / w.maxHp) * 100);
+        w.fill.style.width = pct + '%';
+        w.fill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
+      }
+      if (w.hp <= 0) w.done = true;
+    }
+  }
+}
+
+/* --- Live destruction explosions (visible to everyone) --- */
+function startDestroyedListener() {
+  if (!firebase) return;
+  const { ref, onValue } = firebase;
+  const seen = new Set();
+  onValue(ref(firebase.db, 'destroyed'), (snap) => {
+    const data = snap.val() || {};
+    const now = Date.now();
+    for (const id in data) {
+      if (seen.has(id)) continue;
+      const d = data[id];
+      if (!d || now - (d.ts || 0) > 10000) continue;
+      seen.add(id);
+      spawnExplosion(d.x, d.y, d.type);
+    }
+  });
+}
+
+function spawnExplosion(x, y, type) {
+  const size = (BUILDINGS[type]?.size || 2) * TILE;
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.left = cx + 'px';
+  el.style.top = cy + 'px';
+  el.style.width = '20px';
+  el.style.height = '20px';
+  el.style.marginLeft = '-10px';
+  el.style.marginTop = '-10px';
+  el.style.borderRadius = '50%';
+  el.style.background = 'radial-gradient(circle, #fff, #ff5722, #b71c1c)';
+  el.style.boxShadow = '0 0 40px rgba(255,87,34,0.9)';
+  el.style.zIndex = 9999;
+  el.style.pointerEvents = 'none';
+  el.style.transition = 'all 0.8s ease-out';
+  worldEl.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.width = (size * 2.5) + 'px';
+    el.style.height = (size * 2.5) + 'px';
+    el.style.marginLeft = (-size * 1.25) + 'px';
+    el.style.marginTop = (-size * 1.25) + 'px';
+    el.style.opacity = '0';
+  });
+  setTimeout(() => el.remove(), 900);
+}
+
+/* =========================================================
+   VILLAGERS
+   ========================================================= */
 function trySpawnVillagers() {
   const now = Date.now();
   if (now - lastVillagerSpawn < 3000) return;
   lastVillagerSpawn = now;
-
   const targetCount = Math.min(state.population, 40);
   if (villagerUnits.length >= targetCount) return;
-
   const houses = state.buildings.filter(b => !b.construction && (b.type === 'house' || b.type === 'main'));
   if (houses.length === 0) return;
   const h = houses[Math.floor(Math.random() * houses.length)];
   const size = BUILDINGS[h.type].size * TILE;
-
   spawnVillagerUnit(h.x + size/2 + (Math.random()-0.5)*size, h.y + size);
 }
-
 function spawnVillagerUnit(x, y) {
   const el = document.createElement('div');
   el.className = 'worker';
@@ -2670,17 +3029,9 @@ function spawnVillagerUnit(x, y) {
   el.style.top = y + 'px';
   el.style.zIndex = Math.floor(y) + 4;
   worldEl.appendChild(el);
-
   const homeX = x, homeY = y;
-  villagerUnits.push({
-    x, y, homeX, homeY,
-    tx: x + (Math.random()-0.5)*300,
-    ty: y + (Math.random()-0.5)*300,
-    el, speed: 0.6,
-    idleTimer: Math.random() * 5
-  });
+  villagerUnits.push({ x, y, homeX, homeY, tx: x + (Math.random()-0.5)*300, ty: y + (Math.random()-0.5)*300, el, speed: 0.6, idleTimer: Math.random() * 5 });
 }
-
 function updateVillagers(dt) {
   villagerUnits.forEach(v => {
     const dx = v.tx - v.x, dy = v.ty - v.y;
@@ -2701,7 +3052,6 @@ function updateVillagers(dt) {
     }
   });
 }
-
 function clearVillagers() {
   villagerUnits.forEach(v => { if (v.el) v.el.remove(); });
   villagerUnits = [];
@@ -2713,7 +3063,6 @@ function hashCode(str) {
   for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
   return h;
 }
-
 function renderOnlineList() {
   const body = document.getElementById('olBody');
   const count = document.getElementById('olCount');
@@ -2790,20 +3139,20 @@ function setupEventFeedToggle() {
 function startNotificationListener() {
   if (!firebase) return;
   const { ref, onValue, query, limitToLast, remove } = firebase;
-  onValue(query(ref(firebase.db, 'notifications/' + HWID), limitToLast(10)), (snap) => {
+  onValue(query(ref(firebase.db, 'notifications/' + ACTIVE_HWID), limitToLast(10)), (snap) => {
     const data = snap.val();
     if (!data) return;
     Object.entries(data).forEach(([key, notif]) => {
       if (notif.type === 'attack') {
         showAttackPopup(notif.attackerName, notif.buildingName, notif.damage);
-        remove(ref(firebase.db, 'notifications/' + HWID + '/' + key));
+        remove(ref(firebase.db, 'notifications/' + ACTIVE_HWID + '/' + key));
       }
     });
   });
 }
 function showAttackPopup(attackerName, buildingName, damage) {
   const popup = document.getElementById('attackPopup');
-  document.getElementById('apText').innerHTML = `<b>${escapeHtml(attackerName)}</b> is attacking your <b>${escapeHtml(buildingName)}</b>!<br><span style="font-size:13px;color:#8d6e63;">Damage: ${damage} HP</span>`;
+  document.getElementById('apText').innerHTML = `<b>${escapeHtml(attackerName)}</b> is attacking your <b>${escapeHtml(buildingName)}</b>!<br><span style="font-size:13px;color:#8d6e63;">Press DEFEND to send your soldiers!</span>`;
   popup.classList.add('show');
   window.__currentAttacker = attackerName;
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -2811,7 +3160,16 @@ function showAttackPopup(attackerName, buildingName, damage) {
 function setupAttackPopup() {
   document.getElementById('apDefendBtn').onclick = () => {
     document.getElementById('attackPopup').classList.remove('show');
-    triggerDefense(null, null);
+    // Find the most recent attack on me to get attacker position
+    let ax = null, ay = null;
+    // Use the closest other player's base or my base area
+    const myMain = state.buildings.find(b => b.type === 'main');
+    if (myMain) {
+      const size = BUILDINGS.main.size * TILE;
+      ax = myMain.x + size/2 + (Math.random()-0.5) * 600;
+      ay = myMain.y + size/2 + (Math.random()-0.5) * 600;
+    }
+    triggerDefense(ax, ay);
     publishEvent('defend', `${currentUser.username} defended against ${window.__currentAttacker || 'an attacker'}!`);
   };
 }
@@ -3014,11 +3372,11 @@ async function saveGame(silent) {
       nextId: state.nextId, lastTick: Date.now(),
       playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
       baseX: state.baseX, baseY: state.baseY,
-      username: currentUser.username, hwid: HWID,
+      username: currentUser.username, hwid: ACTIVE_HWID,
       buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp || 100, maxHp: b.maxHp || 100 }))
     };
-    await set(ref(firebase.db, 'saves/' + HWID), data);
-    await set(ref(firebase.db, 'world/' + HWID), {
+    await set(ref(firebase.db, 'saves/' + ACTIVE_HWID), data);
+    await set(ref(firebase.db, 'world/' + ACTIVE_HWID), {
       username: currentUser.username, baseX: state.baseX, baseY: state.baseY,
       level: state.level,
       playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
@@ -3032,7 +3390,7 @@ async function loadSave() {
   if (!currentUser || !firebase) return false;
   try {
     const { ref, get } = firebase;
-    const snap = await get(ref(firebase.db, 'saves/' + HWID));
+    const snap = await get(ref(firebase.db, 'saves/' + ACTIVE_HWID));
     if (!snap.exists()) return false;
     const data = snap.val();
     if (!data) return false;
@@ -3064,7 +3422,7 @@ function startWorldListener() {
     const now = Date.now();
     const seen = new Set();
     for (const hwid in data) {
-      if (hwid === HWID) continue;
+      if (hwid === ACTIVE_HWID) continue;
       const p = data[hwid];
       if (!p || !p.username) continue;
       if (now - (p.lastSeen || 0) > 60000) continue;
@@ -3102,8 +3460,9 @@ function updateOtherPlayer(hwid, p) {
       const def = BUILDINGS[b.type];
       if (!def) return;
       const maxHp = b.maxHp || getMaxHp(b.type, b.level || 1);
-      const nb = { id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, hp: b.hp != null ? b.hp : maxHp, maxHp: maxHp, ownerHwid: hwid, ownerName: p.username };
+      const nb = { id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, hp: b.hp != null ? b.hp : maxHp, maxHp: maxHp, ownerHwid: hwid, ownerName: p.username, isEnemy: true };
       createBuildingEl(nb, true, p.username);
+      nb.ownerHwid = hwid;
       entry.buildings[b.id] = nb;
     }
   });
@@ -3156,7 +3515,7 @@ async function startGame() {
       const data = snap.val() || {};
       const now = Date.now();
       for (const hwid in data) {
-        if (hwid === HWID) continue;
+        if (hwid === ACTIVE_HWID) continue;
         const p = data[hwid];
         if (!p || !p.username) continue;
         if (now - (p.lastSeen || 0) > 60000) continue;
@@ -3173,15 +3532,15 @@ async function startGame() {
     if (firebase) {
       try {
         const { ref, set } = firebase;
-        await set(ref(firebase.db, 'world/' + HWID), { username: currentUser.username, baseX: state.baseX, baseY: state.baseY, level: 1, playtimeSeconds: 0, buildings: [], lastSeen: Date.now(), online: true });
+        await set(ref(firebase.db, 'world/' + ACTIVE_HWID), { username: currentUser.username, baseX: state.baseX, baseY: state.baseY, level: 1, playtimeSeconds: 0, buildings: [], lastSeen: Date.now(), online: true });
       } catch(e) {}
     }
     const ms = BUILDINGS.main.size * TILE;
     const mainHp = getMaxHp('main', 1);
-    const mainB = { id: state.nextId++, type: 'main', x: pos.x - ms/2, y: pos.y - ms/2, level: 1, hp: mainHp, maxHp: mainHp };
+    const mainB = { id: state.nextId++, type: 'main', x: pos.x - ms/2, y: pos.y - ms/2, level: 1, hp: mainHp, maxHp: mainHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
     state.buildings.push(mainB); createBuildingEl(mainB, false, currentUser.username);
     const houseHp = getMaxHp('house', 1);
-    const house = { id: state.nextId++, type: 'house', x: pos.x + 2*TILE, y: pos.y - TILE, level: 1, hp: houseHp, maxHp: houseHp };
+    const house = { id: state.nextId++, type: 'house', x: pos.x + 2*TILE, y: pos.y - TILE, level: 1, hp: houseHp, maxHp: houseHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
     state.buildings.push(house); createBuildingEl(house, false, currentUser.username);
     publishEvent('join', `${currentUser.username} joined the realm!`);
     setTimeout(() => saveGame(true), 300);
@@ -3204,21 +3563,23 @@ async function startGame() {
   updateMinimapBuildings();
   renderOnlineList();
   centerCamera();
-
-  // Initial soldier spawn
   respawnSoldiers();
 
   if (firebase) {
     try {
       const { ref, onDisconnect, set } = firebase;
-      await set(ref(firebase.db, 'presence/' + HWID), { username: currentUser.username, online: true, lastSeen: Date.now() });
-      onDisconnect(ref(firebase.db, 'presence/' + HWID)).set({ username: currentUser.username, online: false, lastSeen: Date.now() });
-      onDisconnect(ref(firebase.db, 'world/' + HWID)).set(null);
+      await set(ref(firebase.db, 'presence/' + ACTIVE_HWID), { username: currentUser.username, online: true, lastSeen: Date.now() });
+      onDisconnect(ref(firebase.db, 'presence/' + ACTIVE_HWID)).set({ username: currentUser.username, online: false, lastSeen: Date.now() });
+      onDisconnect(ref(firebase.db, 'world/' + ACTIVE_HWID)).set(null);
+      onDisconnect(ref(firebase.db, 'units/' + ACTIVE_HWID)).set(null);
     } catch(e) {}
     startWorldListener();
     startChatListener();
     startEventsListener();
     startNotificationListener();
+    startUnitsListener();
+    startAttacksListener();
+    startDestroyedListener();
     setupEventFeedToggle();
     setupAttackPopup();
 
@@ -3232,34 +3593,34 @@ async function startGame() {
   }
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0, respawnAccum = 0;
+  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0, respawnAccum = 0, unitsAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     state.playtimeSeconds = (state.playtimeSeconds || 0) + dt;
     updateSoldierUnits(dt);
     updateVillagers(dt);
+    updateLiveAttackWaves(dt);
     constructionTick();
     prodAccum += dt;
     if (prodAccum >= 1) { productionTick(prodAccum); prodAccum = 0; updateUI(); }
     soldierAccum += dt;
-    if (soldierAccum >= 2) { trySpawnSoldiersOld(); trySpawnVillagers(); soldierAccum = 0; }
+    if (soldierAccum >= 2) { trySpawnVillagers(); soldierAccum = 0; }
     respawnAccum += dt;
     if (respawnAccum >= 20) {
-      // Respawn soldiers every 20s if below cap
       const friendlyCount = soldierUnits.filter(s => s.side === 'friendly').length;
-      if (friendlyCount < state.soldiers) {
-        respawnSoldiers();
-      }
+      if (friendlyCount < state.soldiers) respawnSoldiers();
       respawnAccum = 0;
     }
+    unitsAccum += dt;
+    if (unitsAccum >= 0.2) { broadcastMyUnits(); unitsAccum = 0; }
     saveAccum += dt;
     if (saveAccum >= 15) { saveGame(true); saveAccum = 0; }
     worldAccum += dt;
-    if (worldAccum >= 3) {
+    if (worldAccum >= 1) {
       if (firebase) {
         const { ref, set } = firebase;
-        set(ref(firebase.db, 'world/' + HWID), {
+        set(ref(firebase.db, 'world/' + ACTIVE_HWID), {
           username: currentUser.username, baseX: state.baseX, baseY: state.baseY,
           level: state.level,
           playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
@@ -3274,9 +3635,6 @@ async function startGame() {
   requestAnimationFrame(loop);
 
   notify(`Welcome, ${escapeHtml(currentUser.username)}!`, false, true);
-}
-function trySpawnSoldiersOld() {
-  // Legacy - no longer needed, kept for compatibility
 }
 function centerCamera() {
   const rect = mapEl.getBoundingClientRect();
@@ -3306,10 +3664,18 @@ document.getElementById('btnSpeed').onclick = () => {
 document.getElementById('btnLogout').onclick = () => {
   if (confirm("Really log out?")) {
     publishEvent('leave', `${currentUser.username} left the realm.`);
-    saveGame(true).finally(() => {
-      localStorage.removeItem('br_hwid_seed');
+    (async () => {
+      try {
+        if (firebase) {
+          const { ref, set } = firebase;
+          await set(ref(firebase.db, 'units/' + ACTIVE_HWID), null);
+          await set(ref(firebase.db, 'world/' + ACTIVE_HWID), null);
+        }
+        if (window.__BR_auth) await window.__BR_authFns.signOut(window.__BR_auth);
+      } catch(e) {}
+      await saveGame(true);
       location.reload();
-    });
+    })();
   }
 };
 document.getElementById('pbCancel').onclick = () => { cancelPlacing(); notify("Placement cancelled"); };
@@ -3323,6 +3689,12 @@ document.getElementById('chatSend').onclick = sendChat;
 window.addEventListener('beforeunload', () => {
   publishEvent('leave', `${currentUser?.username || 'Unknown'} left the realm.`);
   saveGame(true);
+  if (firebase && ACTIVE_HWID) {
+    try {
+      const { ref, set } = firebase;
+      set(ref(firebase.db, 'units/' + ACTIVE_HWID), null);
+    } catch(e) {}
+  }
 });
 loginBtn.disabled = true;
 </script>
