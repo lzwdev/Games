@@ -126,7 +126,6 @@
   #grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(60,100,60,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(60,100,60,0.10) 1px, transparent 1px); background-size: 48px 48px; }
   .terrain-patch { position: absolute; border-radius: 50%; pointer-events: none; }
 
-  /* Canvas-Layer für Soldaten + Bäume/Steine */
   #gameCanvas {
     position: absolute; top: 0; left: 0;
     pointer-events: none;
@@ -1075,7 +1074,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v22 (Vollständige 100ms-Synchronisation)
+   BUILD A REALM — v23 (FIXED: Soldaten sichtbar + Kämpfe)
    ========================================================= */
 
 const ICONS = {
@@ -1562,7 +1561,7 @@ let lastVillagerSpawn = 0;
 let attackMode = false;
 let eventFeedCollapsed = false;
 let nextSoldierId = 1;
-let activeAttackUpdates = {}; // aid -> interval
+let activeAttackUpdates = {};
 
 /* =========================================================
    CANVAS-SETUP
@@ -2597,7 +2596,6 @@ async function performAttack(b, ownerName, ownerHwid) {
   const targetCX = b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
   const targetCY = b.y + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
 
-  // Erstelle aid
   let aid = null;
   if (firebase) {
     try {
@@ -2779,11 +2777,11 @@ function triggerDefense(attackerX, attackerY) {
 function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding, attackId) {
   const unit = {
     id: nextSoldierId++,
-    x, y, tx, ty,
+    x: x, y: y, tx: tx, ty: ty,
     hp: 100, maxHp: 100,
     speed: 1.8,
-    side,
-    targetBuilding,
+    side: side,
+    targetBuilding: targetBuilding || null,
     fighting: false,
     _duelTimer: 0,
     _hitTimer: 0,
@@ -2859,14 +2857,13 @@ function updateSoldierUnits(dt) {
 
   for (let i = soldierUnits.length - 1; i >= 0; i--) {
     const s = soldierUnits[i];
-    if (s.fighting && s.side === 'friendly' && s._dueling) continue;
+    if (s.fighting && s.side === 'friendly') continue;
 
     const dx = s.tx - s.x, dy = s.ty - s.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 12) {
       s.x += (dx / dist) * s.speed * dt * 60;
       s.y += (dy / dist) * s.speed * dt * 60;
-      s.fighting = false;
     } else {
       if (s.targetBuilding && s.targetBuilding.hp > 0) {
         s.fighting = true;
@@ -2906,7 +2903,6 @@ function updateSoldierUnits(dt) {
 
 function clearSoldierUnits() {
   soldierUnits = [];
-  // Stoppe alle Attack-Updates
   for (const aid in activeAttackUpdates) {
     clearInterval(activeAttackUpdates[aid]);
   }
@@ -2921,10 +2917,10 @@ function respawnSoldiers() {
   if (!mainB) return;
   const size = BUILDINGS.main.size * TILE;
   const cx = mainB.x + size/2;
-  const cy = mainB.y + size + 20;
+  const cy = mainB.y + size/2;
   for (let i = 0; i < needed; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const r = 40 + Math.random() * 60;
+    const r = 60 + Math.random() * 80;
     spawnSoldierUnit(
       cx + Math.cos(angle) * r,
       cy + Math.sin(angle) * r,
@@ -3049,7 +3045,6 @@ function startAttacksListener() {
 
       let wave = liveAttackWaves.find(w => w._aid === id);
       if (!wave) {
-        // Neue Wave — Zielgebäude suchen
         let targetB = null;
         const allB = [...state.buildings];
         for (const hwid in otherPlayerEls) {
@@ -3074,7 +3069,6 @@ function startAttacksListener() {
         }
         spawnAttackWaveFromData(id, a, targetB);
       } else {
-        // Bestehende Wave aktualisieren
         if (a.soldiers && Array.isArray(a.soldiers)) {
           const thisWave = liveAttackWaves.filter(w => w._aid === id);
           a.soldiers.forEach((s, i) => {
@@ -3090,7 +3084,6 @@ function startAttacksListener() {
         }
       }
     }
-    // Aufräumen
     for (let i = liveAttackWaves.length - 1; i >= 0; i--) {
       const w = liveAttackWaves[i];
       if (w._aid && !data[w._aid]) {
@@ -3133,12 +3126,9 @@ function updateLiveAttackWaves(dt) {
       continue;
     }
 
-    // Remote-Attack → zur Server-Position interpolieren
     if (w._aid && w.serverX != null) {
-      // Sanft interpolieren
       w.x += (w.serverX - w.x) * 0.4;
       w.y += (w.serverY - w.y) * 0.4;
-      // Prüfen ob ein eigener Soldat in der Nähe ist → Kampf
       let duelTarget = null;
       for (const s of soldierUnits) {
         if (s.side !== 'friendly') continue;
@@ -3146,11 +3136,9 @@ function updateLiveAttackWaves(dt) {
         if (d < 30) { duelTarget = s; break; }
       }
       if (duelTarget) w.fighting = true;
-      // Gebäude-Angriff läuft auf Server-Seite
       continue;
     }
 
-    // Lokale Logik (sollte nicht mehr vorkommen, aber Fallback)
     let duelTarget = null;
     for (const s of soldierUnits) {
       if (s.side !== 'friendly') continue;
@@ -3304,7 +3292,7 @@ function renderCanvas() {
   const viewY = -state.camY / state.zoom;
   const viewW = rect.width / state.zoom;
   const viewH = rect.height / state.zoom;
-  const pad = 200;
+  const pad = 500;
   const minX = viewX - pad, maxX = viewX + viewW + pad;
   const minY = viewY - pad, maxY = viewY + viewH + pad;
 
@@ -3324,10 +3312,10 @@ function renderCanvas() {
     ctx.drawImage(SPRITE_ROCK, r.x - 12, r.y - 20);
   }
 
-  // Eigene Soldaten
+  // Eigene Soldaten — IMMER alle zeichnen
   for (const s of soldierUnits) {
     if (s.x < minX || s.x > maxX || s.y < minY || s.y > maxY) continue;
-    drawSoldier(s, SPRITE_FRIENDLY);
+    drawSoldier(s, s.side === 'friendly' ? SPRITE_FRIENDLY : SPRITE_ENEMY);
   }
   // Angreifende Soldaten
   for (const w of liveAttackWaves) {
