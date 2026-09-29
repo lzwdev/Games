@@ -1068,7 +1068,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v19 (Schnellerer Sync, sichtbare Kämpfe, Bau-Slots)
+   BUILD A REALM — v20 (Combat-Fixes: Soldaten-Kämpfe, Gebäude-Damage)
    ========================================================= */
 
 const ICONS = {
@@ -2550,12 +2550,13 @@ function performAttack(b, ownerName, ownerHwid) {
     } catch(e) {}
   }
 
-  const dmg = Math.max(1, Math.floor(state.soldiers * 0.6));
+  // Reduce direct damage — most damage now comes from marching soldiers
+  const dmg = Math.max(1, Math.floor(state.soldiers * 0.15));
   b.hp = Math.max(0, (b.hp || 100) - dmg);
   updateBuildingHpVisual(b);
   showFloatText(b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2, b.y, `-${dmg} HP`, '#e53935');
-  notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name} for ${dmg} damage!`, false, false, false, true);
-  publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${BUILDINGS[b.type].name} for ${dmg} damage!`, ownerHwid);
+  notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name}!`, false, false, false, true);
+  publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${BUILDINGS[b.type].name}!`, ownerHwid);
 
   if (ownerHwid && firebase) {
     try {
@@ -2576,10 +2577,6 @@ function performAttack(b, ownerName, ownerHwid) {
   if (b.el) {
     b.el.classList.add('under-attack');
     setTimeout(() => { if (b.el) b.el.classList.remove('under-attack'); }, 2000);
-  }
-
-  if (b.hp <= 0) {
-    destroyBuilding(b, ownerName, ownerHwid, true);
   }
 }
 
@@ -2676,7 +2673,34 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
 }
 
 function updateSoldierUnits(dt) {
-  // Find nearby enemy pairs and let them fight each other
+  // My soldiers attack live attack waves (invaders)
+  for (const s of soldierUnits) {
+    if (s.side !== 'friendly') continue;
+    for (const w of liveAttackWaves) {
+      if (w.done) continue;
+      const d = Math.hypot(s.x - w.x, s.y - w.y);
+      if (d < 30) {
+        s.fighting = true;
+        s.el.classList.add('fighting');
+        w.el.classList.add('fighting');
+        s._duelTimer = (s._duelTimer || 0) + dt;
+        if (s._duelTimer >= 1.0) {
+          s._duelTimer = 0;
+          const dmg = 5 + Math.floor(Math.random() * 6);
+          w.hp -= dmg;
+          if (w.fill) {
+            const pct = Math.max(0, (w.hp / w.maxHp) * 100);
+            w.fill.style.width = pct + '%';
+            w.fill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
+          }
+          showFloatText(w.x, w.y - 25, `-${dmg}`, '#e53935');
+          if (w.hp <= 0) w.done = true;
+        }
+      }
+    }
+  }
+
+  // Find nearby enemy pairs and let them fight each other (also internal enemy units)
   for (let i = 0; i < soldierUnits.length; i++) {
     const a = soldierUnits[i];
     if (a.side !== 'friendly') continue;
@@ -2685,7 +2709,6 @@ function updateSoldierUnits(dt) {
       if (b.side !== 'enemy') continue;
       const d = Math.hypot(a.x - b.x, a.y - b.y);
       if (d < 30) {
-        // Both fight each other
         a.fighting = true; b.fighting = true;
         a.el.classList.add('fighting'); b.el.classList.add('fighting');
         a._duelTimer = (a._duelTimer || 0) + dt;
@@ -2714,7 +2737,6 @@ function updateSoldierUnits(dt) {
   for (let i = soldierUnits.length - 1; i >= 0; i--) {
     const s = soldierUnits[i];
     if (s.fighting && s.side === 'friendly' && s.el.classList.contains('fighting')) {
-      // is dueling - freeze position briefly
       continue;
     }
     const dx = s.tx - s.x, dy = s.ty - s.y;
@@ -2950,15 +2972,38 @@ function startAttacksListener() {
       if (!a || now - (a.ts || 0) > 20000) continue;
       seenAttacks.add(id);
       if (a.attackerHwid === ACTIVE_HWID) continue;
-      spawnAttackWave(a);
+
+      // Find the target building by coords (own or enemy)
+      let targetB = null;
+      const allB = [];
+      state.buildings.forEach(b => allB.push(b));
+      for (const hwid in otherPlayerEls) {
+        const entry = otherPlayerEls[hwid];
+        if (!entry || !entry.buildings) continue;
+        for (const bid in entry.buildings) {
+          allB.push(entry.buildings[bid]);
+        }
+      }
+      let bestDist = Infinity;
+      for (const b of allB) {
+        const def = BUILDINGS[b.type];
+        if (!def) continue;
+        const bs = def.size * TILE;
+        const cx = b.x + bs / 2;
+        const cy = b.y + bs / 2;
+        const d = Math.hypot(cx - a.toX, cy - a.toY);
+        if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
+      }
+
+      spawnAttackWave(a, targetB);
       if (a.targetHwid === ACTIVE_HWID) {
-        showAttackPopup(a.attackerName, 'your base', 0);
+        showAttackPopup(a.attackerName, targetB ? BUILDINGS[targetB.type].name : 'your base', 0);
       }
     }
   });
 }
 
-function spawnAttackWave(a) {
+function spawnAttackWave(a, targetB) {
   const count = Math.min(a.soldierCount || 3, 8);
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');
@@ -2975,7 +3020,10 @@ function spawnAttackWave(a) {
       tx: a.toX + (Math.random()-0.5)*40,
       ty: a.toY + (Math.random()-0.5)*40,
       fill: el.querySelector('.shf'),
-      hp: 100, maxHp: 100, done: false
+      hp: 100, maxHp: 100, done: false,
+      targetBuilding: targetB || null,
+      side: 'enemy',
+      hitTimer: 0
     });
   }
 }
@@ -2993,6 +3041,21 @@ function updateLiveAttackWaves(dt) {
       if (w._removed) liveAttackWaves.splice(i, 1);
       continue;
     }
+
+    // If an own soldier is nearby, fight them (my soldier already handles attack in updateSoldierUnits)
+    // Just stop movement and let the fight play out.
+    let duelTarget = null;
+    for (const s of soldierUnits) {
+      if (s.side !== 'friendly') continue;
+      const d = Math.hypot(s.x - w.x, s.y - w.y);
+      if (d < 30) { duelTarget = s; break; }
+    }
+    if (duelTarget) {
+      w.el.classList.add('fighting');
+      continue;
+    }
+
+    // No defender — march to target
     const dx = w.tx - w.x, dy = w.ty - w.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 15) {
@@ -3001,15 +3064,36 @@ function updateLiveAttackWaves(dt) {
       w.el.style.left = w.x + 'px';
       w.el.style.top = w.y + 'px';
       w.el.style.zIndex = Math.floor(w.y) + 25;
+      w.el.classList.remove('fighting');
     } else {
-      w.el.classList.add('fighting');
-      w.hp -= dt * 25;
-      if (w.fill) {
-        const pct = Math.max(0, (w.hp / w.maxHp) * 100);
-        w.fill.style.width = pct + '%';
-        w.fill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
+      // Arrived — attack target building
+      if (w.targetBuilding && w.targetBuilding.el && w.targetBuilding.hp > 0) {
+        w.el.classList.add('fighting');
+        w.hitTimer = (w.hitTimer || 0) + dt;
+        if (w.hitTimer >= 1.5) {
+          w.hitTimer = 0;
+          const dmg = 5 + Math.floor(Math.random() * 8);
+          w.targetBuilding.hp = Math.max(0, w.targetBuilding.hp - dmg);
+          updateBuildingHpVisual(w.targetBuilding);
+          showFloatText(w.x, w.y - 20, `-${dmg}`, '#e53935');
+          if (w.targetBuilding.el) {
+            w.targetBuilding.el.classList.add('under-attack');
+            setTimeout(() => { if (w.targetBuilding && w.targetBuilding.el) w.targetBuilding.el.classList.remove('under-attack'); }, 400);
+          }
+          if (w.targetBuilding.hp <= 0) {
+            const owner = w.targetBuilding.ownerName || 'Enemy';
+            const ownerHwid = w.targetBuilding.ownerHwid;
+            const tb = w.targetBuilding;
+            w.targetBuilding = null;
+            destroyBuilding(tb, owner, ownerHwid, true);
+          }
+        }
+      } else {
+        // Idle and despawn
+        w.el.classList.remove('fighting');
+        w._idleTimer = (w._idleTimer || 0) + dt;
+        if (w._idleTimer > 5) w.done = true;
       }
-      if (w.hp <= 0) w.done = true;
     }
   }
 }
@@ -3510,7 +3594,6 @@ function updateOtherPlayer(hwid, p) {
   newBuildings.forEach(b => {
     if (typeof b.x !== 'number') return;
     if (entry.buildings[b.id]) {
-      // update existing
       const eb = entry.buildings[b.id];
       if (eb.hp !== b.hp || eb.maxHp !== b.maxHp || eb.level !== b.level) {
         eb.hp = b.hp != null ? b.hp : eb.hp;
@@ -3680,7 +3763,6 @@ async function startGame() {
     saveAccum += dt;
     if (saveAccum >= 15) { saveGame(true); saveAccum = 0; }
     worldAccum += dt;
-    // 0.5s Welt-Update
     if (worldAccum >= 0.5) {
       if (firebase) {
         const { ref, set } = firebase;
