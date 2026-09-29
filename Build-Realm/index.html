@@ -1068,7 +1068,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v18 (Google-Cloud-Fix, Debug-Logs)
+   BUILD A REALM — v19 (Schnellerer Sync, sichtbare Kämpfe, Bau-Slots)
    ========================================================= */
 
 const ICONS = {
@@ -1124,11 +1124,11 @@ const tips = [
   "Tip: Soldiers respawn every 20 seconds",
   "Tip: Repair damaged buildings with Wood + Stone",
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
-  "Tip: Buildings become visibly damaged at low HP",
+  "Tip: Level 5 unlocks a 4th build slot · Level 10 unlocks a 5th",
   "Tip: Attack mode requires soldiers",
   "Tip: Sign in with Google to save your progress across devices",
   "Tip: Houses increase your population cap",
-  "Tip: You can watch other players' soldiers move live"
+  "Tip: You can watch other players' soldiers fight live"
 ];
 const statuses = [
   "Initializing engine…","Loading terrain textures…","Connecting to realm server…",
@@ -1282,7 +1282,7 @@ async function loginWithIdentity(name, identityHwid, email) {
   loginStatus.className = "login-status";
   loginError.textContent = '';
   try {
-    const { ref, get, set, update } = firebase;
+    const { ref, get, set } = firebase;
     for (const h of [identityHwid, LOCAL_HWID]) {
       const banSnap = await get(ref(firebase.db, 'bans/' + h));
       if (banSnap.exists()) {
@@ -1395,7 +1395,6 @@ async function handleAccountStatusCheck() {
   } else if (!ACTIVE_HWID) {
     ACTIVE_HWID = LOCAL_HWID;
   }
-  console.log('[AUTH] ACTIVE_HWID =', ACTIVE_HWID);
   const status = await checkAccountStatus();
   if (status.ban) { showBanPopup(status.ban); return false; }
   if (status.deleted) { showDeletedPopup(); return false; }
@@ -1525,7 +1524,11 @@ function runLoadingScreen() {
    GAME STATE
    ========================================================= */
 const WORLD_SIZE = 60000;
-const MAX_CONCURRENT_BUILDS = 3;
+function getMaxBuilds() {
+  if (state.level >= 10) return 5;
+  if (state.level >= 5) return 4;
+  return 3;
+}
 const state = {
   money: 5000, gold: 500, food: 300, wood: 500, stone: 400,
   population: 5, populationCap: 10, workers: 5, workersNeeded: 0,
@@ -1841,6 +1844,8 @@ function addXP(amount) {
     state.money += 500 * state.level;
     state.gold += 50 * state.level;
     notify(`🎉 Level Up! You are now Level ${state.level}!`, false, true);
+    if (state.level === 5) notify(`🏗️ 4th build slot unlocked!`, false, true);
+    if (state.level === 10) notify(`🏗️ 5th build slot unlocked!`, false, true);
     if (currentUser) publishEvent('info', `${currentUser.username} reached Level ${state.level}!`);
   }
   updateUI();
@@ -1865,19 +1870,12 @@ function recalc() {
   state.happiness = Math.min(100, 60 + happy);
   state.defensePower = defense;
   if (state.population > state.populationCap) state.population = state.populationCap;
-  // WICHTIG: workers bezieht sich nur auf population (Soldaten sind separat)
   state.workers = Math.max(0, Math.min(state.workersNeeded, state.population));
   if (state.soldiers > state.soldierCap) state.soldiers = state.soldierCap;
 }
 
 function productionTick(dt) {
-  if (!state.buildings.length) {
-    if (!window.__lastProdLog || Date.now() - window.__lastProdLog > 10000) {
-      window.__lastProdLog = Date.now();
-      console.log('[PROD] No buildings in state');
-    }
-    return;
-  }
+  if (!state.buildings.length) return;
   dt = dt || 1;
   let globalMult = 1;
   state.buildings.forEach(b => {
@@ -1903,13 +1901,6 @@ function productionTick(dt) {
   state.stone += Math.floor(prod.stone);
   const tax = Math.floor((state.population * 1.4 + state.buildings.length * 0.9) * dt * (state.happiness/100));
   state.money += tax;
-
-  // Debug-Log alle 10s
-  if (!window.__lastProdLog || Date.now() - window.__lastProdLog > 10000) {
-    window.__lastProdLog = Date.now();
-    const active = state.buildings.filter(b => !b.construction).length;
-    console.log('[PROD] Active:', active, 'Workers:', state.workers + '/' + state.workersNeeded, 'Ratio:', workerRatio.toFixed(2), 'Wood +' + Math.floor(prod.wood), 'Stone +' + Math.floor(prod.stone), 'Wood total:', state.wood, 'Stone total:', state.stone);
-  }
 
   if (state.population < state.populationCap && state.food > state.population * 3) {
     const growthChance = 0.35 * dt * (state.happiness / 100);
@@ -2064,7 +2055,7 @@ function screenToWorld(clientX, clientY) {
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) { notify(`Requires Level ${def.unlockLevel}`, true); return; }
-  if (countActiveBuilds() >= MAX_CONCURRENT_BUILDS) { notify(`Too many builders working!`, true); return; }
+  if (countActiveBuilds() >= getMaxBuilds()) { notify(`Too many builders working! (Max ${getMaxBuilds()})`, true); return; }
   state.placing = type;
   ghost.style.display = 'block';
   mapEl.classList.add('placing');
@@ -2118,7 +2109,7 @@ function placeBuilding(e) {
   const w = screenToWorld(e.clientX, e.clientY);
   const size = def.size * TILE;
   const x = w.x - size / 2, y = w.y - size / 2;
-  if (countActiveBuilds() >= MAX_CONCURRENT_BUILDS) { notify(`Too many builders working!`, true); cancelPlacing(); return; }
+  if (countActiveBuilds() >= getMaxBuilds()) { notify(`Too many builders working! (Max ${getMaxBuilds()})`, true); cancelPlacing(); return; }
   if (checkPlacementCollision(x, y, size)) { notify("Space is occupied!", true); return; }
   const moneyCost = getCost(state.placing, 0);
   const resCost = getResourceCost(state.placing, 0);
@@ -2384,7 +2375,7 @@ document.getElementById('dpClose').onclick = hideDetailPanel;
 function startUpgrade(b) {
   const def = BUILDINGS[b.type];
   if (b.level >= def.maxLevel) return;
-  if (countActiveBuilds() >= MAX_CONCURRENT_BUILDS) { notify(`Too many builders working!`, true); return; }
+  if (countActiveBuilds() >= getMaxBuilds()) { notify(`Too many builders working! (Max ${getMaxBuilds()})`, true); return; }
   const cost = getUpgradeCost(b);
   const resCost = getResourceCost(b.type, b.level);
   if (state.money < cost) { notify("Not enough money!", true); return; }
@@ -2679,14 +2670,53 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
   el.style.top = y + 'px';
   el.style.zIndex = Math.floor(y) + 25;
   worldEl.appendChild(el);
-  const unit = { x, y, tx, ty, el, hp: 100, maxHp: 100, speed: 1.8, side, targetBuilding, fighting: false, hpFill: el.querySelector('.shf') };
+  const unit = { x, y, tx, ty, el, hp: 100, maxHp: 100, speed: 1.8, side, targetBuilding, fighting: false, hpFill: el.querySelector('.shf'), targetEnemy: null };
   soldierUnits.push(unit);
   return unit;
 }
 
 function updateSoldierUnits(dt) {
+  // Find nearby enemy pairs and let them fight each other
+  for (let i = 0; i < soldierUnits.length; i++) {
+    const a = soldierUnits[i];
+    if (a.side !== 'friendly') continue;
+    for (let j = 0; j < soldierUnits.length; j++) {
+      const b = soldierUnits[j];
+      if (b.side !== 'enemy') continue;
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < 30) {
+        // Both fight each other
+        a.fighting = true; b.fighting = true;
+        a.el.classList.add('fighting'); b.el.classList.add('fighting');
+        a._duelTimer = (a._duelTimer || 0) + dt;
+        if (a._duelTimer >= 1.0) {
+          a._duelTimer = 0;
+          const dmg = 5 + Math.floor(Math.random() * 6);
+          b.hp -= dmg;
+          if (b.hpFill) {
+            const pct = Math.max(0, (b.hp / b.maxHp) * 100);
+            b.hpFill.style.width = pct + '%';
+            b.hpFill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
+          }
+          showFloatText(b.x, b.y - 25, `-${dmg}`, '#e53935');
+          if (b.hp <= 0) {
+            b.el.style.transition = 'opacity 0.4s';
+            b.el.style.opacity = '0';
+            setTimeout(() => b.el.remove(), 400);
+            soldierUnits.splice(j, 1);
+            j--;
+          }
+        }
+      }
+    }
+  }
+
   for (let i = soldierUnits.length - 1; i >= 0; i--) {
     const s = soldierUnits[i];
+    if (s.fighting && s.side === 'friendly' && s.el.classList.contains('fighting')) {
+      // is dueling - freeze position briefly
+      continue;
+    }
     const dx = s.tx - s.x, dy = s.ty - s.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 12) {
@@ -3215,12 +3245,14 @@ function updateUI() {
   const workerRatio = state.workersNeeded > 0 ? Math.round(state.workers/state.workersNeeded*100) : 100;
   const workerClass = workerRatio >= 80 ? 'good' : workerRatio >= 40 ? '' : 'bad';
   const constructing = countActiveBuilds();
+  const maxB = getMaxBuilds();
   statsBody.innerHTML = `
     <div class="sp-row"><span>Level</span><span class="v">${state.level}</span></div>
     <div class="sp-row"><span>XP</span><span class="v">${Math.floor(state.xp)} / ${state.xpNeeded}</span></div>
     <div class="sp-row"><span>Playtime</span><span class="v">${formatPlaytime(state.playtimeSeconds || 0)}</span></div>
     <div class="sp-row"><span>Buildings</span><span class="v">${state.buildings.length}</span></div>
-    <div class="sp-row"><span>Under construction</span><span class="v ${constructing >= MAX_CONCURRENT_BUILDS ? 'bad' : ''}">${constructing}/${MAX_CONCURRENT_BUILDS}</span></div>
+    <div class="sp-row"><span>Build slots</span><span class="v">${maxB}${maxB < 5 ? ` (next: Lv.${maxB === 3 ? 5 : 10})` : ''}</span></div>
+    <div class="sp-row"><span>Under construction</span><span class="v ${constructing >= maxB ? 'bad' : ''}">${constructing}/${maxB}</span></div>
     <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
     <div class="sp-row"><span>Happiness</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
     <div class="sp-row"><span>Defense</span><span class="v">${state.defensePower || 0}</span></div>
@@ -3406,27 +3438,21 @@ async function saveGame(silent) {
       lastSeen: Date.now(), online: true
     });
     document.getElementById('syncBadge').classList.remove('saving');
-    console.log('[SAVE] Saved', state.buildings.length, 'buildings to saves/' + ACTIVE_HWID);
-  } catch (e) { console.error('[SAVE] Error:', e); }
+  } catch (e) { console.error(e); }
 }
 async function loadSave() {
-  if (!currentUser || !firebase) { console.log('[LOAD] No user or firebase'); return false; }
+  if (!currentUser || !firebase) return false;
   try {
     const { ref, get, remove } = firebase;
-    const path = 'saves/' + ACTIVE_HWID;
-    console.log('[LOAD] Reading from', path);
-    const snap = await get(ref(firebase.db, path));
-    if (!snap.exists()) { console.log('[LOAD] No save at', path); return false; }
+    const snap = await get(ref(firebase.db, 'saves/' + ACTIVE_HWID));
+    if (!snap.exists()) return false;
     const data = snap.val();
-    if (!data) { console.log('[LOAD] Empty data at', path); return false; }
+    if (!data) return false;
     const sb = data.buildings || {};
     const list = Array.isArray(sb) ? sb : Object.values(sb || {});
     const valid = list.filter(b => b && b.type && typeof b.x === 'number');
-    console.log('[LOAD] Found', valid.length, 'valid buildings');
     if (valid.length === 0) {
-      // Empty save — delete so we start fresh
-      console.log('[LOAD] Empty save, deleting so we can start fresh');
-      try { await remove(ref(firebase.db, path)); } catch(e) {}
+      try { await remove(ref(firebase.db, 'saves/' + ACTIVE_HWID)); } catch(e) {}
       return false;
     }
     ['money','gold','food','wood','stone','population','populationCap','workers','workersNeeded','soldiers','soldierCap','happiness','level','xp','xpNeeded','nextId','lastTick','baseX','baseY'].forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
@@ -3441,9 +3467,8 @@ async function loadSave() {
       state.buildings.push(nb);
     });
     state.nextId = Math.max(1, ...state.buildings.map(b => b.id || 0)) + 1;
-    console.log('[LOAD] Loaded', state.buildings.length, 'buildings. Wood:', state.wood, 'Stone:', state.stone);
     return true;
-  } catch(e) { console.error('[LOAD] Error:', e); return false; }
+  } catch(e) { return false; }
 }
 
 /* MULTIPLAYER */
@@ -3485,9 +3510,14 @@ function updateOtherPlayer(hwid, p) {
   newBuildings.forEach(b => {
     if (typeof b.x !== 'number') return;
     if (entry.buildings[b.id]) {
-      entry.buildings[b.id].hp = b.hp != null ? b.hp : entry.buildings[b.id].hp;
-      entry.buildings[b.id].maxHp = b.maxHp != null ? b.maxHp : entry.buildings[b.id].maxHp;
-      updateBuildingHpVisual(entry.buildings[b.id]);
+      // update existing
+      const eb = entry.buildings[b.id];
+      if (eb.hp !== b.hp || eb.maxHp !== b.maxHp || eb.level !== b.level) {
+        eb.hp = b.hp != null ? b.hp : eb.hp;
+        eb.maxHp = b.maxHp != null ? b.maxHp : eb.maxHp;
+        eb.level = b.level || eb.level;
+        updateBuildingHpVisual(eb);
+      }
     } else {
       const def = BUILDINGS[b.type];
       if (!def) return;
@@ -3536,7 +3566,6 @@ async function startGame() {
   if (gameStarted) return;
   gameStarted = true;
 
-  console.log('[START] Starting game. ACTIVE_HWID =', ACTIVE_HWID, 'User =', currentUser.username);
   document.getElementById('userChipName').textContent = currentUser.username;
   if (!state.playtimeSeconds) state.playtimeSeconds = 0;
   buildTerrain();
@@ -3560,7 +3589,6 @@ async function startGame() {
 
   const loaded = await loadSave();
   if (!loaded) {
-    console.log('[START] No save loaded, creating new game');
     const pos = pickBasePosition();
     state.baseX = pos.x; state.baseY = pos.y;
     if (firebase) {
@@ -3577,12 +3605,9 @@ async function startGame() {
     const house = { id: state.nextId++, type: 'house', x: pos.x + 2*TILE, y: pos.y - TILE, level: 1, hp: houseHp, maxHp: houseHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
     state.buildings.push(house); createBuildingEl(house, false, currentUser.username);
     publishEvent('join', `${currentUser.username} joined the realm!`);
-    // Save immediately (no 300ms delay)
     recalc();
     await saveGame(true);
-    console.log('[START] Created new game with', state.buildings.length, 'buildings');
   } else {
-    console.log('[START] Loaded existing save with', state.buildings.length, 'buildings');
     publishEvent('join', `${currentUser.username} joined the realm!`);
   }
 
@@ -3602,8 +3627,6 @@ async function startGame() {
   renderOnlineList();
   centerCamera();
   respawnSoldiers();
-
-  console.log('[START] After recalc: workers =', state.workers, '/', state.workersNeeded, 'wood =', state.wood, 'stone =', state.stone);
 
   if (firebase) {
     try {
@@ -3657,7 +3680,8 @@ async function startGame() {
     saveAccum += dt;
     if (saveAccum >= 15) { saveGame(true); saveAccum = 0; }
     worldAccum += dt;
-    if (worldAccum >= 1) {
+    // 0.5s Welt-Update
+    if (worldAccum >= 0.5) {
       if (firebase) {
         const { ref, set } = firebase;
         set(ref(firebase.db, 'world/' + ACTIVE_HWID), {
