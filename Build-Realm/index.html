@@ -1069,7 +1069,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v16 (Google Login, Live Multiplayer Visuals, Combat)
+   BUILD A REALM — v17 (Google-Account-Fix für Produktion)
    ========================================================= */
 
 const ICONS = {
@@ -1182,7 +1182,7 @@ function generateHWID() {
 }
 
 const LOCAL_HWID = generateHWID();
-let ACTIVE_HWID = LOCAL_HWID;   // mutable: set to google UID after Google login
+let ACTIVE_HWID = LOCAL_HWID;
 
 let currentUser = null;
 let firebase = null;
@@ -1210,6 +1210,31 @@ whenFirebaseReady(() => {
   loginStatus.textContent = "Connected ✓";
   loginStatus.className = "login-status ok";
   checkExistingUser();
+
+  // React to auth state changes (e.g. after reload with an active Google session)
+  const auth = window.__BR_auth;
+  if (auth && window.__BR_authFns && window.__BR_authFns.onAuthStateChanged) {
+    window.__BR_authFns.onAuthStateChanged(auth, async (user) => {
+      if (user && user.uid) {
+        const googleHwid = 'GOOGLE-' + user.uid.slice(0, 32);
+        try {
+          const { ref, get } = firebase;
+          const snap = await get(ref(firebase.db, 'users_by_hwid/' + googleHwid));
+          if (snap.exists()) {
+            const data = snap.val();
+            ACTIVE_HWID = googleHwid;
+            currentUser = { username: data.username, hwid: googleHwid };
+            loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>! (Google)<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
+            const cl = document.getElementById('continueLink');
+            if (cl) cl.onclick = async () => {
+              ACTIVE_HWID = googleHwid;
+              await handleAccountStatusCheck();
+            };
+          }
+        } catch(e) {}
+      }
+    });
+  }
 });
 function sanitizeUsername(n) { return String(n).trim().replace(/\s+/g,' ').slice(0,20); }
 function usernameKey(n) { return n.toLowerCase().replace(/[.#$\[\]\/]/g,'_'); }
@@ -1308,9 +1333,13 @@ async function checkExistingUser() {
       const snap = await get(ref(firebase.db, 'users_by_hwid/' + googleHwid));
       if (snap.exists()) {
         const data = snap.val();
+        ACTIVE_HWID = googleHwid;
         currentUser = { username: data.username, hwid: googleHwid };
         loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>! (Google)<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
-        document.getElementById('continueLink').onclick = async () => { await handleAccountStatusCheck(); };
+        document.getElementById('continueLink').onclick = async () => {
+          ACTIVE_HWID = googleHwid;
+          await handleAccountStatusCheck();
+        };
         return;
       }
     }
@@ -1318,9 +1347,13 @@ async function checkExistingUser() {
     const snap = await get(ref(firebase.db, 'users_by_hwid/' + LOCAL_HWID));
     if (snap.exists()) {
       const data = snap.val();
+      ACTIVE_HWID = LOCAL_HWID;
       currentUser = { username: data.username, hwid: LOCAL_HWID };
       loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>!<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
-      document.getElementById('continueLink').onclick = async () => { await handleAccountStatusCheck(); };
+      document.getElementById('continueLink').onclick = async () => {
+        ACTIVE_HWID = LOCAL_HWID;
+        await handleAccountStatusCheck();
+      };
       usernameInput.value = data.username;
       usernameInput.dispatchEvent(new Event('input'));
     }
@@ -1362,6 +1395,13 @@ async function checkAccountStatus() {
 }
 
 async function handleAccountStatusCheck() {
+  // Ensure ACTIVE_HWID is set correctly based on active Google session
+  const auth = window.__BR_auth;
+  if (auth && auth.currentUser && auth.currentUser.uid) {
+    ACTIVE_HWID = 'GOOGLE-' + auth.currentUser.uid.slice(0, 32);
+  } else if (!ACTIVE_HWID) {
+    ACTIVE_HWID = LOCAL_HWID;
+  }
   const status = await checkAccountStatus();
   if (status.ban) { showBanPopup(status.ban); return false; }
   if (status.deleted) { showDeletedPopup(); return false; }
@@ -1512,13 +1552,12 @@ const TILE = 48;
 let saveTimeout = null;
 let otherPlayers = {};
 let otherPlayerEls = {};
-let soldierUnits = [];        // my own army units
-let villagerUnits = [];       // my own villagers
-let activeAttackWaves = [];   // live attack visuals (all players)
+let soldierUnits = [];
+let villagerUnits = [];
+let liveAttackWaves = [];
 let lastVillagerSpawn = 0;
 let attackMode = false;
 let eventFeedCollapsed = false;
-const SOLDIER_RESPAWN_INTERVAL = 20000;
 
 /* BUILDINGS */
 const BUILDINGS = {
@@ -2494,7 +2533,6 @@ function performAttack(b, ownerName, ownerHwid) {
     );
   }
 
-  // Broadcast the attack globally so everyone sees it
   if (firebase) {
     try {
       const { ref, push, set } = firebase;
@@ -2548,10 +2586,9 @@ function performAttack(b, ownerName, ownerHwid) {
 
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   const def = BUILDINGS[b.type];
-  const iAmOwner = (b.ownerHwid === ACTIVE_HWID) || (!b.isEnemy && b.type !== 'main' && state.buildings.includes(b));
-  const iAmAttacker = (b.ownerHwid && b.ownerHwid !== ACTIVE_HWID);
+  const iAmOwner = (!b.isEnemy && state.buildings.includes(b));
+  const iAmAttacker = b.isEnemy;
 
-  // Visual collapse animation
   if (b.el) {
     b.el.style.transition = 'opacity 0.8s, transform 0.8s';
     b.el.style.opacity = '0';
@@ -2561,39 +2598,30 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   }
   if (b._builders) b._builders.forEach(el => el.remove());
 
-  // Main building destroyed -> 50% money stolen, transferred to attacker
   if (b.type === 'main' && iAmOwner) {
     const stolen = Math.floor(state.money * 0.5);
     state.money -= stolen;
     notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (50%) to the attacker.`, true);
     publishEvent('attack', `${ownerName} destroyed ${currentUser.username}'s Main Building and stole ${stolen} money!`, ownerHwid);
-    // Send money to attacker via Firebase
     if (ownerHwid && firebase) {
-      try {
-        const { ref, runTransaction } = firebase;
-        // We use update with a transaction-like approach: read current money, add stolen
-        const { get, update } = firebase;
-        (async () => {
-          try {
-            const snap = await get(ref(firebase.db, 'saves/' + ownerHwid));
-            if (snap.exists()) {
-              const theirData = snap.val();
-              const theirMoney = (theirData.money || 0) + stolen;
-              await update(ref(firebase.db, 'saves/' + ownerHwid), { money: theirMoney });
-            }
-          } catch(e) {}
-        })();
-      } catch(e) {}
+      (async () => {
+        try {
+          const { ref, get, update } = firebase;
+          const snap = await get(ref(firebase.db, 'saves/' + ownerHwid));
+          if (snap.exists()) {
+            const theirData = snap.val();
+            const theirMoney = (theirData.money || 0) + stolen;
+            await update(ref(firebase.db, 'saves/' + ownerHwid), { money: theirMoney });
+          }
+        } catch(e) {}
+      })();
     }
   } else if (iAmOwner) {
     notify(`💀 Your ${def.name} was destroyed!`, true);
   } else if (iAmAttacker) {
     notify(`💥 Destroyed ${ownerName}'s ${def.name}!`, false, true);
-  } else {
-    notify(`💥 ${ownerName}'s ${def.name} was destroyed!`, false, false, false, true);
   }
 
-  // Broadcast destruction
   if (firebase) {
     try {
       const { ref, push, set } = firebase;
@@ -2634,7 +2662,6 @@ function triggerDefense(attackerX, attackerY) {
   notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
 }
 
-/* Soldier Units (my own) */
 function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
   const el = document.createElement('div');
   el.className = 'soldier-unit ' + (side === 'friendly' ? 'friendly' : 'enemy');
@@ -2731,9 +2758,6 @@ function respawnSoldiers() {
 /* =========================================================
    LIVE MULTIPLAYER VISUALS
    ========================================================= */
-
-/* --- My units broadcast --- */
-let unitsBroadcastAccum = 0;
 function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
@@ -2766,7 +2790,6 @@ function broadcastMyUnits() {
   } catch(e) {}
 }
 
-/* --- Remote units listener --- */
 let remoteUnitsEls = {};
 function startUnitsListener() {
   if (!firebase) return;
@@ -2796,7 +2819,6 @@ function renderRemoteUnits(hwid, u) {
   }
   const entry = remoteUnitsEls[hwid];
 
-  // Soldiers
   const sArr = u.soldiers || [];
   while (entry.soldiers.length < sArr.length) {
     const el = document.createElement('div');
@@ -2824,7 +2846,6 @@ function renderRemoteUnits(hwid, u) {
     }
   });
 
-  // Villagers
   const vArr = u.villagers || [];
   while (entry.villagers.length < vArr.length) {
     const el = document.createElement('div');
@@ -2846,7 +2867,6 @@ function renderRemoteUnits(hwid, u) {
     el.style.zIndex = Math.floor(vd.y) + 4;
   });
 
-  // Builders (remote construction workers)
   const bArr = u.builders || [];
   while (entry.builders.length < bArr.length) {
     const el = document.createElement('div');
@@ -2879,8 +2899,6 @@ function clearRemoteUnits(hwid) {
   delete remoteUnitsEls[hwid];
 }
 
-/* --- Live attack waves (visible to everyone) --- */
-let liveAttackWaves = [];
 function startAttacksListener() {
   if (!firebase) return;
   const { ref, onValue } = firebase;
@@ -2893,7 +2911,6 @@ function startAttacksListener() {
       const a = data[id];
       if (!a || now - (a.ts || 0) > 20000) continue;
       seenAttacks.add(id);
-      // Skip if I'm the attacker (I already spawned my own soldiers)
       if (a.attackerHwid === ACTIVE_HWID) continue;
       spawnAttackWave(a);
       if (a.targetHwid === ACTIVE_HWID) {
@@ -2959,7 +2976,6 @@ function updateLiveAttackWaves(dt) {
   }
 }
 
-/* --- Live destruction explosions (visible to everyone) --- */
 function startDestroyedListener() {
   if (!firebase) return;
   const { ref, onValue } = firebase;
@@ -3160,9 +3176,7 @@ function showAttackPopup(attackerName, buildingName, damage) {
 function setupAttackPopup() {
   document.getElementById('apDefendBtn').onclick = () => {
     document.getElementById('attackPopup').classList.remove('show');
-    // Find the most recent attack on me to get attacker position
     let ax = null, ay = null;
-    // Use the closest other player's base or my base area
     const myMain = state.buildings.find(b => b.type === 'main');
     if (myMain) {
       const size = BUILDINGS.main.size * TILE;
