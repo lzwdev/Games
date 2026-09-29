@@ -1075,7 +1075,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v21 (Hybrid Canvas + FPS/Ping)
+   BUILD A REALM — v22 (Vollständige 100ms-Synchronisation)
    ========================================================= */
 
 const ICONS = {
@@ -1555,12 +1555,14 @@ const TILE = 48;
 let saveTimeout = null;
 let otherPlayers = {};
 let otherPlayerEls = {};
-let soldierUnits = [];      // jetzt nur noch logische Objekte, KEIN DOM
-let villagerUnits = [];     // bleiben DOM
-let liveAttackWaves = [];   // jetzt nur noch logische Objekte, KEIN DOM
+let soldierUnits = [];
+let villagerUnits = [];
+let liveAttackWaves = [];
 let lastVillagerSpawn = 0;
 let attackMode = false;
 let eventFeedCollapsed = false;
+let nextSoldierId = 1;
+let activeAttackUpdates = {}; // aid -> interval
 
 /* =========================================================
    CANVAS-SETUP
@@ -1581,11 +1583,9 @@ function makeSoldierSprite(color) {
   const armorColor = color || '#2f6fd0';
   const darker = color === '#c62828' ? '#7f0000' : '#1a3a6e';
 
-  // Beine
   cx.fillStyle = darker;
   cx.fillRect(6, 23, 5, 8);
   cx.fillRect(15, 23, 5, 8);
-  // Körper
   cx.fillStyle = armorColor;
   cx.beginPath();
   cx.moveTo(5, 12);
@@ -1595,15 +1595,12 @@ function makeSoldierSprite(color) {
   cx.closePath();
   cx.fill();
   cx.strokeStyle = darker; cx.lineWidth = 1; cx.stroke();
-  // Brustplatte
   cx.beginPath();
   cx.moveTo(8, 13); cx.lineTo(13, 16); cx.lineTo(18, 13);
   cx.strokeStyle = darker; cx.lineWidth = 1; cx.stroke();
-  // Schulterpolster
   cx.fillStyle = darker;
   cx.beginPath(); cx.ellipse(5, 14, 3, 2.5, 0, 0, Math.PI * 2); cx.fill();
   cx.beginPath(); cx.ellipse(21, 14, 3, 2.5, 0, 0, Math.PI * 2); cx.fill();
-  // Helm
   cx.fillStyle = armorColor;
   cx.beginPath();
   cx.moveTo(6, 8);
@@ -1613,19 +1610,15 @@ function makeSoldierSprite(color) {
   cx.closePath();
   cx.fill();
   cx.strokeStyle = darker; cx.lineWidth = 1; cx.stroke();
-  // Visier
   cx.fillStyle = '#1a1a1a';
   cx.fillRect(10, 8, 6, 2);
-  // Gesicht
   cx.fillStyle = '#e0ac69';
   cx.beginPath(); cx.arc(13, 10, 2.2, 0, Math.PI * 2); cx.fill();
-  // Schild
   cx.fillStyle = '#c9a84c';
   cx.beginPath(); cx.ellipse(6, 19, 3.5, 4.5, 0, 0, Math.PI * 2); cx.fill();
   cx.strokeStyle = '#7a5c10'; cx.lineWidth = 1; cx.stroke();
   cx.fillStyle = '#8d6e63';
   cx.beginPath(); cx.ellipse(6, 19, 1.6, 2.2, 0, 0, Math.PI * 2); cx.fill();
-  // Schwert
   cx.fillStyle = '#e0e0e0';
   cx.fillRect(20, 10, 2.2, 8);
   cx.beginPath(); cx.moveTo(20, 10); cx.lineTo(22.2, 10); cx.lineTo(21.1, 7); cx.closePath(); cx.fill();
@@ -1720,7 +1713,6 @@ function buildTerrain() {
     p.style.opacity = 0.18 + Math.random()*0.25;
     worldEl.appendChild(p);
   }
-  // Bäume als Canvas-Daten
   canvasTrees = [];
   for (let i = 0; i < 1500; i++) {
     canvasTrees.push({
@@ -1728,7 +1720,6 @@ function buildTerrain() {
       y: Math.random() * WORLD_SIZE
     });
   }
-  // Steine als Canvas-Daten
   canvasRocks = [];
   for (let i = 0; i < 600; i++) {
     canvasRocks.push({
@@ -2559,7 +2550,7 @@ function sellBuilding(b) {
 }
 
 /* =========================================================
-   COMBAT — Soldaten sind jetzt NUR logische Objekte (Canvas)
+   COMBAT
    ========================================================= */
 function toggleAttackMode() {
   if (state.soldiers < 1) {
@@ -2598,7 +2589,7 @@ function tryAttack(e) {
   notify("No enemy building there", true);
 }
 
-function performAttack(b, ownerName, ownerHwid) {
+async function performAttack(b, ownerName, ownerHwid) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
   const mainB = state.buildings.find(x => x.type === 'main');
   const startX = mainB ? mainB.x + BUILDINGS.main.size * TILE / 2 : state.baseX;
@@ -2606,30 +2597,47 @@ function performAttack(b, ownerName, ownerHwid) {
   const targetCX = b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
   const targetCY = b.y + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
 
+  // Erstelle aid
+  let aid = null;
+  if (firebase) {
+    try {
+      const { ref, push } = firebase;
+      aid = push(ref(firebase.db, 'attacks')).key;
+    } catch(e) {}
+  }
+
   const attackCount = Math.min(state.soldiers, 8);
   for (let i = 0; i < attackCount; i++) {
     spawnSoldierUnit(
       startX + (Math.random() - 0.5) * 80,
       startY + (Math.random() - 0.5) * 80,
-      targetCX, targetCY, 'friendly', b
+      targetCX, targetCY, 'friendly', b, aid
     );
   }
 
-  if (firebase) {
+  if (firebase && aid) {
     try {
-      const { ref, push, set } = firebase;
-      const aid = push(ref(firebase.db, 'attacks')).key;
-      set(ref(firebase.db, 'attacks/' + aid), {
+      const { ref, set } = firebase;
+      const attackSoldiers = soldierUnits.filter(s => s._attackId === aid).map(s => ({
+        id: s.id, x: Math.round(s.x), y: Math.round(s.y),
+        tx: Math.round(s.tx), ty: Math.round(s.ty),
+        hp: s.hp, maxHp: s.maxHp, fighting: false
+      }));
+      await set(ref(firebase.db, 'attacks/' + aid), {
+        id: aid,
         attackerHwid: ACTIVE_HWID,
         attackerName: currentUser.username,
         targetHwid: ownerHwid || 'unknown',
         targetName: ownerName,
+        targetBuildingId: b.id,
         fromX: startX, fromY: startY,
         toX: targetCX, toY: targetCY,
         soldierCount: attackCount,
+        soldiers: attackSoldiers,
         ts: Date.now()
       });
-      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 30000);
+      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 60000);
+      startAttackStateUpdate(aid, ownerHwid);
     } catch(e) {}
   }
 
@@ -2651,6 +2659,7 @@ function performAttack(b, ownerName, ownerHwid) {
         damage: dmg,
         buildingX: b.x,
         buildingY: b.y,
+        attackId: aid,
         ts: Date.now()
       });
     } catch(e) {}
@@ -2660,6 +2669,33 @@ function performAttack(b, ownerName, ownerHwid) {
     b.el.classList.add('under-attack');
     setTimeout(() => { if (b.el) b.el.classList.remove('under-attack'); }, 2000);
   }
+}
+
+function startAttackStateUpdate(aid, targetHwid) {
+  if (activeAttackUpdates[aid]) return;
+  activeAttackUpdates[aid] = setInterval(() => {
+    if (!firebase) return;
+    const { ref, update } = firebase;
+    const attackSoldiers = soldierUnits.filter(s => s.side === 'friendly' && s._attackId === aid).map(s => ({
+      id: s.id,
+      x: Math.round(s.x), y: Math.round(s.y),
+      tx: Math.round(s.tx), ty: Math.round(s.ty),
+      hp: Math.round(s.hp), maxHp: s.maxHp,
+      fighting: !!s.fighting
+    }));
+    if (attackSoldiers.length === 0) {
+      try { update(ref(firebase.db, 'attacks/' + aid), { done: true, soldiers: [] }); } catch(e) {}
+      clearInterval(activeAttackUpdates[aid]);
+      delete activeAttackUpdates[aid];
+      return;
+    }
+    try {
+      update(ref(firebase.db, 'attacks/' + aid), {
+        soldiers: attackSoldiers,
+        ts: Date.now()
+      });
+    } catch(e) {}
+  }, 100);
 }
 
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
@@ -2740,9 +2776,9 @@ function triggerDefense(attackerX, attackerY) {
   notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
 }
 
-// Soldat = nur noch logisches Objekt (kein DOM)
-function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
+function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding, attackId) {
   const unit = {
+    id: nextSoldierId++,
     x, y, tx, ty,
     hp: 100, maxHp: 100,
     speed: 1.8,
@@ -2751,10 +2787,23 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
     fighting: false,
     _duelTimer: 0,
     _hitTimer: 0,
-    _idle: 0
+    _idle: 0,
+    _attackId: attackId || null
   };
   soldierUnits.push(unit);
   return unit;
+}
+
+function broadcastSoldierDeath(x, y, side) {
+  if (!firebase || !currentUser) return;
+  try {
+    const { ref, push } = firebase;
+    push(ref(firebase.db, 'soldierDeaths'), {
+      x: Math.round(x), y: Math.round(y),
+      side: side,
+      ts: Date.now()
+    });
+  } catch(e) {}
 }
 
 function updateSoldierUnits(dt) {
@@ -2773,13 +2822,16 @@ function updateSoldierUnits(dt) {
           const dmg = 5 + Math.floor(Math.random() * 6);
           w.hp -= dmg;
           showFloatText(w.x, w.y - 25, `-${dmg}`, '#e53935');
-          if (w.hp <= 0) w.done = true;
+          if (w.hp <= 0) {
+            w.done = true;
+            broadcastSoldierDeath(w.x, w.y, 'enemy');
+          }
         }
       }
     }
   }
 
-  // Friendly vs enemy (internal soldiers)
+  // Friendly vs enemy
   for (let i = 0; i < soldierUnits.length; i++) {
     const a = soldierUnits[i];
     if (a.side !== 'friendly') continue;
@@ -2796,6 +2848,7 @@ function updateSoldierUnits(dt) {
           b.hp -= dmg;
           showFloatText(b.x, b.y - 25, `-${dmg}`, '#e53935');
           if (b.hp <= 0) {
+            broadcastSoldierDeath(b.x, b.y, 'enemy');
             soldierUnits.splice(j, 1);
             j--;
           }
@@ -2853,6 +2906,11 @@ function updateSoldierUnits(dt) {
 
 function clearSoldierUnits() {
   soldierUnits = [];
+  // Stoppe alle Attack-Updates
+  for (const aid in activeAttackUpdates) {
+    clearInterval(activeAttackUpdates[aid]);
+  }
+  activeAttackUpdates = {};
 }
 
 function respawnSoldiers() {
@@ -2885,6 +2943,7 @@ function broadcastMyUnits() {
   try {
     const { ref, set } = firebase;
     const mySoldiers = soldierUnits.filter(s => s.side === 'friendly').map(s => ({
+      id: s.id,
       x: Math.round(s.x), y: Math.round(s.y),
       tx: Math.round(s.tx), ty: Math.round(s.ty),
       hp: Math.round(s.hp), maxHp: s.maxHp,
@@ -2934,7 +2993,6 @@ function startUnitsListener() {
 }
 
 function renderRemoteUnits(hwid, u) {
-  // Villager bleiben DOM, Soldaten werden im Canvas gezeichnet
   if (!remoteUnitsEls[hwid]) {
     const container = document.createElement('div');
     worldEl.appendChild(container);
@@ -2962,8 +3020,7 @@ function renderRemoteUnits(hwid, u) {
     el.style.zIndex = Math.floor(vd.y) + 4;
   });
 
-  // Remote-Soldaten in otherPlayers speichern für Canvas
-  otherPlayers[hwid] = otherPlayers[hwid] || {};
+  if (!otherPlayers[hwid]) otherPlayers[hwid] = {};
   otherPlayers[hwid].remoteSoldiers = u.soldiers || [];
 }
 
@@ -2984,55 +3041,85 @@ function startAttacksListener() {
     const data = snap.val() || {};
     const now = Date.now();
     for (const id in data) {
-      if (seenAttacks.has(id)) continue;
       const a = data[id];
-      if (!a || now - (a.ts || 0) > 20000) continue;
-      seenAttacks.add(id);
+      if (!a) continue;
+      if (a.done) continue;
       if (a.attackerHwid === ACTIVE_HWID) continue;
+      if (now - (a.ts || 0) > 60000) continue;
 
-      let targetB = null;
-      const allB = [];
-      state.buildings.forEach(b => allB.push(b));
-      for (const hwid in otherPlayerEls) {
-        const entry = otherPlayerEls[hwid];
-        if (!entry || !entry.buildings) continue;
-        for (const bid in entry.buildings) {
-          allB.push(entry.buildings[bid]);
+      let wave = liveAttackWaves.find(w => w._aid === id);
+      if (!wave) {
+        // Neue Wave — Zielgebäude suchen
+        let targetB = null;
+        const allB = [...state.buildings];
+        for (const hwid in otherPlayerEls) {
+          const entry = otherPlayerEls[hwid];
+          if (!entry || !entry.buildings) continue;
+          for (const bid in entry.buildings) allB.push(entry.buildings[bid]);
+        }
+        let bestDist = Infinity;
+        for (const b of allB) {
+          const def = BUILDINGS[b.type];
+          if (!def) continue;
+          const bs = def.size * TILE;
+          const d = Math.hypot((b.x + bs/2) - a.toX, (b.y + bs/2) - a.toY);
+          if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
+        }
+
+        if (!seenAttacks.has(id)) {
+          seenAttacks.add(id);
+          if (a.targetHwid === ACTIVE_HWID) {
+            showAttackPopup(a.attackerName, targetB ? BUILDINGS[targetB.type].name : 'your base', 0);
+          }
+        }
+        spawnAttackWaveFromData(id, a, targetB);
+      } else {
+        // Bestehende Wave aktualisieren
+        if (a.soldiers && Array.isArray(a.soldiers)) {
+          const thisWave = liveAttackWaves.filter(w => w._aid === id);
+          a.soldiers.forEach((s, i) => {
+            const existing = thisWave[i];
+            if (existing) {
+              existing.hp = s.hp;
+              existing.maxHp = s.maxHp;
+              existing.fighting = s.fighting;
+              existing.serverX = s.x;
+              existing.serverY = s.y;
+            }
+          });
         }
       }
-      let bestDist = Infinity;
-      for (const b of allB) {
-        const def = BUILDINGS[b.type];
-        if (!def) continue;
-        const bs = def.size * TILE;
-        const cx = b.x + bs / 2;
-        const cy = b.y + bs / 2;
-        const d = Math.hypot(cx - a.toX, cy - a.toY);
-        if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
-      }
-
-      spawnAttackWave(a, targetB);
-      if (a.targetHwid === ACTIVE_HWID) {
-        showAttackPopup(a.attackerName, targetB ? BUILDINGS[targetB.type].name : 'your base', 0);
+    }
+    // Aufräumen
+    for (let i = liveAttackWaves.length - 1; i >= 0; i--) {
+      const w = liveAttackWaves[i];
+      if (w._aid && !data[w._aid]) {
+        liveAttackWaves.splice(i, 1);
       }
     }
   });
 }
 
-function spawnAttackWave(a, targetB) {
+function spawnAttackWaveFromData(aid, a, targetB) {
   const count = Math.min(a.soldierCount || 3, 8);
   for (let i = 0; i < count; i++) {
     const sx = a.fromX + (Math.random() - 0.5) * 60;
     const sy = a.fromY + (Math.random() - 0.5) * 60;
+    const initial = (a.soldiers && a.soldiers[i]) || {};
     liveAttackWaves.push({
+      _aid: aid,
       x: sx, y: sy,
       tx: a.toX + (Math.random()-0.5)*40,
       ty: a.toY + (Math.random()-0.5)*40,
-      hp: 100, maxHp: 100, done: false,
+      serverX: initial.x || sx,
+      serverY: initial.y || sy,
+      hp: initial.hp != null ? initial.hp : 100,
+      maxHp: initial.maxHp || 100,
+      done: false,
       targetBuilding: targetB || null,
       side: 'enemy',
       hitTimer: 0,
-      fighting: false,
+      fighting: !!initial.fighting,
       _idleTimer: 0
     });
   }
@@ -3045,6 +3132,25 @@ function updateLiveAttackWaves(dt) {
       liveAttackWaves.splice(i, 1);
       continue;
     }
+
+    // Remote-Attack → zur Server-Position interpolieren
+    if (w._aid && w.serverX != null) {
+      // Sanft interpolieren
+      w.x += (w.serverX - w.x) * 0.4;
+      w.y += (w.serverY - w.y) * 0.4;
+      // Prüfen ob ein eigener Soldat in der Nähe ist → Kampf
+      let duelTarget = null;
+      for (const s of soldierUnits) {
+        if (s.side !== 'friendly') continue;
+        const d = Math.hypot(s.x - w.x, s.y - w.y);
+        if (d < 30) { duelTarget = s; break; }
+      }
+      if (duelTarget) w.fighting = true;
+      // Gebäude-Angriff läuft auf Server-Seite
+      continue;
+    }
+
+    // Lokale Logik (sollte nicht mehr vorkommen, aber Fallback)
     let duelTarget = null;
     for (const s of soldierUnits) {
       if (s.side !== 'friendly') continue;
@@ -3071,10 +3177,6 @@ function updateLiveAttackWaves(dt) {
           w.targetBuilding.hp = Math.max(0, w.targetBuilding.hp - dmg);
           updateBuildingHpVisual(w.targetBuilding);
           showFloatText(w.x, w.y - 20, `-${dmg}`, '#e53935');
-          if (w.targetBuilding.el) {
-            w.targetBuilding.el.classList.add('under-attack');
-            setTimeout(() => { if (w.targetBuilding && w.targetBuilding.el) w.targetBuilding.el.classList.remove('under-attack'); }, 400);
-          }
           if (w.targetBuilding.hp <= 0) {
             const owner = w.targetBuilding.ownerName || 'Enemy';
             const ownerHwid = w.targetBuilding.ownerHwid;
@@ -3138,6 +3240,61 @@ function spawnExplosion(x, y, type) {
   setTimeout(() => el.remove(), 900);
 }
 
+function startSoldierDeathsListener() {
+  if (!firebase) return;
+  const { ref, onValue } = firebase;
+  const seenDeaths = new Set();
+  onValue(ref(firebase.db, 'soldierDeaths'), (snap) => {
+    const data = snap.val() || {};
+    const now = Date.now();
+    for (const id in data) {
+      if (seenDeaths.has(id)) continue;
+      const d = data[id];
+      if (!d || now - d.ts > 5000) continue;
+      seenDeaths.add(id);
+      spawnDeathParticle(d.x, d.y, d.side);
+    }
+  });
+}
+
+function startSoldierDeathsCleanup() {
+  if (!firebase) return;
+  const { ref, onValue, remove } = firebase;
+  onValue(ref(firebase.db, 'soldierDeaths'), (snap) => {
+    const data = snap.val();
+    if (!data) return;
+    const now = Date.now();
+    Object.entries(data).forEach(([key, d]) => {
+      if (now - d.ts > 8000) {
+        try { remove(ref(firebase.db, 'soldierDeaths/' + key)); } catch(e) {}
+      }
+    });
+  });
+}
+
+function spawnDeathParticle(x, y, side) {
+  const size = 30;
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.left = (x - size/2) + 'px';
+  el.style.top = (y - size/2) + 'px';
+  el.style.width = size + 'px';
+  el.style.height = size + 'px';
+  el.style.borderRadius = '50%';
+  el.style.background = side === 'friendly'
+    ? 'radial-gradient(circle, rgba(47,111,208,0.8), transparent)'
+    : 'radial-gradient(circle, rgba(198,40,40,0.8), transparent)';
+  el.style.zIndex = 9999;
+  el.style.pointerEvents = 'none';
+  el.style.transition = 'all 0.6s ease-out';
+  worldEl.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.transform = 'scale(2)';
+    el.style.opacity = '0';
+  });
+  setTimeout(() => el.remove(), 700);
+}
+
 /* =========================================================
    CANVAS RENDER
    ========================================================= */
@@ -3199,7 +3356,6 @@ function drawSoldier(s, sprite) {
   ctx.drawImage(sprite, -SOLDIER_W / 2, -SOLDIER_H);
   ctx.restore();
 
-  // HP-Bar nur wenn beschädigt
   const hpPct = Math.max(0, s.hp / s.maxHp);
   if (hpPct < 1) {
     const barW = 22, barH = 4;
@@ -3216,7 +3372,7 @@ function drawSoldier(s, sprite) {
 }
 
 /* =========================================================
-   VILLAGERS (bleiben DOM)
+   VILLAGERS
    ========================================================= */
 function trySpawnVillagers() {
   const now = Date.now();
@@ -3285,11 +3441,10 @@ function updateFPS(now) {
 }
 
 let currentPing = 0;
-let lastPingRefTime = 0;
 async function measurePing() {
   if (!firebase || !currentUser) return;
   try {
-    const { ref, set, onValue } = firebase;
+    const { ref, set, onValue, remove } = firebase;
     const pingRef = ref(firebase.db, 'pings/' + ACTIVE_HWID);
     const t0 = Date.now();
     await set(pingRef, { ts: Date.now() });
@@ -3300,6 +3455,7 @@ async function measurePing() {
         currentPing = Math.max(0, t1 - t0);
         document.getElementById('pingText').textContent = currentPing + ' ms';
         unsub();
+        try { remove(pingRef); } catch(e) {}
       }
     });
   } catch(e) {}
@@ -3843,6 +3999,8 @@ async function startGame() {
     startUnitsListener();
     startAttacksListener();
     startDestroyedListener();
+    startSoldierDeathsListener();
+    startSoldierDeathsCleanup();
     setupEventFeedToggle();
     setupAttackPopup();
 
@@ -3880,7 +4038,7 @@ async function startGame() {
       respawnAccum = 0;
     }
     unitsAccum += dt;
-    if (unitsAccum >= 0.2) { broadcastMyUnits(); unitsAccum = 0; }
+    if (unitsAccum >= 0.1) { broadcastMyUnits(); unitsAccum = 0; }
     saveAccum += dt;
     if (saveAccum >= 15) { saveGame(true); saveAccum = 0; }
     worldAccum += dt;
