@@ -204,7 +204,6 @@
 
   .worker { position: absolute; width: 18px; height: 24px; pointer-events: none; transition: transform 0.1s linear; z-index: 5; }
 
-  /* Soldier visuals */
   .soldier-unit {
     position: absolute; width: 26px; height: 32px;
     pointer-events: none; z-index: 25;
@@ -1069,7 +1068,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v17 (Google-Account-Fix für Produktion)
+   BUILD A REALM — v18 (Google-Cloud-Fix, Debug-Logs)
    ========================================================= */
 
 const ICONS = {
@@ -1211,7 +1210,6 @@ whenFirebaseReady(() => {
   loginStatus.className = "login-status ok";
   checkExistingUser();
 
-  // React to auth state changes (e.g. after reload with an active Google session)
   const auth = window.__BR_auth;
   if (auth && window.__BR_authFns && window.__BR_authFns.onAuthStateChanged) {
     window.__BR_authFns.onAuthStateChanged(auth, async (user) => {
@@ -1253,7 +1251,6 @@ usernameInput.addEventListener('input', () => {
 loginBtn.onclick = () => doLogin();
 usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !loginBtn.disabled) doLogin(); });
 
-/* Google Login */
 googleLoginBtn.onclick = async () => {
   if (!window.__BR_auth) { loginError.textContent = "Auth not ready"; return; }
   googleLoginBtn.disabled = true;
@@ -1286,7 +1283,6 @@ async function loginWithIdentity(name, identityHwid, email) {
   loginError.textContent = '';
   try {
     const { ref, get, set, update } = firebase;
-    // Ban check on both local HWID and google HWID
     for (const h of [identityHwid, LOCAL_HWID]) {
       const banSnap = await get(ref(firebase.db, 'bans/' + h));
       if (banSnap.exists()) {
@@ -1298,7 +1294,6 @@ async function loginWithIdentity(name, identityHwid, email) {
         }
       }
     }
-    // Username conflict
     let finalName = name;
     let key = usernameKey(finalName);
     let nameSnap = await get(ref(firebase.db, 'usernames/' + key));
@@ -1313,6 +1308,7 @@ async function loginWithIdentity(name, identityHwid, email) {
     });
     ACTIVE_HWID = identityHwid;
     currentUser = { username: finalName, hwid: identityHwid };
+    console.log('[LOGIN] Logged in as', finalName, 'with HWID', ACTIVE_HWID);
     loginStatus.textContent = "Success!";
     loginStatus.className = "login-status ok";
     setTimeout(() => beginGameTransition(), 400);
@@ -1326,7 +1322,6 @@ async function loginWithIdentity(name, identityHwid, email) {
 async function checkExistingUser() {
   try {
     const { ref, get } = firebase;
-    // Prefer Google-linked account if there's an active Auth session
     const auth = window.__BR_auth;
     if (auth && auth.currentUser) {
       const googleHwid = 'GOOGLE-' + auth.currentUser.uid.slice(0, 32);
@@ -1343,7 +1338,6 @@ async function checkExistingUser() {
         return;
       }
     }
-    // Fall back to local HWID
     const snap = await get(ref(firebase.db, 'users_by_hwid/' + LOCAL_HWID));
     if (snap.exists()) {
       const data = snap.val();
@@ -1395,13 +1389,13 @@ async function checkAccountStatus() {
 }
 
 async function handleAccountStatusCheck() {
-  // Ensure ACTIVE_HWID is set correctly based on active Google session
   const auth = window.__BR_auth;
   if (auth && auth.currentUser && auth.currentUser.uid) {
     ACTIVE_HWID = 'GOOGLE-' + auth.currentUser.uid.slice(0, 32);
   } else if (!ACTIVE_HWID) {
     ACTIVE_HWID = LOCAL_HWID;
   }
+  console.log('[AUTH] ACTIVE_HWID =', ACTIVE_HWID);
   const status = await checkAccountStatus();
   if (status.ban) { showBanPopup(status.ban); return false; }
   if (status.deleted) { showDeletedPopup(); return false; }
@@ -1871,12 +1865,19 @@ function recalc() {
   state.happiness = Math.min(100, 60 + happy);
   state.defensePower = defense;
   if (state.population > state.populationCap) state.population = state.populationCap;
-  state.workers = Math.max(0, Math.min(state.workersNeeded, state.population - state.soldiers));
+  // WICHTIG: workers bezieht sich nur auf population (Soldaten sind separat)
+  state.workers = Math.max(0, Math.min(state.workersNeeded, state.population));
   if (state.soldiers > state.soldierCap) state.soldiers = state.soldierCap;
 }
 
 function productionTick(dt) {
-  if (!state.buildings.length) return;
+  if (!state.buildings.length) {
+    if (!window.__lastProdLog || Date.now() - window.__lastProdLog > 10000) {
+      window.__lastProdLog = Date.now();
+      console.log('[PROD] No buildings in state');
+    }
+    return;
+  }
   dt = dt || 1;
   let globalMult = 1;
   state.buildings.forEach(b => {
@@ -1902,6 +1903,13 @@ function productionTick(dt) {
   state.stone += Math.floor(prod.stone);
   const tax = Math.floor((state.population * 1.4 + state.buildings.length * 0.9) * dt * (state.happiness/100));
   state.money += tax;
+
+  // Debug-Log alle 10s
+  if (!window.__lastProdLog || Date.now() - window.__lastProdLog > 10000) {
+    window.__lastProdLog = Date.now();
+    const active = state.buildings.filter(b => !b.construction).length;
+    console.log('[PROD] Active:', active, 'Workers:', state.workers + '/' + state.workersNeeded, 'Ratio:', workerRatio.toFixed(2), 'Wood +' + Math.floor(prod.wood), 'Stone +' + Math.floor(prod.stone), 'Wood total:', state.wood, 'Stone total:', state.stone);
+  }
 
   if (state.population < state.populationCap && state.food > state.population * 3) {
     const growthChance = 0.35 * dt * (state.happiness / 100);
@@ -2122,7 +2130,7 @@ function placeBuilding(e) {
   state.stone -= resCost.stone;
   const bt = getBuildTime(state.placing, 0);
   const maxHp = getMaxHp(state.placing, 1);
-  const b = { id: state.nextId++, type: state.placing, x, y, level: 1, construction: true, constructionStart: Date.now(), constructionDuration: bt * 1000, hp: maxHp, maxHp: maxHp };
+  const b = { id: state.nextId++, type: state.placing, x, y, level: 1, construction: true, constructionStart: Date.now(), constructionDuration: bt * 1000, hp: maxHp, maxHp: maxHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
   state.buildings.push(b);
   createBuildingEl(b, false, currentUser.username);
   addXP(15);
@@ -3398,20 +3406,29 @@ async function saveGame(silent) {
       lastSeen: Date.now(), online: true
     });
     document.getElementById('syncBadge').classList.remove('saving');
-  } catch (e) { console.error(e); }
+    console.log('[SAVE] Saved', state.buildings.length, 'buildings to saves/' + ACTIVE_HWID);
+  } catch (e) { console.error('[SAVE] Error:', e); }
 }
 async function loadSave() {
-  if (!currentUser || !firebase) return false;
+  if (!currentUser || !firebase) { console.log('[LOAD] No user or firebase'); return false; }
   try {
-    const { ref, get } = firebase;
-    const snap = await get(ref(firebase.db, 'saves/' + ACTIVE_HWID));
-    if (!snap.exists()) return false;
+    const { ref, get, remove } = firebase;
+    const path = 'saves/' + ACTIVE_HWID;
+    console.log('[LOAD] Reading from', path);
+    const snap = await get(ref(firebase.db, path));
+    if (!snap.exists()) { console.log('[LOAD] No save at', path); return false; }
     const data = snap.val();
-    if (!data) return false;
+    if (!data) { console.log('[LOAD] Empty data at', path); return false; }
     const sb = data.buildings || {};
     const list = Array.isArray(sb) ? sb : Object.values(sb || {});
     const valid = list.filter(b => b && b.type && typeof b.x === 'number');
-    if (valid.length === 0) return false;
+    console.log('[LOAD] Found', valid.length, 'valid buildings');
+    if (valid.length === 0) {
+      // Empty save — delete so we start fresh
+      console.log('[LOAD] Empty save, deleting so we can start fresh');
+      try { await remove(ref(firebase.db, path)); } catch(e) {}
+      return false;
+    }
     ['money','gold','food','wood','stone','population','populationCap','workers','workersNeeded','soldiers','soldierCap','happiness','level','xp','xpNeeded','nextId','lastTick','baseX','baseY'].forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
     state.playtimeSeconds = Number(data.playtimeSeconds) || 0;
     state.buildings = [];
@@ -3419,13 +3436,14 @@ async function loadSave() {
     clearSoldierUnits();
     valid.forEach(b => {
       const maxHp = b.maxHp || getMaxHp(b.type, b.level || 1);
-      const nb = { id: b.id, type: b.type, x: b.x, y: b.y, level: b.level || 1, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp != null ? b.hp : maxHp, maxHp: maxHp };
+      const nb = { id: b.id, type: b.type, x: b.x, y: b.y, level: b.level || 1, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp != null ? b.hp : maxHp, maxHp: maxHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
       createBuildingEl(nb, false, currentUser.username);
       state.buildings.push(nb);
     });
     state.nextId = Math.max(1, ...state.buildings.map(b => b.id || 0)) + 1;
+    console.log('[LOAD] Loaded', state.buildings.length, 'buildings. Wood:', state.wood, 'Stone:', state.stone);
     return true;
-  } catch(e) { return false; }
+  } catch(e) { console.error('[LOAD] Error:', e); return false; }
 }
 
 /* MULTIPLAYER */
@@ -3518,6 +3536,7 @@ async function startGame() {
   if (gameStarted) return;
   gameStarted = true;
 
+  console.log('[START] Starting game. ACTIVE_HWID =', ACTIVE_HWID, 'User =', currentUser.username);
   document.getElementById('userChipName').textContent = currentUser.username;
   if (!state.playtimeSeconds) state.playtimeSeconds = 0;
   buildTerrain();
@@ -3541,6 +3560,7 @@ async function startGame() {
 
   const loaded = await loadSave();
   if (!loaded) {
+    console.log('[START] No save loaded, creating new game');
     const pos = pickBasePosition();
     state.baseX = pos.x; state.baseY = pos.y;
     if (firebase) {
@@ -3557,8 +3577,12 @@ async function startGame() {
     const house = { id: state.nextId++, type: 'house', x: pos.x + 2*TILE, y: pos.y - TILE, level: 1, hp: houseHp, maxHp: houseHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
     state.buildings.push(house); createBuildingEl(house, false, currentUser.username);
     publishEvent('join', `${currentUser.username} joined the realm!`);
-    setTimeout(() => saveGame(true), 300);
+    // Save immediately (no 300ms delay)
+    recalc();
+    await saveGame(true);
+    console.log('[START] Created new game with', state.buildings.length, 'buildings');
   } else {
+    console.log('[START] Loaded existing save with', state.buildings.length, 'buildings');
     publishEvent('join', `${currentUser.username} joined the realm!`);
   }
 
@@ -3578,6 +3602,8 @@ async function startGame() {
   renderOnlineList();
   centerCamera();
   respawnSoldiers();
+
+  console.log('[START] After recalc: workers =', state.workers, '/', state.workersNeeded, 'wood =', state.wood, 'stone =', state.stone);
 
   if (firebase) {
     try {
