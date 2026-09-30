@@ -343,6 +343,82 @@
   #attackBanner .ab-text small { display: block; font-size: 11px; color: #8d6e63; font-weight: 500; margin-top: 2px; }
   #attackBanner .ab-cancel { background: #fff; color: #c62828; padding: 5px 12px; border-radius: 7px; font-size: 11px; font-weight: 800; border: 1px solid #ef9a9a; cursor: pointer; }
 
+  /* ============ ARRIVAL / MARCH BANNER ============ */
+  #marchBanner {
+    position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
+    z-index: 71;
+    background: linear-gradient(135deg, #fff, #e3f2fd);
+    border: 2px solid #2f6fd0;
+    border-radius: 14px;
+    padding: 12px 20px;
+    box-shadow: 0 12px 32px rgba(47,111,208,0.3);
+    display: none; align-items: center; gap: 14px;
+    animation: detailIn 0.3s cubic-bezier(0.2,0.9,0.3,1.2);
+    max-width: min(520px, 92vw);
+    pointer-events: none;
+  }
+  #marchBanner.show { display: flex; }
+  #marchBanner.own { border-color: #2f6fd0; background: linear-gradient(135deg, #fff, #e3f2fd); }
+  #marchBanner.incoming { border-color: #c62828; background: linear-gradient(135deg, #fff, #ffebee); }
+  #marchBanner .mb-icon {
+    width: 38px; height: 38px; flex-shrink: 0;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  }
+  #marchBanner.own .mb-icon { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+  #marchBanner.incoming .mb-icon { background: linear-gradient(135deg, #ffebee, #ffcdd2); }
+  #marchBanner .mb-icon svg { width: 24px; height: 24px; }
+  #marchBanner .mb-info { flex: 1; min-width: 0; }
+  #marchBanner .mb-title {
+    font-size: 13px; font-weight: 800; margin-bottom: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #marchBanner.own .mb-title { color: #1565c0; }
+  #marchBanner.incoming .mb-title { color: #c62828; }
+  #marchBanner .mb-sub {
+    font-size: 11.5px; color: #5c7099; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #marchBanner .mb-countdown {
+    background: rgba(255,255,255,0.85);
+    border: 1.5px solid #2f6fd0;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: 900;
+    color: #1565c0;
+    min-width: 82px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    box-shadow: inset 0 1px 3px rgba(47,111,208,0.15);
+  }
+  #marchBanner.incoming .mb-countdown {
+    border-color: #c62828; color: #c62828;
+    box-shadow: inset 0 1px 3px rgba(198,40,40,0.15);
+  }
+  #marchBanner .mb-countdown.warn {
+    color: #b71c1c; border-color: #b71c1c;
+    animation: mbPulse 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes mbPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.06); }
+  }
+  #marchBanner .mb-bar {
+    position: absolute; left: 12px; right: 12px; bottom: 4px;
+    height: 3px; background: rgba(200,215,240,0.5);
+    border-radius: 2px; overflow: hidden;
+  }
+  #marchBanner .mb-bar-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #2f6fd0, #6aa9f5);
+    border-radius: 2px;
+    transition: width 0.3s linear;
+  }
+  #marchBanner.incoming .mb-bar-fill {
+    background: linear-gradient(90deg, #c62828, #ef5350);
+  }
+
   #tooltip { position: absolute; z-index: 80; pointer-events: none; background: #ffffff; border: 1px solid #bcd0ec; border-radius: 10px; padding: 10px 13px; font-size: 12px; box-shadow: 0 8px 30px rgba(40,70,120,0.22); display: none; max-width: 260px; color: #26344e; }
   #tooltip .t-title { font-weight: 800; color: #1e355e; margin-bottom: 4px; font-size: 13px; }
   #tooltip .t-row { color: #4a5c78; margin: 2px 0; }
@@ -711,6 +787,8 @@
     #minimap { right: 262px; width: 150px; height: 150px; }
     #statsPanel, #detailPanel, #eventFeed, #onlineList { display: none !important; }
     #chatPanel { width: 260px; }
+    #marchBanner { max-width: 90vw; padding: 10px 14px; }
+    #marchBanner .mb-countdown { font-size: 15px; min-width: 70px; padding: 5px 9px; }
   }
 </style>
 </head>
@@ -831,6 +909,20 @@
       <span class="perf-val" id="pingVal">—</span>
       <span style="font-size:9.5px;opacity:0.7;">ms</span>
     </div>
+  </div>
+
+  <div id="marchBanner">
+    <div class="mb-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2f6fd0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z" fill="currentColor" opacity="0.3"/>
+      </svg>
+    </div>
+    <div class="mb-info">
+      <div class="mb-title" id="mbTitle">Marching…</div>
+      <div class="mb-sub" id="mbSub">—</div>
+    </div>
+    <div class="mb-countdown" id="mbCountdown">--:--</div>
+    <div class="mb-bar"><div class="mb-bar-fill" id="mbBarFill" style="width:100%"></div></div>
   </div>
 
   <div id="minimap">
@@ -1094,7 +1186,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v23 (Soldier-Cap only, Nachproduktion jede 1s)
+   BUILD A REALM — v24 (Sync-Soldiers + March-Banner + Correct Spawn)
    ========================================================= */
 
 const ICONS = {
@@ -1147,10 +1239,10 @@ const ICONS = {
 const tips = [
   "Tip: Mouse wheel to zoom · Drag to move",
   "Tip: Build Barracks or Fortress to spawn soldiers",
-  "Tip: Soldiers respawn every second up to your Soldier Cap",
+  "Tip: Soldiers stay hidden at home until you attack",
   "Tip: Repair damaged buildings with Wood + Stone",
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
-  "Tip: Level 5 unlocks a 4th build slot · Level 10 unlocks a 5th",
+  "Tip: Watch the march timer at the top when attacking",
   "Tip: Soldiers prefer attacking nearby enemy soldiers first",
   "Tip: Click 'Soldiers' button to jump to your army",
   "Tip: Houses increase your population cap",
@@ -1583,10 +1675,14 @@ let eventFeedCollapsed = false;
 let remoteUnitsData = {};
 let lastAttackTime = 0;
 
-// Nur Rendering-Schutz, echtes Limit ist state.soldierCap
+// Rendering-Schutz — kein echtes Limit (Limit = soldierCap)
 const MAX_FRIENDLY_UNITS = 500;
 const MAX_ENEMY_UNITS = 300;
 const MAX_ATTACKERS_PER_WAVE = 200;
+const ATTACK_SPEED = 1.8; // Soldaten-Reisegeschwindigkeit (Einheiten pro Frame bei 60fps)
+
+// Aktuelle eigene Angriffe die gerade marschieren
+let activeMarches = []; // [{ id, startX, startY, toX, toY, startTime, arriveTime, soldierCount, targetName, targetHwid, buildingId, targetBuilding, isIncoming, sourceHwid, sourceName }]
 
 /* BUILDINGS */
 const BUILDINGS = {
@@ -1625,6 +1721,8 @@ const BUILDINGS = {
   harbor2: { name: "Grand Harbor", icon: "harbor2", category: "economy", size: 3, cost: 9000, maxLevel: 8, desc: "Massive trade hub.", baseCost: 9000, costMult: 2.4, produces: { gold: 55, food: 8 }, needs: { workers: 18 }, unlockLevel: 7, buildTime: 42, resourceCost: { wood: 800, stone: 700 } },
   garrison: { name: "Garrison", icon: "garrison", category: "military", size: 2, cost: 2800, maxLevel: 8, desc: "Elite troops spawn here.", baseCost: 2800, costMult: 2.25, produces: { gold: 4 }, needs: { workers: 8 }, soldierPerLevel: [5, 11, 19, 29, 42, 58, 77, 100], unlockLevel: 5, buildTime: 24, spawnsSoldiers: true, defenseBonus: [3, 6, 11, 18, 28, 40, 55, 75], resourceCost: { wood: 250, stone: 350 } }
 };
+
+const MILITARY_TYPES = ['barracks', 'fortress', 'garrison', 'armory', 'arena', 'tower', 'watchtower', 'wall', 'stable'];
 
 const worldEl = document.getElementById('world');
 function buildTerrain() {
@@ -1816,6 +1914,12 @@ function formatTime(sec) {
   if (m < 60) return m + 'm ' + s + 's';
   return Math.floor(m/60) + 'h ' + (m % 60) + 'm';
 }
+function formatMMSS(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+}
 function formatPlaytime(sec) {
   sec = Math.max(0, Math.floor(sec));
   const h = Math.floor(sec / 3600);
@@ -1868,10 +1972,6 @@ function recalc() {
   state.defensePower = defense;
   if (state.population > state.populationCap) state.population = state.populationCap;
   state.workers = Math.max(0, Math.min(state.workersNeeded, state.population));
-
-  // WICHTIG: Soldaten werden automatisch bis zum Cap rekrutiert.
-  // Sie spawnen dann in der nächsten Loop-Iteration (siehe soldierSpawnTick).
-  // state.soldiers ist der Zielwert = soldierCap.
   state.soldiers = state.soldierCap;
 }
 
@@ -1992,7 +2092,7 @@ mapEl.addEventListener('mousedown', (e) => {
 });
 window.addEventListener('mousemove', (e) => {
   if (isDragging) {
-    const nx = e.clientX - dragStart.x, ny = e.clientY - dragStart.y;
+    const nx = e.clientX - state.camX, ny = e.clientY - state.camY;
     if (Math.abs(nx - state.camX) > 3 || Math.abs(ny - state.camY) > 3) dragMoved = true;
     state.camX = nx; state.camY = ny;
     applyTransform();
@@ -2466,7 +2566,7 @@ function sellBuilding(b) {
 }
 
 /* =========================================================
-   COMBAT — Canvas-basiert
+   COMBAT — synced via Firebase / attacks node
    ========================================================= */
 function toggleAttackMode() {
   if (state.soldiers < 1) {
@@ -2516,7 +2616,7 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
   const unit = {
     x, y, tx, ty,
     hp: 100, maxHp: 100,
-    speed: 1.8,
+    speed: ATTACK_SPEED,
     side,
     targetBuilding: targetBuilding || null,
     fighting: false,
@@ -2524,76 +2624,133 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
     _duelTimer: 0,
     _hitTimer: 0,
     _idle: 0,
-    _animTime: Math.random() * 1000
+    _animTime: Math.random() * 1000,
+    // Deterministische Bewegung: startX, startY, startTime, arriveTime
+    startX: x, startY: y,
+    startTime: Date.now(),
+    arriveTime: null
   };
+  // Berechne arriveTime deterministisch
+  const dist = Math.hypot(tx - x, ty - y);
+  unit.arriveTime = Date.now() + (dist / (ATTACK_SPEED * 60)) * 1000;
   soldierUnits.push(unit);
   return unit;
+}
+
+function getMilitarySpawnPoints() {
+  // Sammle alle Militärgebäude als Spawn-Punkte
+  const points = [];
+  state.buildings.forEach(b => {
+    if (b.construction) return;
+    const def = BUILDINGS[b.type];
+    if (!def) return;
+    if (def.soldierPerLevel && def.soldierPerLevel[b.level-1] > 0) {
+      const size = def.size * TILE;
+      points.push({ x: b.x + size/2, y: b.y + size/2, building: b });
+    }
+  });
+  if (points.length === 0) {
+    // Fallback: Main
+    const mainB = state.buildings.find(b => b.type === 'main');
+    if (mainB) {
+      const size = BUILDINGS.main.size * TILE;
+      points.push({ x: mainB.x + size/2, y: mainB.y + size/2, building: mainB });
+    }
+  }
+  return points;
 }
 
 function performAttack(b, ownerName, ownerHwid) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
   const now = Date.now();
-  if (now - lastAttackTime < 1500) { notify("⏳ Soldiers are marching — wait a moment!", true); return; }
+  if (now - lastAttackTime < 1500) { notify("⏳ Soldiers are already marching!", true); return; }
   lastAttackTime = now;
 
-  const targetCX = b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
-  const targetCY = b.y + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
+  const def = BUILDINGS[b.type];
+  const bs = def.size * TILE;
+  const targetCX = b.x + bs / 2;
+  const targetCY = b.y + bs / 2;
 
-  const existing = soldierUnits.filter(s => s.side === 'friendly');
-  if (existing.length > 0) {
-    // ALLE vorhandenen Soldaten umleiten
-    existing.forEach(s => {
-      s.tx = targetCX + (Math.random() - 0.5) * 60;
-      s.ty = targetCY + (Math.random() - 0.5) * 60;
-      s.targetBuilding = b;
-    });
-    notify(`⚔ Redirecting ${existing.length} soldiers to ${ownerName}'s ${BUILDINGS[b.type].name}!`);
-  } else {
-    // Alle Soldaten spawnen
-    const mainB = state.buildings.find(x => x.type === 'main');
-    const startX = mainB ? mainB.x + BUILDINGS.main.size * TILE / 2 : state.baseX;
-    const startY = mainB ? mainB.y + BUILDINGS.main.size * TILE / 2 : state.baseY;
-    const attackCount = Math.min(state.soldiers, MAX_ATTACKERS_PER_WAVE);
-    for (let i = 0; i < attackCount; i++) {
-      spawnSoldierUnit(
-        startX + (Math.random() - 0.5) * 120,
-        startY + (Math.random() - 0.5) * 120,
-        targetCX + (Math.random() - 0.5) * 60,
-        targetCY + (Math.random() - 0.5) * 60,
-        'friendly', b
-      );
-    }
-    notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name} with ${attackCount} soldiers!`, false, false, false, true);
+  const spawnPoints = getMilitarySpawnPoints();
+  const attackCount = Math.min(state.soldiers, MAX_ATTACKERS_PER_WAVE);
+  if (spawnPoints.length === 0) { notify("No military buildings to spawn soldiers!", true); return; }
+
+  // Verteile Soldaten auf Militärgebäude
+  const marches = [];
+  for (let i = 0; i < attackCount; i++) {
+    const sp = spawnPoints[i % spawnPoints.length];
+    const sx = sp.x + (Math.random() - 0.5) * 40;
+    const sy = sp.y + (Math.random() - 0.5) * 40;
+    // Berechne deterministische Ankunftszeit
+    const dist = Math.hypot(targetCX - sx, targetCY - sy);
+    const travelMs = (dist / (ATTACK_SPEED * 60)) * 1000;
+    const arriveTime = now + travelMs;
+    const unit = {
+      x: sx, y: sy, tx: targetCX + (Math.random() - 0.5) * 60, ty: targetCY + (Math.random() - 0.5) * 60,
+      hp: 100, maxHp: 100,
+      speed: ATTACK_SPEED,
+      side: 'friendly',
+      targetBuilding: b,
+      fighting: false,
+      facing: 'right',
+      _duelTimer: 0, _hitTimer: 0, _idle: 0,
+      _animTime: Math.random() * 1000,
+      startX: sx, startY: sy,
+      startTime: now,
+      arriveTime: arriveTime
+    };
+    soldierUnits.push(unit);
+    marches.push({ sx, sy, arriveTime });
   }
 
+  // Erstelle einen "March"-Eintrag für UI
+  const firstArrive = marches.reduce((min, m) => Math.min(min, m.arriveTime), Infinity);
+  const marchEntry = {
+    id: 'own-' + now,
+    startX: spawnPoints[0].x, startY: spawnPoints[0].y,
+    toX: targetCX, toY: targetCY,
+    startTime: now,
+    arriveTime: firstArrive,
+    soldierCount: attackCount,
+    targetName: ownerName,
+    targetHwid: ownerHwid,
+    buildingId: b.id,
+    targetBuilding: b,
+    isIncoming: false
+  };
+  activeMarches.push(marchEntry);
+
+  // Broadcast an Firebase
   if (firebase) {
     try {
       const { ref, push, set } = firebase;
       const aid = push(ref(firebase.db, 'attacks')).key;
       set(ref(firebase.db, 'attacks/' + aid), {
-        attackerHwid: ACTIVE_HWID, attackerName: currentUser.username,
-        targetHwid: ownerHwid || 'unknown', targetName: ownerName,
-        fromX: state.baseX, fromY: state.baseY, toX: b.x, toY: b.y,
-        soldierCount: Math.min(state.soldiers, 30), // Nur 30 an andere senden
-        ts: Date.now()
+        attackerHwid: ACTIVE_HWID,
+        attackerName: currentUser.username,
+        targetHwid: ownerHwid || 'unknown',
+        targetName: ownerName,
+        fromX: spawnPoints[0].x, fromY: spawnPoints[0].y,
+        toX: targetCX, toY: targetCY,
+        soldierCount: Math.min(state.soldiers, 60), // Bandbreite begrenzen
+        startTime: now,
+        arriveTime: firstArrive,
+        buildingId: b.id,
+        ts: now
       });
-      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 30000);
+      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 60000);
     } catch(e) {}
   }
 
-  const dmg = Math.max(1, Math.floor(state.soldiers * 0.15));
-  b.hp = Math.max(0, (b.hp || 100) - dmg);
-  updateBuildingHpVisual(b);
-  showFloatText(targetCX, b.y, `-${dmg} HP`, '#e53935');
-  publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${BUILDINGS[b.type].name}!`, ownerHwid);
-
+  notify(`⚔ ${attackCount} soldiers marching to ${ownerName}'s ${def.name}!`, false, false, false, true);
+  publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${def.name}!`, ownerHwid);
   if (ownerHwid && firebase) {
     try {
       const { ref, push } = firebase;
       push(ref(firebase.db, 'notifications/' + ownerHwid), {
         type: 'attack', attackerName: currentUser.username, attackerHwid: ACTIVE_HWID,
-        buildingName: BUILDINGS[b.type].name, damage: dmg,
-        buildingX: b.x, buildingY: b.y, ts: Date.now()
+        buildingName: def.name, damage: 0,
+        buildingX: b.x, buildingY: b.y, ts: now
       });
     } catch(e) {}
   }
@@ -2606,15 +2763,21 @@ function performAttack(b, ownerName, ownerHwid) {
 
 /* =========================================================
    SOLDIER AI — Priorität: Gegner-in-Nähe > Gebäude > Idle
+   Deterministisch: Position wird aus startTime + Geschwindigkeit berechnet
    ========================================================= */
 function updateSoldierUnits(dt) {
   const FIGHT_RANGE = 60;
   const ATTACK_RANGE = 20;
   const HIT_INTERVAL = 1.0;
+  const now = Date.now();
 
   for (const s of soldierUnits) s.fighting = false;
 
   for (const s of soldierUnits) {
+    // Prüfe ob "in Bewegung" (deterministisch) — bevor Kampf
+    // Wenn in Bewegung zur Zielposition, dann bewege linear mit korrekter Geschwindigkeit
+    // Sobald angekommen, wechsle zu lokalem Verhalten
+
     let closestEnemy = null;
     let closestDist = FIGHT_RANGE;
     for (const o of soldierUnits) {
@@ -2705,46 +2868,37 @@ function updateSoldierUnits(dt) {
     if (soldierUnits[i].hp <= 0) soldierUnits.splice(i, 1);
   }
 
-  // Soldaten-Zähler-Badge aktualisieren
+  // Marches aufräumen (abgelaufen)
+  activeMarches = activeMarches.filter(m => Date.now() < m.arriveTime + 20000);
+
+  // Soldaten-Zähler
   const badge = document.getElementById('soldierCountBadge');
   if (badge) {
     const alive = soldierUnits.filter(s => s.side === 'friendly').length;
     badge.textContent = alive;
     badge.setAttribute('data-count', alive);
   }
+
+  updateMarchBanner();
 }
 
 function clearSoldierUnits() {
   soldierUnits = [];
+  activeMarches = [];
 }
 
-/* NEU: Soldaten-Nachproduktion — jede Sekunde bis zum Cap */
+/* Soldaten-Nachproduktion: 1 pro Sekunde bis zum Cap.
+   Soldaten bleiben "at home" → werden nur intern gezählt, NICHT als Canvas-Units gespawnt.
+   Nur beim Angriff werden sie als sichtbare Units erzeugt. */
 function soldierSpawnTick() {
-  const currentCount = soldierUnits.filter(s => s.side === 'friendly').length;
-  const target = state.soldiers; // = state.soldierCap
-  if (currentCount >= target) return;
-  const needed = Math.min(target - currentCount, 30); // max 30 pro Tick, damit's nicht laggt
-  const mainB = state.buildings.find(b => b.type === 'main');
-  if (!mainB) return;
-  const size = BUILDINGS.main.size * TILE;
-  const cx = mainB.x + size/2;
-  const cy = mainB.y + size + 20;
-  for (let i = 0; i < needed; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const r = 40 + Math.random() * 80;
-    spawnSoldierUnit(
-      cx + Math.cos(angle) * r,
-      cy + Math.sin(angle) * r,
-      cx + (Math.random()-0.5)*400,
-      cy + (Math.random()-0.5)*400,
-      'friendly', null
-    );
-  }
+  // Soldaten sind "at home" — keine Canvas-Units nötig.
+  // state.soldiers = state.soldierCap wird in recalc() gesetzt.
+  // Beim Angriff werden alle Soldaten als Units gespawnt.
 }
 
 function respawnSoldiers() {
-  // Alte Funktion bleibt für Kompatibilität — leitet an neue weiter
-  soldierSpawnTick();
+  // Nur intern — Soldaten at home
+  state.soldiers = state.soldierCap;
 }
 
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
@@ -2807,21 +2961,86 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
 }
 
 function triggerDefense(attackerX, attackerY) {
-  const mainB = state.buildings.find(b => b.type === 'main');
-  if (!mainB) return;
-  const size = BUILDINGS.main.size * TILE;
-  const cx = mainB.x + size/2, cy = mainB.y + size/2;
+  const spawnPoints = getMilitarySpawnPoints();
   const count = Math.min(10, Math.max(1, state.soldiers));
+  if (spawnPoints.length === 0) return;
   for (let i = 0; i < count; i++) {
-    spawnSoldierUnit(
-      cx + (Math.random() - 0.5) * 200,
-      cy + (Math.random() - 0.5) * 200,
-      attackerX || cx + (Math.random()-0.5) * 800,
-      attackerY || cy + (Math.random()-0.5) * 800,
-      'friendly', null
-    );
+    const sp = spawnPoints[i % spawnPoints.length];
+    const sx = sp.x + (Math.random() - 0.5) * 40;
+    const sy = sp.y + (Math.random() - 0.5) * 40;
+    const tx = attackerX || sx + (Math.random()-0.5) * 800;
+    const ty = attackerY || sy + (Math.random()-0.5) * 800;
+    spawnSoldierUnit(sx, sy, tx, ty, 'friendly', null);
   }
   notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
+}
+
+/* =========================================================
+   MARCH BANNER — zeigt Ankunftszeit für eigenen/feindlichen Angriff
+   ========================================================= */
+let marchBannerHideTimer = null;
+function updateMarchBanner() {
+  const banner = document.getElementById('marchBanner');
+  if (!banner) return;
+  const now = Date.now();
+
+  // Priorität: eigener Angriff > eingehender Angriff
+  // 1) Aktiver eigener Angriff?
+  let ownMarch = null;
+  for (const m of activeMarches) {
+    if (m.isIncoming) continue;
+    if (now < m.arriveTime + 15000) {
+      if (!ownMarch || m.arriveTime < ownMarch.arriveTime) ownMarch = m;
+    }
+  }
+  // 2) Eingehender Angriff auf uns?
+  let incomingMarch = null;
+  for (const m of activeMarches) {
+    if (!m.isIncoming) continue;
+    if (now < m.arriveTime + 15000) {
+      if (!incomingMarch || m.arriveTime < incomingMarch.arriveTime) incomingMarch = m;
+    }
+  }
+
+  // Priorität: incoming > own (Defense wichtiger)
+  const target = incomingMarch || ownMarch;
+  if (!target) {
+    banner.classList.remove('show');
+    return;
+  }
+
+  const remaining = target.arriveTime - now;
+  const total = target.arriveTime - target.startTime;
+  const progress = Math.max(0, Math.min(1, 1 - remaining / total));
+
+  const cd = document.getElementById('mbCountdown');
+  const title = document.getElementById('mbTitle');
+  const sub = document.getElementById('mbSub');
+  const barFill = document.getElementById('mbBarFill');
+
+  if (remaining <= 0) {
+    cd.textContent = '⚔ FIGHTING';
+    cd.classList.remove('warn');
+  } else {
+    cd.textContent = formatMMSS(remaining);
+    if (remaining < 10000) cd.classList.add('warn');
+    else cd.classList.remove('warn');
+  }
+
+  if (target.isIncoming) {
+    banner.classList.remove('own');
+    banner.classList.add('incoming');
+    title.textContent = `⚠ INCOMING ATTACK from ${target.sourceName || 'Unknown'}`;
+    sub.textContent = `${target.soldierCount} soldiers marching to your ${target.buildingName || 'base'}`;
+  } else {
+    banner.classList.add('own');
+    banner.classList.remove('incoming');
+    title.textContent = `⚔ Your ${target.soldierCount} soldiers marching to ${target.targetName}`;
+    sub.textContent = `Target: ${target.buildingName || 'enemy building'}`;
+  }
+
+  barFill.style.width = (progress * 100) + '%';
+  banner.classList.add('show');
 }
 
 /* =========================================================
@@ -3136,22 +3355,21 @@ function startFPSLoop() {
 }
 
 /* =========================================================
-   LIVE MULTIPLAYER VISUALS
+   LIVE MULTIPLAYER VISUALS — ALLE Soldaten an Firebase
    ========================================================= */
 function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
     const { ref, set } = firebase;
-    // Sende nur eine Stichprobe, damit Firebase nicht überlastet wird
-    // Max 60 Soldaten an andere Spieler übertragen (Rendering bei anderen)
+    // Sende ALLE eigenen Soldaten (nicht limitiert)
     const allSoldiers = soldierUnits.filter(s => s.side === 'friendly');
-    const sendSoldiers = allSoldiers.length <= 60 ? allSoldiers : allSoldiers.slice(0, 60);
-    const mySoldiers = sendSoldiers.map(s => ({
+    // Bei sehr vielen (200+) reduzieren wir die Update-Frequenz, aber senden alle
+    const mySoldiers = allSoldiers.map(s => ({
       x: Math.round(s.x), y: Math.round(s.y),
       hp: Math.round(s.hp), maxHp: s.maxHp,
       facing: s.facing, fighting: !!s.fighting
     }));
-    const myVillagers = villagerUnits.slice(0, 30).map(v => ({ x: Math.round(v.x), y: Math.round(v.y) }));
+    const myVillagers = villagerUnits.slice(0, 40).map(v => ({ x: Math.round(v.x), y: Math.round(v.y) }));
     const myBuilders = [];
     state.buildings.forEach(b => {
       if (b.construction && b._builders) {
@@ -3208,43 +3426,85 @@ function startAttacksListener() {
     for (const id in data) {
       if (seenAttacks.has(id)) continue;
       const a = data[id];
-      if (!a || now - (a.ts || 0) > 20000) continue;
+      if (!a) continue;
+      // Ignoriere zu alte
+      if (a.arriveTime && now > a.arriveTime + 30000) { seenAttacks.add(id); continue; }
+      if (!a.arriveTime && now - (a.ts || 0) > 30000) { seenAttacks.add(id); continue; }
       seenAttacks.add(id);
       if (a.attackerHwid === ACTIVE_HWID) continue;
 
-      let targetB = null;
-      const allB = [];
-      state.buildings.forEach(b => allB.push(b));
-      for (const hwid in otherPlayerEls) {
-        const entry = otherPlayerEls[hwid];
-        if (!entry || !entry.buildings) continue;
-        for (const bid in entry.buildings) allB.push(entry.buildings[bid]);
-      }
-      let bestDist = Infinity;
-      for (const b of allB) {
-        const def = BUILDINGS[b.type];
-        if (!def) continue;
-        const bs = def.size * TILE;
-        const cx = b.x + bs / 2;
-        const cy = b.y + bs / 2;
-        const d = Math.hypot(cx - a.toX, cy - a.toY);
-        if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
-      }
-
-      const count = Math.min(a.soldierCount || 3, 30);
-      for (let i = 0; i < count; i++) {
-        spawnSoldierUnit(
-          a.fromX + (Math.random() - 0.5) * 60,
-          a.fromY + (Math.random() - 0.5) * 60,
-          a.toX + (Math.random() - 0.5) * 40,
-          a.toY + (Math.random() - 0.5) * 40,
-          'enemy',
-          targetB || null
-        );
-      }
-
+      // Eingehender Angriff auf mich?
       if (a.targetHwid === ACTIVE_HWID) {
+        // Zielgebäude finden
+        let targetB = state.buildings.find(b => b.id === a.buildingId);
+        if (!targetB) {
+          // Fallback: Koordinaten
+          let bestDist = Infinity;
+          state.buildings.forEach(b => {
+            const def = BUILDINGS[b.type];
+            const bs = def.size * TILE;
+            const cx = b.x + bs/2;
+            const cy = b.y + bs/2;
+            const d = Math.hypot(cx - a.toX, cy - a.toY);
+            if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
+          });
+        }
+
+        // Erstelle March-Eintrag für eigenes UI
+        const marchEntry = {
+          id: 'incoming-' + id,
+          startX: a.fromX, startY: a.fromY,
+          toX: a.toX, toY: a.toY,
+          startTime: a.startTime || a.ts,
+          arriveTime: a.arriveTime || (a.ts + 10000),
+          soldierCount: Math.min(a.soldierCount || 3, 60),
+          sourceName: a.attackerName,
+          sourceHwid: a.attackerHwid,
+          buildingName: targetB ? BUILDINGS[targetB.type].name : 'your base',
+          targetBuilding: targetB,
+          isIncoming: true
+        };
+        activeMarches.push(marchEntry);
+
+        // Spawne die ankommenden Soldaten als Canvas-Units für alle sichtbar
+        // WICHTIG: Sie erscheinen an ihrer aktuellen Position basierend auf
+        // startTime + (jetzt - startTime) * speed — synchron
+        const count = Math.min(a.soldierCount || 3, 60);
+        const sx0 = a.fromX, sy0 = a.fromY;
+        const tx0 = a.toX, ty0 = a.toY;
+        const startT = a.startTime || a.ts;
+        const arriveT = a.arriveTime || (startT + 10000);
+        const totalMs = arriveT - startT;
+        const elapsed = Math.max(0, now - startT);
+        const progress = Math.min(1, elapsed / totalMs);
+
+        for (let i = 0; i < count; i++) {
+          const jitter = (i - count/2) * 8;
+          const cx0 = sx0 + (tx0 - sx0) * progress + jitter;
+          const cy0 = sy0 + (ty0 - sy0) * progress + (Math.random()-0.5)*8;
+          const unit = {
+            x: cx0, y: cy0,
+            tx: tx0 + (Math.random()-0.5)*60,
+            ty: ty0 + (Math.random()-0.5)*60,
+            hp: 100, maxHp: 100,
+            speed: ATTACK_SPEED,
+            side: 'enemy',
+            targetBuilding: targetB || null,
+            fighting: false,
+            facing: 'right',
+            _duelTimer: 0, _hitTimer: 0, _idle: 0,
+            _animTime: Math.random() * 1000,
+            startX: cx0, startY: cy0,
+            startTime: startT,
+            arriveTime: arriveT
+          };
+          soldierUnits.push(unit);
+        }
+
         showAttackPopup(a.attackerName, targetB ? BUILDINGS[targetB.type].name : 'your base', 0);
+      } else {
+        // Nur zusehen — andere Spieler kämpfen
+        // Erstelle auch einen visuellen Effekt (ohne UI-Banner)
       }
     }
   });
@@ -3297,7 +3557,7 @@ function spawnExplosion(x, y, type) {
 }
 
 /* =========================================================
-   VILLAGERS — Canvas
+   VILLAGERS — Canvas (nur bei Home)
    ========================================================= */
 function trySpawnVillagers() {
   const now = Date.now();
@@ -3461,7 +3721,8 @@ function updateUI() {
   const resGroup = document.getElementById('resGroup');
   const fmt = (n) => Math.floor(n).toLocaleString('en-US');
   const aliveSoldiers = soldierUnits.filter(s => s.side === 'friendly').length;
-  const soldierDisplay = aliveSoldiers > 0 ? `${aliveSoldiers}/${state.soldiers}` : `${state.soldiers}`;
+  const homeSoldiers = Math.max(0, state.soldiers - aliveSoldiers);
+  const soldierDisplay = `${homeSoldiers} 🏠 / ${state.soldiers}`;
   resGroup.innerHTML = `
     <div class="res">${ICONS.money}<span class="val">${fmt(state.money)}</span></div>
     <div class="res">${ICONS.gold}<span class="val">${fmt(state.gold)}</span></div>
@@ -3486,7 +3747,9 @@ function updateUI() {
     <div class="sp-row"><span>Build slots</span><span class="v">${maxB}${maxB < 5 ? ` (next: Lv.${maxB === 3 ? 5 : 10})` : ''}</span></div>
     <div class="sp-row"><span>Under construction</span><span class="v ${constructing >= maxB ? 'bad' : ''}">${constructing}/${maxB}</span></div>
     <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
-    <div class="sp-row"><span>Soldiers (alive / cap)</span><span class="v ${aliveSoldiers >= state.soldiers ? 'good' : 'bad'}">${aliveSoldiers} / ${state.soldiers}</span></div>
+    <div class="sp-row"><span>At home</span><span class="v good">${homeSoldiers}</span></div>
+    <div class="sp-row"><span>On march</span><span class="v ${aliveSoldiers > 0 ? 'bad' : ''}">${aliveSoldiers}</span></div>
+    <div class="sp-row"><span>Soldier Cap</span><span class="v">${state.soldiers}</span></div>
     <div class="sp-row"><span>Happiness</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
     <div class="sp-row"><span>Defense</span><span class="v">${state.defensePower || 0}</span></div>
   `;
@@ -3861,7 +4124,6 @@ async function startGame() {
   updateMinimapBuildings();
   renderOnlineList();
   centerCamera();
-  soldierSpawnTick(); // Erste Füllung
 
   if (firebase) {
     try {
@@ -3891,7 +4153,7 @@ async function startGame() {
   }
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, soldierTickAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0;
+  let prodAccum = 0, saveAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0, spawnAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -3900,11 +4162,11 @@ async function startGame() {
     updateVillagers(dt);
     constructionTick();
 
-    // Soldaten-Nachproduktion jede 1 Sekunde
-    soldierTickAccum += dt;
-    if (soldierTickAccum >= 1) {
-      soldierSpawnTick();
-      soldierTickAccum = 0;
+    // Soldaten-Nachproduktion jede 1 Sekunde — nur intern, Soldaten bleiben at home
+    spawnAccum += dt;
+    if (spawnAccum >= 1) {
+      respawnSoldiers();
+      spawnAccum = 0;
     }
 
     prodAccum += dt;
@@ -3947,11 +4209,10 @@ function centerCamera() {
   applyTransform();
 }
 
-/* To My Soldiers — Kamera zu eigenen Soldaten teleportieren */
 function cameraToMySoldiers() {
   const mySoldiers = soldierUnits.filter(s => s.side === 'friendly');
   if (mySoldiers.length === 0) {
-    notify("No soldiers alive right now!", true);
+    notify("All soldiers are at home — no marching soldiers.", true);
     return;
   }
   let sx = 0, sy = 0;
@@ -3962,7 +4223,7 @@ function cameraToMySoldiers() {
   state.camX = rect.width / 2 - sx * state.zoom;
   state.camY = rect.height / 2 - sy * state.zoom;
   applyTransform();
-  notify(`📍 Jumped to ${mySoldiers.length} soldier${mySoldiers.length === 1 ? '' : 's'}`, false, true);
+  notify(`📍 Jumped to ${mySoldiers.length} marching soldier${mySoldiers.length === 1 ? '' : 's'}`, false, true);
 }
 
 document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6, state.zoom * 1.2); applyTransform(); };
