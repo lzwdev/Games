@@ -304,6 +304,29 @@
   .spacer { flex: 1; }
   .hint { font-size: 11px; color: #7b8dab; white-space: nowrap; }
 
+  /* To My Soldiers button */
+  .btn-soldiers {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border-color: #64b5f6; color: #1565c0;
+    position: relative;
+  }
+  .btn-soldiers:hover {
+    background: linear-gradient(135deg, #bbdefb, #90caf9);
+    border-color: #42a5f5; color: #0d47a1;
+  }
+  .btn-soldiers .soldier-count {
+    position: absolute; top: -6px; right: -6px;
+    background: #2f6fd0; color: #fff;
+    font-size: 9.5px; font-weight: 900;
+    min-width: 17px; height: 17px;
+    border-radius: 9px; padding: 0 4px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(47,111,208,0.5);
+    border: 1.5px solid #fff;
+    line-height: 1;
+  }
+  .btn-soldiers .soldier-count[data-count="0"] { display: none; }
+
   #placeBanner { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); z-index: 70; background: #ffffff; border: 1px solid #2f6fd0; border-radius: 12px; padding: 10px 18px; box-shadow: 0 8px 24px rgba(40,70,120,0.2); display: none; align-items: center; gap: 14px; animation: detailIn 0.3s cubic-bezier(0.2,0.9,0.3,1.2); }
   #placeBanner.show { display: flex; }
   #placeBanner .pb-icon { width: 34px; height: 34px; }
@@ -378,6 +401,29 @@
   #syncBadge .dot { width: 7px; height: 7px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 6px #4caf50; }
   #syncBadge.saving .dot { background: #ffb300; box-shadow: 0 0 6px #ffb300; animation: blink 0.6s infinite; }
   #syncBadge.error .dot { background: #e53935; box-shadow: 0 0 6px #e53935; }
+
+  #perfBadge {
+    position: absolute; bottom: 62px; left: 132px; z-index: 44;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid #d3dded; border-radius: 20px;
+    padding: 5px 12px; font-size: 11px; font-weight: 700;
+    color: #6b7d99; box-shadow: 0 4px 12px rgba(40,70,120,0.1);
+    font-variant-numeric: tabular-nums;
+  }
+  #perfBadge .perf-item { display: flex; align-items: center; gap: 4px; }
+  #perfBadge .perf-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4caf50; box-shadow: 0 0 6px #4caf50;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  #perfBadge.warn .perf-dot { background: #ffb300; box-shadow: 0 0 6px #ffb300; }
+  #perfBadge.bad .perf-dot { background: #e53935; box-shadow: 0 0 6px #e53935; }
+  #perfBadge .perf-sep { color: #c3d4ec; font-weight: 400; }
+  #perfBadge .perf-val { color: #1e355e; font-weight: 800; min-width: 22px; text-align: right; }
+  #perfBadge .perf-val.good { color: #2e7d32; }
+  #perfBadge .perf-val.warn { color: #b26a00; }
+  #perfBadge .perf-val.bad { color: #c62828; }
 
   #chatPanel { position: absolute; bottom: 62px; left: 12px; z-index: 46; width: 320px; max-height: 400px; background: rgba(255,255,255,0.96); border: 1px solid #d3dded; border-radius: 12px; box-shadow: 0 8px 30px rgba(40,70,120,0.2); display: none; flex-direction: column; overflow: hidden; }
   #chatPanel.show { display: flex; }
@@ -774,6 +820,20 @@
 
   <div id="syncBadge"><div class="dot"></div><span id="syncText">Synced</span></div>
 
+  <div id="perfBadge">
+    <div class="perf-item">
+      <span class="perf-dot"></span>
+      <span>FPS</span>
+      <span class="perf-val" id="fpsVal">60</span>
+    </div>
+    <span class="perf-sep">·</span>
+    <div class="perf-item">
+      <span>Ping</span>
+      <span class="perf-val" id="pingVal">—</span>
+      <span style="font-size:9.5px;opacity:0.7;">ms</span>
+    </div>
+  </div>
+
   <div id="minimap">
     <div class="mm-title">Map</div>
     <div class="mm-inner" id="mmInner"></div>
@@ -855,6 +915,13 @@
     <button class="btn" id="btnCenter" title="Center on my main building">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       Mine
+    </button>
+    <button class="btn btn-soldiers" id="btnToSoldiers" title="Jump to my soldiers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z" fill="currentColor" opacity="0.25"/>
+      </svg>
+      Soldiers
+      <span class="soldier-count" id="soldierCountBadge" data-count="0">0</span>
     </button>
     <button class="btn" id="btnSellMode" title="Demolish mode">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M5 6l1 14h12l1-14M10 11v5M14 11v5"/></svg>
@@ -1028,7 +1095,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v21 (Canvas-Units + Priorität Gegner-in-Nähe)
+   BUILD A REALM — v22 (Canvas Units + FPS/Ping + To My Soldiers)
    ========================================================= */
 
 const ICONS = {
@@ -1086,7 +1153,7 @@ const tips = [
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
   "Tip: Level 5 unlocks a 4th build slot · Level 10 unlocks a 5th",
   "Tip: Soldiers prefer attacking nearby enemy soldiers first",
-  "Tip: Sign in with Google to save your progress across devices",
+  "Tip: Click 'Soldiers' button to jump to your army",
   "Tip: Houses increase your population cap",
   "Tip: Units are rendered on Canvas — smooth even with many units"
 ];
@@ -2097,7 +2164,6 @@ function createBuildingEl(b, isEnemy, ownerName) {
     el.appendChild(barBg);
     b._badge = badge;
     b._barFill = barBg.firstChild;
-    // Builder als JS-Objekte (Canvas zeichnet sie)
     const bp = [[0.2,0.85],[0.7,0.85],[0.5,0.5]];
     b._builders = bp.map(pos => ({
       x: b.x + pos[0] * size,
@@ -2129,7 +2195,7 @@ function refreshBuildingEl(b) {
   const def = BUILDINGS[b.type];
   if (!def) return;
   const size = def.size * TILE;
-  b._builders = null; // Canvas zeichnet keine mehr für dieses Gebäude
+  b._builders = null;
   b.el.classList.remove('under-construction');
   b.el.innerHTML = buildingSVG(b.type, b.level, size, size);
   const dmgOverlay = document.createElement('div');
@@ -2507,7 +2573,6 @@ function performAttack(b, ownerName, ownerHwid) {
   updateBuildingHpVisual(b);
   showFloatText(targetCX, b.y, `-${dmg} HP`, '#e53935');
   publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${BUILDINGS[b.type].name}!`, ownerHwid);
-  notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name}!`, false, false, false, true);
 
   if (ownerHwid && firebase) {
     try {
@@ -2536,14 +2601,7 @@ function updateSoldierUnits(dt) {
 
   for (const s of soldierUnits) s.fighting = false;
 
-  // Priorität 1: Gegner-Soldaten in der Nähe
   for (const s of soldierUnits) {
-    if (s.side !== 'friendly') continue; // Enemy-KI macht das unten für beide
-  }
-
-  // Für ALLE Units: erst Gegner checken, dann Gebäude, dann Idle
-  for (const s of soldierUnits) {
-    // ---- Priorität 1: nächsten Gegner-Soldaten finden ----
     let closestEnemy = null;
     let closestDist = FIGHT_RANGE;
     for (const o of soldierUnits) {
@@ -2575,7 +2633,6 @@ function updateSoldierUnits(dt) {
       continue;
     }
 
-    // ---- Priorität 2: Zielgebäude ----
     if (s.targetBuilding && s.targetBuilding.el && s.targetBuilding.hp > 0) {
       const def = BUILDINGS[s.targetBuilding.type];
       const bs = def.size * TILE;
@@ -2615,7 +2672,6 @@ function updateSoldierUnits(dt) {
       continue;
     }
 
-    // ---- Priorität 3: Idle wandern ----
     const dx = s.tx - s.x, dy = s.ty - s.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 12) {
@@ -2632,9 +2688,16 @@ function updateSoldierUnits(dt) {
     }
   }
 
-  // Tote entfernen
   for (let i = soldierUnits.length - 1; i >= 0; i--) {
     if (soldierUnits[i].hp <= 0) soldierUnits.splice(i, 1);
+  }
+
+  // Soldaten-Zähler-Badge aktualisieren
+  const badge = document.getElementById('soldierCountBadge');
+  if (badge) {
+    const alive = soldierUnits.filter(s => s.side === 'friendly').length;
+    badge.textContent = alive;
+    badge.setAttribute('data-count', alive);
   }
 }
 
@@ -2904,7 +2967,6 @@ function ctx_drawHpBar(ctx, x, y, w, h, pct, isFriendly) {
 
 let lastRenderTime = performance.now();
 function renderCanvasUnits(now) {
-  const deltaMs = now - lastRenderTime;
   lastRenderTime = now;
 
   uctx.clearRect(0, 0, unitCanvas.width, unitCanvas.height);
@@ -2926,7 +2988,6 @@ function renderCanvasUnits(now) {
            wy >= worldTop - 60 && wy <= worldBottom + 60;
   }
 
-  // Eigene Soldaten
   for (const s of soldierUnits) {
     if (!inView(s.x, s.y)) continue;
     const p = toScreen(s.x, s.y);
@@ -2937,7 +2998,6 @@ function renderCanvasUnits(now) {
     drawSoldier(uctx, p.x, p.y, z, colorMain, colorDark, s.facing, s.fighting, s._animTime + now);
   }
 
-  // Remote-Soldaten
   for (const hwid in remoteUnitsData) {
     const data = remoteUnitsData[hwid];
     for (const sd of data.soldiers || []) {
@@ -2949,13 +3009,11 @@ function renderCanvasUnits(now) {
     }
   }
 
-  // Eigene Villager
   for (const v of villagerUnits) {
     if (!inView(v.x, v.y)) continue;
     const p = toScreen(v.x, v.y);
     drawVillager(uctx, p.x, p.y, z, now + (v._animTime || 0));
   }
-  // Remote-Villager
   for (const hwid in remoteUnitsData) {
     const data = remoteUnitsData[hwid];
     for (const vd of data.villagers || []) {
@@ -2965,7 +3023,6 @@ function renderCanvasUnits(now) {
     }
   }
 
-  // Eigene Builder
   for (const b of state.buildings) {
     if (!b.construction || !b._builders) continue;
     for (const bel of b._builders) {
@@ -2974,7 +3031,6 @@ function renderCanvasUnits(now) {
       drawBuilder(uctx, p.x, p.y, z, now + (bel._animTime || 0));
     }
   }
-  // Remote-Builder
   for (const hwid in remoteUnitsData) {
     const data = remoteUnitsData[hwid];
     for (const bd of data.builders || []) {
@@ -2985,6 +3041,82 @@ function renderCanvasUnits(now) {
   }
 
   requestAnimationFrame(renderCanvasUnits);
+}
+
+/* =========================================================
+   PERFORMANCE MONITOR: FPS + Real Ping
+   ========================================================= */
+const perfBadge = document.getElementById('perfBadge');
+const fpsValEl = document.getElementById('fpsVal');
+const pingValEl = document.getElementById('pingVal');
+
+let fpsFrameCount = 0;
+let fpsLastUpdate = performance.now();
+let currentPing = 0;
+let pingInFlight = false;
+
+function tickFPS(now) {
+  fpsFrameCount++;
+  if (now - fpsLastUpdate >= 500) {
+    const fps = Math.round((fpsFrameCount * 1000) / (now - fpsLastUpdate));
+    fpsFrameCount = 0;
+    fpsLastUpdate = now;
+    if (fpsValEl) fpsValEl.textContent = fps;
+    if (fpsValEl) {
+      fpsValEl.classList.remove('good', 'warn', 'bad');
+      if (fps >= 50) fpsValEl.classList.add('good');
+      else if (fps >= 30) fpsValEl.classList.add('warn');
+      else fpsValEl.classList.add('bad');
+    }
+    if (perfBadge) {
+      perfBadge.classList.remove('warn', 'bad');
+      if (fps < 20) perfBadge.classList.add('bad');
+      else if (fps < 35) perfBadge.classList.add('warn');
+    }
+  }
+}
+
+/* Echter Ping über Firebase serverTimestamp Round-Trip */
+async function measurePing() {
+  if (!firebase || pingInFlight) return;
+  pingInFlight = true;
+  const { ref, set, get } = firebase;
+  try {
+    const pingRef = ref(firebase.db, 'ping_probe/' + ACTIVE_HWID);
+    const t0 = performance.now();
+    // Write mit serverTimestamp — dann Read — echte Round-Trip-Zeit
+    await set(pingRef, { t: Date.now() });
+    const snap = await get(pingRef);
+    const t1 = performance.now();
+    if (snap.exists()) {
+      currentPing = Math.round(t1 - t0);
+      if (pingValEl) {
+        pingValEl.textContent = currentPing;
+        pingValEl.classList.remove('good', 'warn', 'bad');
+        if (currentPing < 120) pingValEl.classList.add('good');
+        else if (currentPing < 300) pingValEl.classList.add('warn');
+        else pingValEl.classList.add('bad');
+      }
+    }
+  } catch (e) {
+    if (pingValEl) {
+      pingValEl.textContent = '—';
+      pingValEl.classList.remove('good', 'warn', 'bad');
+      pingValEl.classList.add('bad');
+    }
+  } finally {
+    pingInFlight = false;
+  }
+}
+
+function startFPSLoop() {
+  function loop(now) {
+    tickFPS(now);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  // Ping alle 3 Sekunden messen
+  setTimeout(() => { measurePing(); setInterval(measurePing, 3000); }, 1500);
 }
 
 /* =========================================================
@@ -3079,7 +3211,6 @@ function startAttacksListener() {
         if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
       }
 
-      // Spawn enemies as Canvas units
       const count = Math.min(a.soldierCount || 3, 8);
       for (let i = 0; i < count; i++) {
         spawnSoldierUnit(
@@ -3146,7 +3277,7 @@ function spawnExplosion(x, y, type) {
 }
 
 /* =========================================================
-   VILLAGERS — jetzt Canvas (keine DOM-Elemente mehr)
+   VILLAGERS — Canvas
    ========================================================= */
 function trySpawnVillagers() {
   const now = Date.now();
@@ -3649,6 +3780,7 @@ async function startGame() {
   buildTerrain();
   resizeCanvas();
   requestAnimationFrame(renderCanvasUnits);
+  startFPSLoop();
 
   if (firebase) {
     try {
@@ -3785,9 +3917,30 @@ function centerCamera() {
   state.camY = rect.height / 2 - state.baseY * state.zoom;
   applyTransform();
 }
+
+/* To My Soldiers — Kamera zu eigenen Soldaten teleportieren */
+function cameraToMySoldiers() {
+  const mySoldiers = soldierUnits.filter(s => s.side === 'friendly');
+  if (mySoldiers.length === 0) {
+    notify("No soldiers alive right now!", true);
+    return;
+  }
+  // Durchschnittsposition aller eigenen Soldaten
+  let sx = 0, sy = 0;
+  mySoldiers.forEach(s => { sx += s.x; sy += s.y; });
+  sx /= mySoldiers.length;
+  sy /= mySoldiers.length;
+  const rect = mapEl.getBoundingClientRect();
+  state.camX = rect.width / 2 - sx * state.zoom;
+  state.camY = rect.height / 2 - sy * state.zoom;
+  applyTransform();
+  notify(`📍 Jumped to ${mySoldiers.length} soldier${mySoldiers.length === 1 ? '' : 's'}`, false, true);
+}
+
 document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6, state.zoom * 1.2); applyTransform(); };
 document.getElementById('btnZoomOut').onclick = () => { state.zoom = Math.max(0.25, state.zoom / 1.2); applyTransform(); };
 document.getElementById('btnCenter').onclick = centerCamera;
+document.getElementById('btnToSoldiers').onclick = cameraToMySoldiers;
 document.getElementById('btnSellMode').onclick = toggleSellMode;
 document.getElementById('btnAttackMode').onclick = toggleAttackMode;
 document.getElementById('btnOnlineList').onclick = () => {
