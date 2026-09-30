@@ -127,6 +127,8 @@
   .terrain-patch { position: absolute; border-radius: 50%; pointer-events: none; }
   .tree-deco, .rock-deco { position: absolute; pointer-events: none; }
 
+  #unitCanvas { position: absolute; inset: 0; pointer-events: none; z-index: 35; }
+
   .building {
     position: absolute; transform-origin: center bottom;
     display: flex; align-items: flex-end; justify-content: center;
@@ -191,43 +193,6 @@
   }
   .progress-bar-bg { position: absolute; bottom: -12px; left: 10%; width: 80%; height: 5px; background: rgba(255,255,255,0.7); border-radius: 4px; overflow: hidden; border: 1px solid #bcd0ec; }
   .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #2f6fd0, #6aa9f5); transition: width 0.3s linear; }
-
-  .builder {
-    position: absolute; width: 20px; height: 26px;
-    pointer-events: none; z-index: 8;
-    animation: builderBob 0.5s ease-in-out infinite alternate;
-  }
-  @keyframes builderBob { 0% { transform: translateY(0); } 100% { transform: translateY(-2px); } }
-  .builder svg { width: 100%; height: 100%; display: block; }
-  .builder .hammer { transform-origin: 60% 80%; animation: hammerSwing 0.6s ease-in-out infinite; }
-  @keyframes hammerSwing { 0%, 100% { transform: rotate(-25deg); } 50% { transform: rotate(30deg); } }
-
-  .worker { position: absolute; width: 18px; height: 24px; pointer-events: none; transition: transform 0.1s linear; z-index: 5; }
-
-  .soldier-unit {
-    position: absolute; width: 26px; height: 32px;
-    pointer-events: none; z-index: 25;
-    transition: left 0.08s linear, top 0.08s linear;
-  }
-  .soldier-unit.friendly { filter: drop-shadow(0 0 6px rgba(47,111,208,0.9)); }
-  .soldier-unit.enemy { filter: drop-shadow(0 0 6px rgba(198,40,40,0.9)); }
-  .soldier-unit.fighting { animation: swordSwing 0.35s ease-in-out infinite; }
-  @keyframes swordSwing {
-    0%, 100% { transform: scaleX(1) rotate(-6deg); }
-    50% { transform: scaleX(1) rotate(6deg) scale(1.08); }
-  }
-  .soldier-unit svg { width: 100%; height: 100%; display: block; }
-
-  .soldier-hp {
-    position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
-    width: 22px; height: 4px; background: rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 3px; overflow: hidden; z-index: 30;
-  }
-  .soldier-hp .shf {
-    height: 100%; width: 100%; background: #4caf50;
-    transition: width 0.2s, background 0.2s;
-  }
 
   .float-text { position: absolute; font-weight: 800; font-size: 15px; pointer-events: none; z-index: 60; white-space: nowrap; text-shadow: 0 1px 3px rgba(255,255,255,0.9), 0 2px 6px rgba(0,0,0,0.25); animation: floatUp 1.4s ease-out forwards; }
   @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-55px); opacity: 0; } }
@@ -788,6 +753,7 @@
 <!-- GAME -->
 <div id="game">
   <div id="map"><div id="world"><div id="grid"></div></div></div>
+  <canvas id="unitCanvas"></canvas>
   <div id="placeGhost"></div>
   <div id="tooltip"></div>
 
@@ -868,12 +834,6 @@
       <small>Click on an enemy building to attack it with soldiers</small>
     </div>
     <button class="ab-cancel" id="abCancel">Cancel</button>
-  </div>
-
-  <div id="offlineBanner">
-    <div class="ob-icon">⏳</div>
-    <div class="ob-text" id="obText">Offline progress</div>
-    <button class="ob-close" id="obClose">OK</button>
   </div>
 
   <div id="chatPanel">
@@ -1068,7 +1028,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v20 (Combat-Fixes: Soldaten-Kämpfe, Gebäude-Damage)
+   BUILD A REALM — v21 (Canvas-Units + Priorität Gegner-in-Nähe)
    ========================================================= */
 
 const ICONS = {
@@ -1125,10 +1085,10 @@ const tips = [
   "Tip: Repair damaged buildings with Wood + Stone",
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
   "Tip: Level 5 unlocks a 4th build slot · Level 10 unlocks a 5th",
-  "Tip: Attack mode requires soldiers",
+  "Tip: Soldiers prefer attacking nearby enemy soldiers first",
   "Tip: Sign in with Google to save your progress across devices",
   "Tip: Houses increase your population cap",
-  "Tip: You can watch other players' soldiers fight live"
+  "Tip: Units are rendered on Canvas — smooth even with many units"
 ];
 const statuses = [
   "Initializing engine…","Loading terrain textures…","Connecting to realm server…",
@@ -1551,10 +1511,11 @@ let otherPlayers = {};
 let otherPlayerEls = {};
 let soldierUnits = [];
 let villagerUnits = [];
-let liveAttackWaves = [];
 let lastVillagerSpawn = 0;
 let attackMode = false;
 let eventFeedCollapsed = false;
+let remoteUnitsData = {};
+let lastAttackTime = 0;
 
 /* BUILDINGS */
 const BUILDINGS = {
@@ -1749,41 +1710,6 @@ function buildingSVG(type, level, w, h) {
     ${decor}${extras}
     <rect x="44" y="${100-20}" width="12" height="20" fill="#3a2a1a"/>
   </svg>`;
-}
-
-function builderSVG() {
-  return `<svg viewBox="0 0 20 26"><circle cx="10" cy="6" r="4" fill="#e0ac69"/><path d="M5 6 Q10 1 15 6 L15 5 Q10 0 5 5 Z" fill="#ffd54f"/><rect x="5" y="10" width="10" height="10" rx="2" fill="#ffb74d"/><rect x="5.5" y="20" width="3.5" height="6" fill="#37474f"/><rect x="11" y="20" width="3.5" height="6" fill="#37474f"/><g class="hammer"><rect x="14" y="12" width="2" height="8" fill="#8d6e63"/><rect x="12" y="10" width="6" height="3" fill="#78909c"/></g></svg>`;
-}
-
-function soldierSVG(facing, unitColor) {
-  const armorColor = unitColor || '#2f6fd0';
-  const darker = unitColor === '#c62828' ? '#7f0000' : '#1a3a6e';
-  const flip = facing === 'left' ? 'transform="scale(-1,1) translate(-20,0)"' : '';
-  return `<svg viewBox="0 0 20 26">
-    <g ${flip}>
-      <ellipse cx="10" cy="25" rx="7" ry="1.5" fill="rgba(0,0,0,0.35)"/>
-      <rect x="5.5" y="19" width="3.5" height="6" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
-      <rect x="11" y="19" width="3.5" height="6" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
-      <path d="M4 10 Q10 8 16 10 L16 19 Q10 20 4 19 Z" fill="${armorColor}" stroke="${darker}" stroke-width="0.8"/>
-      <path d="M6 11 L10 13 L14 11" fill="none" stroke="${darker}" stroke-width="0.8"/>
-      <ellipse cx="4" cy="11" rx="2.5" ry="2" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
-      <ellipse cx="16" cy="11" rx="2.5" ry="2" fill="${darker}" stroke="#1a1a1a" stroke-width="0.5"/>
-      <path d="M5 6 Q10 2 15 6 L15 8 Q10 9 5 8 Z" fill="${armorColor}" stroke="${darker}" stroke-width="0.8"/>
-      <rect x="7.5" y="6.5" width="5" height="1.5" fill="#1a1a1a"/>
-      <circle cx="10" cy="8" r="1.8" fill="#e0ac69"/>
-      <ellipse cx="4.5" cy="15" rx="2.8" ry="3.5" fill="#c9a84c" stroke="#7a5c10" stroke-width="0.8"/>
-      <ellipse cx="4.5" cy="15" rx="1.3" ry="1.8" fill="#8d6e63"/>
-      <g class="soldier-sword" style="transform-origin: 16px 14px;">
-        <rect x="15.5" y="8" width="1.8" height="6" fill="#e0e0e0" stroke="#555" stroke-width="0.4"/>
-        <polygon points="15.5,8 17.3,8 16.4,6" fill="#f5f5f5" stroke="#555" stroke-width="0.4"/>
-        <rect x="14.5" y="14" width="4" height="1" fill="#8d6e63" stroke="#4e342e" stroke-width="0.4"/>
-      </g>
-    </g>
-  </svg>`;
-}
-
-function villagerSVG() {
-  return `<svg viewBox="0 0 18 24"><circle cx="9" cy="5" r="3.5" fill="#e0ac69"/><rect x="4" y="9" width="10" height="9" rx="2" fill="#90caf9"/><rect x="4.5" y="18" width="3" height="6" fill="#5d4037"/><rect x="10.5" y="18" width="3" height="6" fill="#5d4037"/></svg>`;
 }
 
 function getCost(type, level) {
@@ -2171,17 +2097,13 @@ function createBuildingEl(b, isEnemy, ownerName) {
     el.appendChild(barBg);
     b._badge = badge;
     b._barFill = barBg.firstChild;
+    // Builder als JS-Objekte (Canvas zeichnet sie)
     const bp = [[0.2,0.85],[0.7,0.85],[0.5,0.5]];
-    b._builders = bp.map(pos => {
-      const bel = document.createElement('div');
-      bel.className = 'builder';
-      bel.innerHTML = builderSVG();
-      bel.style.left = (b.x + pos[0] * size) + 'px';
-      bel.style.top = (b.y + pos[1] * size) + 'px';
-      bel.style.zIndex = Math.floor(b.y) + 20;
-      worldEl.appendChild(bel);
-      return bel;
-    });
+    b._builders = bp.map(pos => ({
+      x: b.x + pos[0] * size,
+      y: b.y + pos[1] * size,
+      _animTime: Math.random() * 1000
+    }));
   }
   el.addEventListener('click', (ev) => {
     ev.stopPropagation();
@@ -2207,7 +2129,7 @@ function refreshBuildingEl(b) {
   const def = BUILDINGS[b.type];
   if (!def) return;
   const size = def.size * TILE;
-  if (b._builders) { b._builders.forEach(el => el.remove()); b._builders = null; }
+  b._builders = null; // Canvas zeichnet keine mehr für dieses Gebäude
   b.el.classList.remove('under-construction');
   b.el.innerHTML = buildingSVG(b.type, b.level, size, size);
   const dmgOverlay = document.createElement('div');
@@ -2392,7 +2314,6 @@ function startUpgrade(b) {
   const bt = getBuildTime(b.type, b.level - 1);
   b.constructionStart = Date.now();
   b.constructionDuration = bt * 1000;
-  if (b._builders) b._builders.forEach(el => el.remove());
   const size = def.size * TILE;
   b.el.classList.add('under-construction');
   b.el.innerHTML = buildingSVG(b.type, b.level, size, size);
@@ -2411,16 +2332,11 @@ function startUpgrade(b) {
   b._badge = badge;
   b._barFill = barBg.firstChild;
   const bp = [[0.2,0.85],[0.7,0.85],[0.5,0.5]];
-  b._builders = bp.map(pos => {
-    const bel = document.createElement('div');
-    bel.className = 'builder';
-    bel.innerHTML = builderSVG();
-    bel.style.left = (b.x + pos[0] * size) + 'px';
-    bel.style.top = (b.y + pos[1] * size) + 'px';
-    bel.style.zIndex = Math.floor(b.y) + 20;
-    worldEl.appendChild(bel);
-    return bel;
-  });
+  b._builders = bp.map(pos => ({
+    x: b.x + pos[0] * size,
+    y: b.y + pos[1] * size,
+    _animTime: Math.random() * 1000
+  }));
   recalc();
   updateUI();
   updateMinimapBuildings();
@@ -2466,7 +2382,7 @@ function sellBuilding(b) {
   state.money += refund;
   state.buildings = state.buildings.filter(x => x.id !== b.id);
   if (b.el) b.el.remove();
-  if (b._builders) b._builders.forEach(el => el.remove());
+  b._builders = null;
   recalc();
   updateUI();
   updateMinimapBuildings();
@@ -2476,8 +2392,11 @@ function sellBuilding(b) {
 }
 
 /* =========================================================
-   COMBAT
+   COMBAT — Canvas-basiert
    ========================================================= */
+const MAX_FRIENDLY_UNITS = 20;
+const MAX_ENEMY_UNITS = 40;
+
 function toggleAttackMode() {
   if (state.soldiers < 1) {
     notify("You need soldiers to attack! Build Barracks or Fortress first.", true);
@@ -2515,21 +2434,58 @@ function tryAttack(e) {
   notify("No enemy building there", true);
 }
 
+function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
+  const friendlyCount = soldierUnits.filter(s => s.side === 'friendly').length;
+  const enemyCount = soldierUnits.filter(s => s.side === 'enemy').length;
+  if (side === 'friendly' && friendlyCount >= MAX_FRIENDLY_UNITS) return null;
+  if (side === 'enemy' && enemyCount >= MAX_ENEMY_UNITS) return null;
+  const unit = {
+    x, y, tx, ty,
+    hp: 100, maxHp: 100,
+    speed: 1.8,
+    side,
+    targetBuilding: targetBuilding || null,
+    fighting: false,
+    facing: 'right',
+    _duelTimer: 0,
+    _hitTimer: 0,
+    _idle: 0,
+    _animTime: Math.random() * 1000
+  };
+  soldierUnits.push(unit);
+  return unit;
+}
+
 function performAttack(b, ownerName, ownerHwid) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
-  const mainB = state.buildings.find(x => x.type === 'main');
-  const startX = mainB ? mainB.x + BUILDINGS.main.size * TILE / 2 : state.baseX;
-  const startY = mainB ? mainB.y + BUILDINGS.main.size * TILE / 2 : state.baseY;
+  const now = Date.now();
+  if (now - lastAttackTime < 2000) { notify("⏳ Soldiers are marching — wait a moment!", true); return; }
+  lastAttackTime = now;
+
   const targetCX = b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
   const targetCY = b.y + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
 
-  const attackCount = Math.min(state.soldiers, 8);
-  for (let i = 0; i < attackCount; i++) {
-    spawnSoldierUnit(
-      startX + (Math.random() - 0.5) * 80,
-      startY + (Math.random() - 0.5) * 80,
-      targetCX, targetCY, 'friendly', b
-    );
+  const existing = soldierUnits.filter(s => s.side === 'friendly');
+  if (existing.length > 0) {
+    existing.forEach(s => {
+      s.tx = targetCX + (Math.random() - 0.5) * 60;
+      s.ty = targetCY + (Math.random() - 0.5) * 60;
+      s.targetBuilding = b;
+    });
+    notify(`⚔ Redirecting ${existing.length} soldiers to ${ownerName}'s ${BUILDINGS[b.type].name}!`);
+  } else {
+    const mainB = state.buildings.find(x => x.type === 'main');
+    const startX = mainB ? mainB.x + BUILDINGS.main.size * TILE / 2 : state.baseX;
+    const startY = mainB ? mainB.y + BUILDINGS.main.size * TILE / 2 : state.baseY;
+    const attackCount = Math.min(state.soldiers, 8);
+    for (let i = 0; i < attackCount; i++) {
+      spawnSoldierUnit(
+        startX + (Math.random() - 0.5) * 80,
+        startY + (Math.random() - 0.5) * 80,
+        targetCX, targetCY, 'friendly', b
+      );
+    }
+    notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name}!`, false, false, false, true);
   }
 
   if (firebase) {
@@ -2537,39 +2493,29 @@ function performAttack(b, ownerName, ownerHwid) {
       const { ref, push, set } = firebase;
       const aid = push(ref(firebase.db, 'attacks')).key;
       set(ref(firebase.db, 'attacks/' + aid), {
-        attackerHwid: ACTIVE_HWID,
-        attackerName: currentUser.username,
-        targetHwid: ownerHwid || 'unknown',
-        targetName: ownerName,
-        fromX: startX, fromY: startY,
-        toX: targetCX, toY: targetCY,
-        soldierCount: attackCount,
-        ts: Date.now()
+        attackerHwid: ACTIVE_HWID, attackerName: currentUser.username,
+        targetHwid: ownerHwid || 'unknown', targetName: ownerName,
+        fromX: state.baseX, fromY: state.baseY, toX: b.x, toY: b.y,
+        soldierCount: Math.min(state.soldiers, 8), ts: Date.now()
       });
       setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 30000);
     } catch(e) {}
   }
 
-  // Reduce direct damage — most damage now comes from marching soldiers
   const dmg = Math.max(1, Math.floor(state.soldiers * 0.15));
   b.hp = Math.max(0, (b.hp || 100) - dmg);
   updateBuildingHpVisual(b);
-  showFloatText(b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2, b.y, `-${dmg} HP`, '#e53935');
-  notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name}!`, false, false, false, true);
+  showFloatText(targetCX, b.y, `-${dmg} HP`, '#e53935');
   publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${BUILDINGS[b.type].name}!`, ownerHwid);
+  notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name}!`, false, false, false, true);
 
   if (ownerHwid && firebase) {
     try {
       const { ref, push } = firebase;
       push(ref(firebase.db, 'notifications/' + ownerHwid), {
-        type: 'attack',
-        attackerName: currentUser.username,
-        attackerHwid: ACTIVE_HWID,
-        buildingName: BUILDINGS[b.type].name,
-        damage: dmg,
-        buildingX: b.x,
-        buildingY: b.y,
-        ts: Date.now()
+        type: 'attack', attackerName: currentUser.username, attackerHwid: ACTIVE_HWID,
+        buildingName: BUILDINGS[b.type].name, damage: dmg,
+        buildingX: b.x, buildingY: b.y, ts: Date.now()
       });
     } catch(e) {}
   }
@@ -2580,10 +2526,148 @@ function performAttack(b, ownerName, ownerHwid) {
   }
 }
 
+/* =========================================================
+   SOLDIER AI — Priorität: Gegner-in-Nähe > Gebäude > Idle
+   ========================================================= */
+function updateSoldierUnits(dt) {
+  const FIGHT_RANGE = 60;
+  const ATTACK_RANGE = 20;
+  const HIT_INTERVAL = 1.0;
+
+  for (const s of soldierUnits) s.fighting = false;
+
+  // Priorität 1: Gegner-Soldaten in der Nähe
+  for (const s of soldierUnits) {
+    if (s.side !== 'friendly') continue; // Enemy-KI macht das unten für beide
+  }
+
+  // Für ALLE Units: erst Gegner checken, dann Gebäude, dann Idle
+  for (const s of soldierUnits) {
+    // ---- Priorität 1: nächsten Gegner-Soldaten finden ----
+    let closestEnemy = null;
+    let closestDist = FIGHT_RANGE;
+    for (const o of soldierUnits) {
+      if (o === s || o.side === s.side) continue;
+      const d = Math.hypot(o.x - s.x, o.y - s.y);
+      if (d < closestDist) { closestDist = d; closestEnemy = o; }
+    }
+
+    if (closestEnemy) {
+      s.fighting = true;
+      const dx = closestEnemy.x - s.x;
+      const dy = closestEnemy.y - s.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      s.facing = dx < 0 ? 'left' : 'right';
+
+      if (dist > ATTACK_RANGE) {
+        s.x += (dx / dist) * s.speed * dt * 60;
+        s.y += (dy / dist) * s.speed * dt * 60;
+      } else {
+        s._duelTimer += dt;
+        if (s._duelTimer >= HIT_INTERVAL) {
+          s._duelTimer = 0;
+          const dmg = 5 + Math.floor(Math.random() * 6);
+          closestEnemy.hp -= dmg;
+          showFloatText(closestEnemy.x, closestEnemy.y - 25, `-${dmg}`, '#e53935');
+          if (closestEnemy.hp <= 0) closestEnemy.hp = 0;
+        }
+      }
+      continue;
+    }
+
+    // ---- Priorität 2: Zielgebäude ----
+    if (s.targetBuilding && s.targetBuilding.el && s.targetBuilding.hp > 0) {
+      const def = BUILDINGS[s.targetBuilding.type];
+      const bs = def.size * TILE;
+      const cx = s.targetBuilding.x + bs / 2;
+      const cy = s.targetBuilding.y + bs / 2;
+      const dx = cx - s.x, dy = cy - s.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      s.facing = dx < 0 ? 'left' : 'right';
+
+      if (dist > bs / 2 + 15) {
+        s.x += (dx / dist) * s.speed * dt * 60;
+        s.y += (dy / dist) * s.speed * dt * 60;
+      } else {
+        s.fighting = true;
+        s._hitTimer += dt;
+        if (s._hitTimer >= HIT_INTERVAL * 1.5) {
+          s._hitTimer = 0;
+          const dmg = 5 + Math.floor(Math.random() * 8);
+          s.targetBuilding.hp = Math.max(0, s.targetBuilding.hp - dmg);
+          updateBuildingHpVisual(s.targetBuilding);
+          showFloatText(s.x, s.y - 20, `-${dmg}`, '#e53935');
+          if (s.targetBuilding.el) {
+            s.targetBuilding.el.classList.add('under-attack');
+            setTimeout(() => { if (s.targetBuilding?.el) s.targetBuilding.el.classList.remove('under-attack'); }, 400);
+          }
+          if (s.targetBuilding.hp <= 0) {
+            const tb = s.targetBuilding;
+            const owner = tb.ownerName || 'Enemy';
+            const ownerHwid = tb.ownerHwid;
+            s.targetBuilding = null;
+            destroyBuilding(tb, owner, ownerHwid, true);
+            s.tx = s.x + (Math.random() - 0.5) * 300;
+            s.ty = s.y + (Math.random() - 0.5) * 300;
+          }
+        }
+      }
+      continue;
+    }
+
+    // ---- Priorität 3: Idle wandern ----
+    const dx = s.tx - s.x, dy = s.ty - s.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 12) {
+      s.facing = dx < 0 ? 'left' : 'right';
+      s.x += (dx / dist) * s.speed * dt * 60;
+      s.y += (dy / dist) * s.speed * dt * 60;
+    } else {
+      s._idle += dt;
+      if (s._idle > 3) {
+        s._idle = 0;
+        s.tx = s.x + (Math.random() - 0.5) * 400;
+        s.ty = s.y + (Math.random() - 0.5) * 400;
+      }
+    }
+  }
+
+  // Tote entfernen
+  for (let i = soldierUnits.length - 1; i >= 0; i--) {
+    if (soldierUnits[i].hp <= 0) soldierUnits.splice(i, 1);
+  }
+}
+
+function clearSoldierUnits() {
+  soldierUnits = [];
+}
+
+function respawnSoldiers() {
+  const currentCount = soldierUnits.filter(s => s.side === 'friendly').length;
+  if (currentCount > 0) return;
+  const needed = state.soldiers;
+  if (needed <= 0) return;
+  const mainB = state.buildings.find(b => b.type === 'main');
+  if (!mainB) return;
+  const size = BUILDINGS.main.size * TILE;
+  const cx = mainB.x + size/2;
+  const cy = mainB.y + size + 20;
+  for (let i = 0; i < needed; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = 40 + Math.random() * 60;
+    spawnSoldierUnit(
+      cx + Math.cos(angle) * r,
+      cy + Math.sin(angle) * r,
+      cx + (Math.random()-0.5)*400,
+      cy + (Math.random()-0.5)*400,
+      'friendly', null
+    );
+  }
+}
+
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   const def = BUILDINGS[b.type];
   const iAmOwner = (!b.isEnemy && state.buildings.includes(b));
-  const iAmAttacker = b.isEnemy;
 
   if (b.el) {
     b.el.style.transition = 'opacity 0.8s, transform 0.8s';
@@ -2592,7 +2676,7 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
     setTimeout(() => { if (b.el) b.el.remove(); }, 800);
     showFloatText(b.x + (def.size * TILE / 2), b.y, '💥 DESTROYED', '#e53935');
   }
-  if (b._builders) b._builders.forEach(el => el.remove());
+  b._builders = null;
 
   if (b.type === 'main' && iAmOwner) {
     const stolen = Math.floor(state.money * 0.5);
@@ -2614,7 +2698,7 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
     }
   } else if (iAmOwner) {
     notify(`💀 Your ${def.name} was destroyed!`, true);
-  } else if (iAmAttacker) {
+  } else if (b.isEnemy) {
     notify(`💥 Destroyed ${ownerName}'s ${def.name}!`, false, true);
   }
 
@@ -2658,161 +2742,249 @@ function triggerDefense(attackerX, attackerY) {
   notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
 }
 
-function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
-  const el = document.createElement('div');
-  el.className = 'soldier-unit ' + (side === 'friendly' ? 'friendly' : 'enemy');
-  const color = side === 'friendly' ? '#2f6fd0' : '#c62828';
-  el.innerHTML = soldierSVG('right', color) + `<div class="soldier-hp"><div class="shf"></div></div>`;
-  el.style.left = x + 'px';
-  el.style.top = y + 'px';
-  el.style.zIndex = Math.floor(y) + 25;
-  worldEl.appendChild(el);
-  const unit = { x, y, tx, ty, el, hp: 100, maxHp: 100, speed: 1.8, side, targetBuilding, fighting: false, hpFill: el.querySelector('.shf'), targetEnemy: null };
-  soldierUnits.push(unit);
-  return unit;
+/* =========================================================
+   CANVAS RENDERER FOR UNITS
+   ========================================================= */
+const unitCanvas = document.getElementById('unitCanvas');
+const uctx = unitCanvas.getContext('2d');
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = mapEl.clientWidth;
+  const h = mapEl.clientHeight;
+  unitCanvas.width = w * dpr;
+  unitCanvas.height = h * dpr;
+  unitCanvas.style.width = w + 'px';
+  unitCanvas.style.height = h + 'px';
+  uctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-function updateSoldierUnits(dt) {
-  // My soldiers attack live attack waves (invaders)
+function drawSoldier(ctx, sx, sy, scale, colorMain, colorDark, facing, fighting, animTime) {
+  const bob = fighting ? Math.sin(animTime * 0.02) * 1.5 : Math.sin(animTime * 0.005) * 0.8;
+  const swing = fighting ? Math.sin(animTime * 0.02) * 0.6 : 0;
+  ctx.save();
+  ctx.translate(sx, sy + bob);
+  if (facing === 'left') ctx.scale(-1, 1);
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, 14, 7, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = colorDark;
+  ctx.fillRect(-3.5, 8, 3, 6);
+  ctx.fillRect(0.5, 8, 3, 6);
+
+  ctx.fillStyle = colorMain;
+  ctx.fillRect(-5, -2, 10, 10);
+  ctx.strokeStyle = colorDark;
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(-5, -2, 10, 10);
+
+  ctx.fillStyle = colorDark;
+  ctx.beginPath(); ctx.ellipse(-5, 0, 2.5, 2, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(5, 0, 2.5, 2, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = colorMain;
+  ctx.fillRect(-3, -8, 6, 6);
+  ctx.strokeStyle = colorDark;
+  ctx.strokeRect(-3, -8, 6, 6);
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-2, -6, 1.5, 1.5);
+  ctx.fillRect(0.5, -6, 1.5, 1.5);
+
+  ctx.save();
+  ctx.translate(-5, 3);
+  ctx.rotate(swing * 0.3);
+  ctx.fillStyle = '#c9a84c';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 3, 3.5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#7a5c10';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(7, 2);
+  ctx.rotate(swing);
+  ctx.fillStyle = '#e0e0e0';
+  ctx.fillRect(-0.8, -6, 1.6, 6);
+  ctx.beginPath();
+  ctx.moveTo(-0.8, -6); ctx.lineTo(0.8, -6); ctx.lineTo(0, -9); ctx.closePath();
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fill();
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 0.4;
+  ctx.stroke();
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-2, 0, 4, 1);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawVillager(ctx, sx, sy, scale, animTime) {
+  const bob = Math.sin(animTime * 0.004) * 0.6;
+  ctx.save();
+  ctx.translate(sx, sy + bob);
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(0, 12, 5, 1.5, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#5d4037';
+  ctx.fillRect(-2.5, 7, 2, 5);
+  ctx.fillRect(0.5, 7, 2, 5);
+
+  ctx.fillStyle = '#90caf9';
+  ctx.fillRect(-4, -1, 8, 8);
+  ctx.strokeStyle = '#2f6fd0';
+  ctx.lineWidth = 0.7;
+  ctx.strokeRect(-4, -1, 8, 8);
+
+  ctx.fillStyle = '#e0ac69';
+  ctx.beginPath(); ctx.arc(0, -5, 3, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawBuilder(ctx, sx, sy, scale, animTime) {
+  const bob = Math.sin(animTime * 0.01) * 1.2;
+  const hammerSwing = Math.sin(animTime * 0.012) * 0.7;
+  ctx.save();
+  ctx.translate(sx, sy + bob);
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(0, 13, 5, 1.5, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#37474f';
+  ctx.fillRect(-3, 8, 2.5, 5);
+  ctx.fillRect(0.5, 8, 2.5, 5);
+
+  ctx.fillStyle = '#ffb74d';
+  ctx.fillRect(-4, -1, 8, 9);
+  ctx.strokeStyle = '#bf6a00';
+  ctx.lineWidth = 0.7;
+  ctx.strokeRect(-4, -1, 8, 9);
+
+  ctx.fillStyle = '#e0ac69';
+  ctx.beginPath(); ctx.arc(0, -5, 3, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#ffd54f';
+  ctx.beginPath(); ctx.arc(0, -6.5, 3.5, Math.PI, Math.PI*2); ctx.fill();
+
+  ctx.save();
+  ctx.translate(5, 3);
+  ctx.rotate(hammerSwing);
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-0.8, -5, 1.6, 8);
+  ctx.fillStyle = '#78909c';
+  ctx.fillRect(-2, -7, 5, 2.5);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function ctx_drawHpBar(ctx, x, y, w, h, pct, isFriendly) {
+  pct = Math.max(0, Math.min(1, pct));
+  const left = x - w / 2;
+  const top = y;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(left - 1, top - 1, w + 2, h + 2);
+  ctx.fillStyle = isFriendly ? '#4caf50' : '#e53935';
+  ctx.fillRect(left, top, w * pct, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 0.6;
+  ctx.strokeRect(left - 1, top - 1, w + 2, h + 2);
+}
+
+let lastRenderTime = performance.now();
+function renderCanvasUnits(now) {
+  const deltaMs = now - lastRenderTime;
+  lastRenderTime = now;
+
+  uctx.clearRect(0, 0, unitCanvas.width, unitCanvas.height);
+
+  const z = state.zoom;
+  const cx = state.camX;
+  const cy = state.camY;
+
+  const viewW = unitCanvas.clientWidth;
+  const viewH = unitCanvas.clientHeight;
+  const worldLeft = -cx / z;
+  const worldTop = -cy / z;
+  const worldRight = (viewW - cx) / z;
+  const worldBottom = (viewH - cy) / z;
+
+  function toScreen(wx, wy) { return { x: wx * z + cx, y: wy * z + cy }; }
+  function inView(wx, wy) {
+    return wx >= worldLeft - 60 && wx <= worldRight + 60 &&
+           wy >= worldTop - 60 && wy <= worldBottom + 60;
+  }
+
+  // Eigene Soldaten
   for (const s of soldierUnits) {
-    if (s.side !== 'friendly') continue;
-    for (const w of liveAttackWaves) {
-      if (w.done) continue;
-      const d = Math.hypot(s.x - w.x, s.y - w.y);
-      if (d < 30) {
-        s.fighting = true;
-        s.el.classList.add('fighting');
-        w.el.classList.add('fighting');
-        s._duelTimer = (s._duelTimer || 0) + dt;
-        if (s._duelTimer >= 1.0) {
-          s._duelTimer = 0;
-          const dmg = 5 + Math.floor(Math.random() * 6);
-          w.hp -= dmg;
-          if (w.fill) {
-            const pct = Math.max(0, (w.hp / w.maxHp) * 100);
-            w.fill.style.width = pct + '%';
-            w.fill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
-          }
-          showFloatText(w.x, w.y - 25, `-${dmg}`, '#e53935');
-          if (w.hp <= 0) w.done = true;
-        }
-      }
+    if (!inView(s.x, s.y)) continue;
+    const p = toScreen(s.x, s.y);
+    const hpPct = s.hp / s.maxHp;
+    ctx_drawHpBar(uctx, p.x, p.y - 30 * z, 24 * z, 4 * z, hpPct, s.side === 'friendly');
+    const colorMain = s.side === 'friendly' ? '#2f6fd0' : '#c62828';
+    const colorDark = s.side === 'friendly' ? '#1a3a6e' : '#7f0000';
+    drawSoldier(uctx, p.x, p.y, z, colorMain, colorDark, s.facing, s.fighting, s._animTime + now);
+  }
+
+  // Remote-Soldaten
+  for (const hwid in remoteUnitsData) {
+    const data = remoteUnitsData[hwid];
+    for (const sd of data.soldiers || []) {
+      if (!inView(sd.x, sd.y)) continue;
+      const p = toScreen(sd.x, sd.y);
+      const hpPct = sd.maxHp ? sd.hp / sd.maxHp : 1;
+      ctx_drawHpBar(uctx, p.x, p.y - 30 * z, 24 * z, 4 * z, hpPct, false);
+      drawSoldier(uctx, p.x, p.y, z, '#c62828', '#7f0000', sd.facing || 'right', sd.fighting, now);
     }
   }
 
-  // Find nearby enemy pairs and let them fight each other (also internal enemy units)
-  for (let i = 0; i < soldierUnits.length; i++) {
-    const a = soldierUnits[i];
-    if (a.side !== 'friendly') continue;
-    for (let j = 0; j < soldierUnits.length; j++) {
-      const b = soldierUnits[j];
-      if (b.side !== 'enemy') continue;
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (d < 30) {
-        a.fighting = true; b.fighting = true;
-        a.el.classList.add('fighting'); b.el.classList.add('fighting');
-        a._duelTimer = (a._duelTimer || 0) + dt;
-        if (a._duelTimer >= 1.0) {
-          a._duelTimer = 0;
-          const dmg = 5 + Math.floor(Math.random() * 6);
-          b.hp -= dmg;
-          if (b.hpFill) {
-            const pct = Math.max(0, (b.hp / b.maxHp) * 100);
-            b.hpFill.style.width = pct + '%';
-            b.hpFill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
-          }
-          showFloatText(b.x, b.y - 25, `-${dmg}`, '#e53935');
-          if (b.hp <= 0) {
-            b.el.style.transition = 'opacity 0.4s';
-            b.el.style.opacity = '0';
-            setTimeout(() => b.el.remove(), 400);
-            soldierUnits.splice(j, 1);
-            j--;
-          }
-        }
-      }
+  // Eigene Villager
+  for (const v of villagerUnits) {
+    if (!inView(v.x, v.y)) continue;
+    const p = toScreen(v.x, v.y);
+    drawVillager(uctx, p.x, p.y, z, now + (v._animTime || 0));
+  }
+  // Remote-Villager
+  for (const hwid in remoteUnitsData) {
+    const data = remoteUnitsData[hwid];
+    for (const vd of data.villagers || []) {
+      if (!inView(vd.x, vd.y)) continue;
+      const p = toScreen(vd.x, vd.y);
+      drawVillager(uctx, p.x, p.y, z, now);
     }
   }
 
-  for (let i = soldierUnits.length - 1; i >= 0; i--) {
-    const s = soldierUnits[i];
-    if (s.fighting && s.side === 'friendly' && s.el.classList.contains('fighting')) {
-      continue;
-    }
-    const dx = s.tx - s.x, dy = s.ty - s.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist > 12) {
-      s.x += (dx / dist) * s.speed * dt * 60;
-      s.y += (dy / dist) * s.speed * dt * 60;
-      s.el.style.left = s.x + 'px';
-      s.el.style.top = s.y + 'px';
-      s.el.style.zIndex = Math.floor(s.y) + 25;
-      if (!s.fighting) s.el.classList.remove('fighting');
-    } else {
-      if (s.targetBuilding && s.targetBuilding.el && s.targetBuilding.hp > 0) {
-        s.fighting = true;
-        s.el.classList.add('fighting');
-        s._hitTimer = (s._hitTimer || 0) + dt;
-        if (s._hitTimer >= 1.5) {
-          s._hitTimer = 0;
-          const dmg = 5 + Math.floor(Math.random() * 8);
-          s.targetBuilding.hp = Math.max(0, s.targetBuilding.hp - dmg);
-          updateBuildingHpVisual(s.targetBuilding);
-          showFloatText(s.x, s.y - 20, `-${dmg}`, '#e53935');
-          if (s.targetBuilding.el) {
-            s.targetBuilding.el.classList.add('under-attack');
-            setTimeout(() => { if (s.targetBuilding && s.targetBuilding.el) s.targetBuilding.el.classList.remove('under-attack'); }, 400);
-          }
-          if (s.targetBuilding.hp <= 0) {
-            const owner = s.targetBuilding.ownerName || 'Enemy';
-            const ownerHwid = s.targetBuilding.ownerHwid;
-            destroyBuilding(s.targetBuilding, owner, ownerHwid, true);
-            s.targetBuilding = null;
-            s.tx = s.x + (Math.random() - 0.5) * 300;
-            s.ty = s.y + (Math.random() - 0.5) * 300;
-            s.fighting = false;
-            s.el.classList.remove('fighting');
-          }
-        }
-      } else {
-        s.fighting = false;
-        s.el.classList.remove('fighting');
-        s._idle = (s._idle || 0) + dt;
-        if (s._idle > 3) {
-          s._idle = 0;
-          s.tx = s.x + (Math.random() - 0.5) * 400;
-          s.ty = s.y + (Math.random() - 0.5) * 400;
-        }
-      }
+  // Eigene Builder
+  for (const b of state.buildings) {
+    if (!b.construction || !b._builders) continue;
+    for (const bel of b._builders) {
+      if (!inView(bel.x, bel.y)) continue;
+      const p = toScreen(bel.x, bel.y);
+      drawBuilder(uctx, p.x, p.y, z, now + (bel._animTime || 0));
     }
   }
-}
-
-function clearSoldierUnits() {
-  soldierUnits.forEach(s => { if (s.el) s.el.remove(); });
-  soldierUnits = [];
-}
-
-function respawnSoldiers() {
-  const currentCount = soldierUnits.filter(s => s.side === 'friendly').length;
-  const needed = state.soldiers - currentCount;
-  if (needed <= 0) return;
-  const mainB = state.buildings.find(b => b.type === 'main');
-  if (!mainB) return;
-  const size = BUILDINGS.main.size * TILE;
-  const cx = mainB.x + size/2;
-  const cy = mainB.y + size + 20;
-  for (let i = 0; i < needed; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const r = 40 + Math.random() * 60;
-    spawnSoldierUnit(
-      cx + Math.cos(angle) * r,
-      cy + Math.sin(angle) * r,
-      cx + (Math.random()-0.5)*400,
-      cy + (Math.random()-0.5)*400,
-      'friendly', null
-    );
+  // Remote-Builder
+  for (const hwid in remoteUnitsData) {
+    const data = remoteUnitsData[hwid];
+    for (const bd of data.builders || []) {
+      if (!inView(bd.x, bd.y)) continue;
+      const p = toScreen(bd.x, bd.y);
+      drawBuilder(uctx, p.x, p.y, z, now);
+    }
   }
+
+  requestAnimationFrame(renderCanvasUnits);
 }
 
 /* =========================================================
@@ -2822,20 +2994,19 @@ function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
     const { ref, set } = firebase;
-    const mySoldiers = soldierUnits.filter(s => s.side === 'friendly').map(s => ({
-      x: Math.round(s.x), y: Math.round(s.y),
-      tx: Math.round(s.tx), ty: Math.round(s.ty),
-      hp: Math.round(s.hp), maxHp: s.maxHp,
-      fighting: !!s.fighting
-    }));
+    const mySoldiers = soldierUnits
+      .filter(s => s.side === 'friendly')
+      .map(s => ({
+        x: Math.round(s.x), y: Math.round(s.y),
+        hp: Math.round(s.hp), maxHp: s.maxHp,
+        facing: s.facing, fighting: !!s.fighting
+      }));
     const myVillagers = villagerUnits.map(v => ({ x: Math.round(v.x), y: Math.round(v.y) }));
     const myBuilders = [];
     state.buildings.forEach(b => {
       if (b.construction && b._builders) {
         b._builders.forEach(bel => {
-          const lx = parseFloat(bel.style.left) || 0;
-          const ly = parseFloat(bel.style.top) || 0;
-          myBuilders.push({ x: Math.round(lx), y: Math.round(ly) });
+          myBuilders.push({ x: Math.round(bel.x), y: Math.round(bel.y) });
         });
       }
     });
@@ -2850,7 +3021,6 @@ function broadcastMyUnits() {
   } catch(e) {}
 }
 
-let remoteUnitsEls = {};
 function startUnitsListener() {
   if (!firebase) return;
   const { ref, onValue } = firebase;
@@ -2863,100 +3033,17 @@ function startUnitsListener() {
       const u = data[hwid];
       if (!u || now - (u.ts || 0) > 12000) continue;
       seen.add(hwid);
-      renderRemoteUnits(hwid, u);
+      remoteUnitsData[hwid] = {
+        username: u.username,
+        soldiers: u.soldiers || [],
+        villagers: u.villagers || [],
+        builders: u.builders || []
+      };
     }
-    for (const hwid in remoteUnitsEls) {
-      if (!seen.has(hwid)) clearRemoteUnits(hwid);
-    }
-  });
-}
-
-function renderRemoteUnits(hwid, u) {
-  if (!remoteUnitsEls[hwid]) {
-    const container = document.createElement('div');
-    worldEl.appendChild(container);
-    remoteUnitsEls[hwid] = { container, soldiers: [], villagers: [], builders: [] };
-  }
-  const entry = remoteUnitsEls[hwid];
-
-  const sArr = u.soldiers || [];
-  while (entry.soldiers.length < sArr.length) {
-    const el = document.createElement('div');
-    el.className = 'soldier-unit enemy';
-    el.innerHTML = soldierSVG('right', '#c62828') + `<div class="soldier-hp"><div class="shf"></div></div>`;
-    worldEl.appendChild(el);
-    entry.soldiers.push({ el, fill: el.querySelector('.shf') });
-  }
-  while (entry.soldiers.length > sArr.length) {
-    const s = entry.soldiers.pop();
-    if (s && s.el) s.el.remove();
-  }
-  sArr.forEach((sd, i) => {
-    const e = entry.soldiers[i];
-    if (!e) return;
-    e.el.style.left = sd.x + 'px';
-    e.el.style.top = sd.y + 'px';
-    e.el.style.zIndex = Math.floor(sd.y) + 25;
-    if (sd.fighting) e.el.classList.add('fighting');
-    else e.el.classList.remove('fighting');
-    if (e.fill) {
-      const pct = (sd.hp / sd.maxHp) * 100;
-      e.fill.style.width = pct + '%';
-      e.fill.style.background = pct > 50 ? '#4caf50' : pct > 25 ? '#ffb300' : '#e53935';
+    for (const hwid in remoteUnitsData) {
+      if (!seen.has(hwid)) delete remoteUnitsData[hwid];
     }
   });
-
-  const vArr = u.villagers || [];
-  while (entry.villagers.length < vArr.length) {
-    const el = document.createElement('div');
-    el.className = 'worker';
-    el.innerHTML = villagerSVG();
-    el.style.filter = 'hue-rotate(-30deg)';
-    worldEl.appendChild(el);
-    entry.villagers.push(el);
-  }
-  while (entry.villagers.length > vArr.length) {
-    const el = entry.villagers.pop();
-    if (el) el.remove();
-  }
-  vArr.forEach((vd, i) => {
-    const el = entry.villagers[i];
-    if (!el) return;
-    el.style.left = vd.x + 'px';
-    el.style.top = vd.y + 'px';
-    el.style.zIndex = Math.floor(vd.y) + 4;
-  });
-
-  const bArr = u.builders || [];
-  while (entry.builders.length < bArr.length) {
-    const el = document.createElement('div');
-    el.className = 'builder';
-    el.innerHTML = builderSVG();
-    el.style.opacity = '0.9';
-    worldEl.appendChild(el);
-    entry.builders.push(el);
-  }
-  while (entry.builders.length > bArr.length) {
-    const el = entry.builders.pop();
-    if (el) el.remove();
-  }
-  bArr.forEach((bd, i) => {
-    const el = entry.builders[i];
-    if (!el) return;
-    el.style.left = bd.x + 'px';
-    el.style.top = bd.y + 'px';
-    el.style.zIndex = Math.floor(bd.y) + 20;
-  });
-}
-
-function clearRemoteUnits(hwid) {
-  const e = remoteUnitsEls[hwid];
-  if (!e) return;
-  e.soldiers.forEach(s => s && s.el && s.el.remove());
-  e.villagers.forEach(v => v && v.remove());
-  e.builders.forEach(b => b && b.remove());
-  if (e.container) e.container.remove();
-  delete remoteUnitsEls[hwid];
 }
 
 function startAttacksListener() {
@@ -2973,16 +3060,13 @@ function startAttacksListener() {
       seenAttacks.add(id);
       if (a.attackerHwid === ACTIVE_HWID) continue;
 
-      // Find the target building by coords (own or enemy)
       let targetB = null;
       const allB = [];
       state.buildings.forEach(b => allB.push(b));
       for (const hwid in otherPlayerEls) {
         const entry = otherPlayerEls[hwid];
         if (!entry || !entry.buildings) continue;
-        for (const bid in entry.buildings) {
-          allB.push(entry.buildings[bid]);
-        }
+        for (const bid in entry.buildings) allB.push(entry.buildings[bid]);
       }
       let bestDist = Infinity;
       for (const b of allB) {
@@ -2995,107 +3079,24 @@ function startAttacksListener() {
         if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
       }
 
-      spawnAttackWave(a, targetB);
+      // Spawn enemies as Canvas units
+      const count = Math.min(a.soldierCount || 3, 8);
+      for (let i = 0; i < count; i++) {
+        spawnSoldierUnit(
+          a.fromX + (Math.random() - 0.5) * 60,
+          a.fromY + (Math.random() - 0.5) * 60,
+          a.toX + (Math.random() - 0.5) * 40,
+          a.toY + (Math.random() - 0.5) * 40,
+          'enemy',
+          targetB || null
+        );
+      }
+
       if (a.targetHwid === ACTIVE_HWID) {
         showAttackPopup(a.attackerName, targetB ? BUILDINGS[targetB.type].name : 'your base', 0);
       }
     }
   });
-}
-
-function spawnAttackWave(a, targetB) {
-  const count = Math.min(a.soldierCount || 3, 8);
-  for (let i = 0; i < count; i++) {
-    const el = document.createElement('div');
-    el.className = 'soldier-unit enemy';
-    el.innerHTML = soldierSVG('right', '#c62828') + `<div class="soldier-hp"><div class="shf"></div></div>`;
-    const sx = a.fromX + (Math.random() - 0.5) * 60;
-    const sy = a.fromY + (Math.random() - 0.5) * 60;
-    el.style.left = sx + 'px';
-    el.style.top = sy + 'px';
-    el.style.zIndex = Math.floor(sy) + 25;
-    worldEl.appendChild(el);
-    liveAttackWaves.push({
-      el, x: sx, y: sy,
-      tx: a.toX + (Math.random()-0.5)*40,
-      ty: a.toY + (Math.random()-0.5)*40,
-      fill: el.querySelector('.shf'),
-      hp: 100, maxHp: 100, done: false,
-      targetBuilding: targetB || null,
-      side: 'enemy',
-      hitTimer: 0
-    });
-  }
-}
-
-function updateLiveAttackWaves(dt) {
-  for (let i = liveAttackWaves.length - 1; i >= 0; i--) {
-    const w = liveAttackWaves[i];
-    if (w.done) {
-      if (w.el && !w._removed) {
-        w._removed = true;
-        w.el.style.transition = 'opacity 0.4s';
-        w.el.style.opacity = '0';
-        setTimeout(() => w.el && w.el.remove(), 500);
-      }
-      if (w._removed) liveAttackWaves.splice(i, 1);
-      continue;
-    }
-
-    // If an own soldier is nearby, fight them (my soldier already handles attack in updateSoldierUnits)
-    // Just stop movement and let the fight play out.
-    let duelTarget = null;
-    for (const s of soldierUnits) {
-      if (s.side !== 'friendly') continue;
-      const d = Math.hypot(s.x - w.x, s.y - w.y);
-      if (d < 30) { duelTarget = s; break; }
-    }
-    if (duelTarget) {
-      w.el.classList.add('fighting');
-      continue;
-    }
-
-    // No defender — march to target
-    const dx = w.tx - w.x, dy = w.ty - w.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist > 15) {
-      w.x += (dx / dist) * 2.2 * dt * 60;
-      w.y += (dy / dist) * 2.2 * dt * 60;
-      w.el.style.left = w.x + 'px';
-      w.el.style.top = w.y + 'px';
-      w.el.style.zIndex = Math.floor(w.y) + 25;
-      w.el.classList.remove('fighting');
-    } else {
-      // Arrived — attack target building
-      if (w.targetBuilding && w.targetBuilding.el && w.targetBuilding.hp > 0) {
-        w.el.classList.add('fighting');
-        w.hitTimer = (w.hitTimer || 0) + dt;
-        if (w.hitTimer >= 1.5) {
-          w.hitTimer = 0;
-          const dmg = 5 + Math.floor(Math.random() * 8);
-          w.targetBuilding.hp = Math.max(0, w.targetBuilding.hp - dmg);
-          updateBuildingHpVisual(w.targetBuilding);
-          showFloatText(w.x, w.y - 20, `-${dmg}`, '#e53935');
-          if (w.targetBuilding.el) {
-            w.targetBuilding.el.classList.add('under-attack');
-            setTimeout(() => { if (w.targetBuilding && w.targetBuilding.el) w.targetBuilding.el.classList.remove('under-attack'); }, 400);
-          }
-          if (w.targetBuilding.hp <= 0) {
-            const owner = w.targetBuilding.ownerName || 'Enemy';
-            const ownerHwid = w.targetBuilding.ownerHwid;
-            const tb = w.targetBuilding;
-            w.targetBuilding = null;
-            destroyBuilding(tb, owner, ownerHwid, true);
-          }
-        }
-      } else {
-        // Idle and despawn
-        w.el.classList.remove('fighting');
-        w._idleTimer = (w._idleTimer || 0) + dt;
-        if (w._idleTimer > 5) w.done = true;
-      }
-    }
-  }
 }
 
 function startDestroyedListener() {
@@ -3145,7 +3146,7 @@ function spawnExplosion(x, y, type) {
 }
 
 /* =========================================================
-   VILLAGERS
+   VILLAGERS — jetzt Canvas (keine DOM-Elemente mehr)
    ========================================================= */
 function trySpawnVillagers() {
   const now = Date.now();
@@ -3160,15 +3161,15 @@ function trySpawnVillagers() {
   spawnVillagerUnit(h.x + size/2 + (Math.random()-0.5)*size, h.y + size);
 }
 function spawnVillagerUnit(x, y) {
-  const el = document.createElement('div');
-  el.className = 'worker';
-  el.innerHTML = villagerSVG();
-  el.style.left = x + 'px';
-  el.style.top = y + 'px';
-  el.style.zIndex = Math.floor(y) + 4;
-  worldEl.appendChild(el);
   const homeX = x, homeY = y;
-  villagerUnits.push({ x, y, homeX, homeY, tx: x + (Math.random()-0.5)*300, ty: y + (Math.random()-0.5)*300, el, speed: 0.6, idleTimer: Math.random() * 5 });
+  villagerUnits.push({
+    x, y, homeX, homeY,
+    tx: x + (Math.random()-0.5)*300,
+    ty: y + (Math.random()-0.5)*300,
+    speed: 0.6,
+    idleTimer: Math.random() * 5,
+    _animTime: Math.random() * 1000
+  });
 }
 function updateVillagers(dt) {
   villagerUnits.forEach(v => {
@@ -3177,9 +3178,6 @@ function updateVillagers(dt) {
     if (dist > 5) {
       v.x += (dx / dist) * v.speed * dt * 60;
       v.y += (dy / dist) * v.speed * dt * 60;
-      v.el.style.left = v.x + 'px';
-      v.el.style.top = v.y + 'px';
-      v.el.style.zIndex = Math.floor(v.y) + 4;
     } else {
       v.idleTimer -= dt;
       if (v.idleTimer <= 0) {
@@ -3190,10 +3188,7 @@ function updateVillagers(dt) {
     }
   });
 }
-function clearVillagers() {
-  villagerUnits.forEach(v => { if (v.el) v.el.remove(); });
-  villagerUnits = [];
-}
+function clearVillagers() { villagerUnits = []; }
 
 /* ONLINE LIST */
 function hashCode(str) {
@@ -3652,6 +3647,8 @@ async function startGame() {
   document.getElementById('userChipName').textContent = currentUser.username;
   if (!state.playtimeSeconds) state.playtimeSeconds = 0;
   buildTerrain();
+  resizeCanvas();
+  requestAnimationFrame(renderCanvasUnits);
 
   if (firebase) {
     try {
@@ -3746,7 +3743,6 @@ async function startGame() {
     state.playtimeSeconds = (state.playtimeSeconds || 0) + dt;
     updateSoldierUnits(dt);
     updateVillagers(dt);
-    updateLiveAttackWaves(dt);
     constructionTick();
     prodAccum += dt;
     if (prodAccum >= 1) { productionTick(prodAccum); prodAccum = 0; updateUI(); }
@@ -3842,6 +3838,7 @@ window.addEventListener('beforeunload', () => {
     } catch(e) {}
   }
 });
+window.addEventListener('resize', resizeCanvas);
 loginBtn.disabled = true;
 </script>
 </body>
