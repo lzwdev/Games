@@ -133,12 +133,13 @@
     position: absolute; transform-origin: center bottom;
     display: flex; align-items: flex-end; justify-content: center;
     cursor: pointer; transition: filter 0.2s;
+    pointer-events: auto;
   }
   .building:hover { filter: brightness(1.12); }
   .building.selected { filter: brightness(1.18) drop-shadow(0 0 10px #2f6fd0); }
   .building.enemy { cursor: not-allowed; }
   .building.enemy:hover { filter: brightness(1.15) hue-rotate(-15deg); }
-  .building svg { width: 100%; height: 100%; display: block; }
+  .building svg { width: 100%; height: 100%; display: block; pointer-events: none; }
   .building.under-construction { opacity: 0.7; }
   .building.under-attack { animation: underAttack 0.5s ease-in-out infinite alternate; }
   @keyframes underAttack {
@@ -343,7 +344,7 @@
   #attackBanner .ab-text small { display: block; font-size: 11px; color: #8d6e63; font-weight: 500; margin-top: 2px; }
   #attackBanner .ab-cancel { background: #fff; color: #c62828; padding: 5px 12px; border-radius: 7px; font-size: 11px; font-weight: 800; border: 1px solid #ef9a9a; cursor: pointer; }
 
-  /* ============ ARRIVAL / MARCH BANNER ============ */
+  /* ============ MARCH BANNER ============ */
   #marchBanner {
     position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
     z-index: 71;
@@ -1186,7 +1187,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v24 (Sync-Soldiers + March-Banner + Correct Spawn)
+   BUILD A REALM — v25 (Google-UID Primary + Drag-Fix)
    ========================================================= */
 
 const ICONS = {
@@ -1243,7 +1244,7 @@ const tips = [
   "Tip: Repair damaged buildings with Wood + Stone",
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
   "Tip: Watch the march timer at the top when attacking",
-  "Tip: Soldiers prefer attacking nearby enemy soldiers first",
+  "Tip: Google accounts save progress on the cloud",
   "Tip: Click 'Soldiers' button to jump to your army",
   "Tip: Houses increase your population cap",
   "Tip: Units are rendered on Canvas — smooth even with many units"
@@ -1299,7 +1300,10 @@ function generateHWID() {
 }
 
 const LOCAL_HWID = generateHWID();
+// ACTIVE_HWID ist der PRIMARY KEY für Speichern. Bei Google = GOOGLE-<uid>, bei Nick = HWID.
 let ACTIVE_HWID = LOCAL_HWID;
+let GOOGLE_UID = null; // z.B. "GOOGLE-abc123..."
+let IS_GOOGLE_USER = false;
 
 let currentUser = null;
 let firebase = null;
@@ -1332,18 +1336,20 @@ whenFirebaseReady(() => {
   if (auth && window.__BR_authFns && window.__BR_authFns.onAuthStateChanged) {
     window.__BR_authFns.onAuthStateChanged(auth, async (user) => {
       if (user && user.uid) {
-        const googleHwid = 'GOOGLE-' + user.uid.slice(0, 32);
+        GOOGLE_UID = 'GOOGLE-' + user.uid.slice(0, 32);
         try {
           const { ref, get } = firebase;
-          const snap = await get(ref(firebase.db, 'users_by_hwid/' + googleHwid));
+          const snap = await get(ref(firebase.db, 'users_by_hwid/' + GOOGLE_UID));
           if (snap.exists()) {
             const data = snap.val();
-            ACTIVE_HWID = googleHwid;
-            currentUser = { username: data.username, hwid: googleHwid };
+            // NICHT ACTIVE_HWID setzen ohne User-Klick! Zeige nur den Continue-Link.
             loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>! (Google)<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
             const cl = document.getElementById('continueLink');
             if (cl) cl.onclick = async () => {
-              ACTIVE_HWID = googleHwid;
+              ACTIVE_HWID = GOOGLE_UID;
+              GOOGLE_UID = GOOGLE_UID;
+              IS_GOOGLE_USER = true;
+              currentUser = { username: data.username, hwid: GOOGLE_UID };
               await handleAccountStatusCheck();
             };
           }
@@ -1384,8 +1390,9 @@ googleLoginBtn.onclick = async () => {
     const email = user.email || '';
     let displayName = (user.displayName || email.split('@')[0] || 'Player').replace(/[^A-Za-z0-9_\-äöüÄÖÜß ]/g, '').trim().slice(0, 20);
     if (displayName.length < 3) displayName = 'Player' + Math.floor(Math.random()*1000);
-    const googleHwid = 'GOOGLE-' + user.uid.slice(0, 32);
-    await loginWithIdentity(displayName, googleHwid, email);
+    GOOGLE_UID = 'GOOGLE-' + user.uid.slice(0, 32);
+    IS_GOOGLE_USER = true;
+    await loginWithIdentity(displayName, GOOGLE_UID, email);
   } catch(e) {
     loginError.textContent = "Google sign-in failed: " + (e.message || e);
     googleLoginBtn.disabled = false;
@@ -1401,15 +1408,14 @@ async function loginWithIdentity(name, identityHwid, email) {
   loginError.textContent = '';
   try {
     const { ref, get, set } = firebase;
-    for (const h of [identityHwid, LOCAL_HWID]) {
-      const banSnap = await get(ref(firebase.db, 'bans/' + h));
-      if (banSnap.exists()) {
-        const ban = banSnap.val();
-        if (ban && ban.deleted === true) { showDeletedPopup(); return; }
-        if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
-          showBanPopup({ banner: ban.banner || 'Admin', reason: ban.reason || 'No reason provided.', bannedUntil: ban.bannedUntil });
-          return;
-        }
+    // Ban-Check NUR auf identityHwid (Google-UID bei Google-Login)
+    const banSnap = await get(ref(firebase.db, 'bans/' + identityHwid));
+    if (banSnap.exists()) {
+      const ban = banSnap.val();
+      if (ban && ban.deleted === true) { showDeletedPopup(); return; }
+      if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
+        showBanPopup({ banner: ban.banner || 'Admin', reason: ban.reason || 'No reason provided.', bannedUntil: ban.bannedUntil });
+        return;
       }
     }
     let finalName = name;
@@ -1425,8 +1431,9 @@ async function loginWithIdentity(name, identityHwid, email) {
       google: identityHwid.startsWith('GOOGLE-'), createdAt: Date.now(), lastSeen: Date.now()
     });
     ACTIVE_HWID = identityHwid;
+    IS_GOOGLE_USER = identityHwid.startsWith('GOOGLE-');
     currentUser = { username: finalName, hwid: identityHwid };
-    console.log('[LOGIN] Logged in as', finalName, 'with HWID', ACTIVE_HWID);
+    console.log('[LOGIN] Logged in as', finalName, 'as', ACTIVE_HWID);
     loginStatus.textContent = "Success!";
     loginStatus.className = "login-status ok";
     setTimeout(() => beginGameTransition(), 400);
@@ -1440,30 +1447,15 @@ async function loginWithIdentity(name, identityHwid, email) {
 async function checkExistingUser() {
   try {
     const { ref, get } = firebase;
-    const auth = window.__BR_auth;
-    if (auth && auth.currentUser) {
-      const googleHwid = 'GOOGLE-' + auth.currentUser.uid.slice(0, 32);
-      const snap = await get(ref(firebase.db, 'users_by_hwid/' + googleHwid));
-      if (snap.exists()) {
-        const data = snap.val();
-        ACTIVE_HWID = googleHwid;
-        currentUser = { username: data.username, hwid: googleHwid };
-        loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>! (Google)<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
-        document.getElementById('continueLink').onclick = async () => {
-          ACTIVE_HWID = googleHwid;
-          await handleAccountStatusCheck();
-        };
-        return;
-      }
-    }
+    // Nur Nick-basierten User anzeigen, Google handled onAuthStateChanged
     const snap = await get(ref(firebase.db, 'users_by_hwid/' + LOCAL_HWID));
     if (snap.exists()) {
       const data = snap.val();
-      ACTIVE_HWID = LOCAL_HWID;
-      currentUser = { username: data.username, hwid: LOCAL_HWID };
       loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>!<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
       document.getElementById('continueLink').onclick = async () => {
         ACTIVE_HWID = LOCAL_HWID;
+        IS_GOOGLE_USER = false;
+        currentUser = { username: data.username, hwid: LOCAL_HWID };
         await handleAccountStatusCheck();
       };
       usernameInput.value = data.username;
@@ -1480,23 +1472,20 @@ async function checkAccountStatus() {
   if (!firebase) return { ban: null, deleted: false, reset: null };
   try {
     const { ref, get } = firebase;
-    const targetHwids = [ACTIVE_HWID];
-    if (ACTIVE_HWID !== LOCAL_HWID) targetHwids.push(LOCAL_HWID);
-    for (const h of targetHwids) {
-      const banSnap = await get(ref(firebase.db, 'bans/' + h));
-      if (banSnap.exists()) {
-        const ban = banSnap.val();
-        if (ban && ban.deleted === true) return { ban: null, deleted: true, reset: null };
-        if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
-          return { ban: { banner: ban.banner || 'Admin', reason: ban.reason || 'No reason provided.', bannedUntil: ban.bannedUntil }, deleted: false, reset: null };
-        }
+    // FIX: Prüfe NUR ACTIVE_HWID, nicht mehr LOCAL_HWID zusätzlich
+    const banSnap = await get(ref(firebase.db, 'bans/' + ACTIVE_HWID));
+    if (banSnap.exists()) {
+      const ban = banSnap.val();
+      if (ban && ban.deleted === true) return { ban: null, deleted: true, reset: null };
+      if (ban && ban.bannedUntil && Date.now() < ban.bannedUntil) {
+        return { ban: { banner: ban.banner || 'Admin', reason: ban.reason || 'No reason provided.', bannedUntil: ban.bannedUntil }, deleted: false, reset: null };
       }
-      const resetSnap = await get(ref(firebase.db, 'bans/' + h + '/resetFlag'));
-      if (resetSnap.exists()) {
-        const reset = resetSnap.val();
-        if (reset && reset.acknowledged !== true) {
-          return { ban: null, deleted: false, reset: { reason: reset.reason || 'Data reset by admin', resetAt: reset.resetAt || Date.now() } };
-        }
+    }
+    const resetSnap = await get(ref(firebase.db, 'bans/' + ACTIVE_HWID + '/resetFlag'));
+    if (resetSnap.exists()) {
+      const reset = resetSnap.val();
+      if (reset && reset.acknowledged !== true) {
+        return { ban: null, deleted: false, reset: { reason: reset.reason || 'Data reset by admin', resetAt: reset.resetAt || Date.now() } };
       }
     }
     return { ban: null, deleted: false, reset: null };
@@ -1507,12 +1496,7 @@ async function checkAccountStatus() {
 }
 
 async function handleAccountStatusCheck() {
-  const auth = window.__BR_auth;
-  if (auth && auth.currentUser && auth.currentUser.uid) {
-    ACTIVE_HWID = 'GOOGLE-' + auth.currentUser.uid.slice(0, 32);
-  } else if (!ACTIVE_HWID) {
-    ACTIVE_HWID = LOCAL_HWID;
-  }
+  // ACTIVE_HWID wurde schon vom User-Click gesetzt — NICHT überschreiben!
   const status = await checkAccountStatus();
   if (status.ban) { showBanPopup(status.ban); return false; }
   if (status.deleted) { showDeletedPopup(); return false; }
@@ -1601,6 +1585,7 @@ async function doLogin() {
   const name = sanitizeUsername(usernameInput.value);
   const err = validateUsername(name);
   if (err) { loginError.textContent = err; return; }
+  IS_GOOGLE_USER = false;
   await loginWithIdentity(name, LOCAL_HWID, null);
 }
 
@@ -1675,16 +1660,14 @@ let eventFeedCollapsed = false;
 let remoteUnitsData = {};
 let lastAttackTime = 0;
 
-// Rendering-Schutz — kein echtes Limit (Limit = soldierCap)
 const MAX_FRIENDLY_UNITS = 500;
 const MAX_ENEMY_UNITS = 300;
 const MAX_ATTACKERS_PER_WAVE = 200;
-const ATTACK_SPEED = 1.8; // Soldaten-Reisegeschwindigkeit (Einheiten pro Frame bei 60fps)
+const ATTACK_SPEED = 1.8;
 
-// Aktuelle eigene Angriffe die gerade marschieren
-let activeMarches = []; // [{ id, startX, startY, toX, toY, startTime, arriveTime, soldierCount, targetName, targetHwid, buildingId, targetBuilding, isIncoming, sourceHwid, sourceName }]
+let activeMarches = [];
 
-/* BUILDINGS */
+/* BUILDINGS — unverändert */
 const BUILDINGS = {
   main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 50% of your money to the attacker.", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 } },
   house: { name: "House", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10, desc: "Provides space for residents. Produces a bit of wood & stone.", baseCost: 250, costMult: 1.95, produces: { wood: 1, stone: 1 }, needs: { workers: 1 }, popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160], buildTime: 8, resourceCost: { wood: 20, stone: 10 } },
@@ -1758,6 +1741,7 @@ function buildTerrain() {
   }
 }
 
+/* buildingSVG und Cost-Funktionen — unverändert */
 function buildingSVG(type, level, w, h) {
   const lvl = level;
   if (type === 'main') {
@@ -2073,28 +2057,50 @@ function pickBasePosition() {
   return bestPos || { x: WORLD_SIZE/2, y: WORLD_SIZE/2 };
 }
 
-/* MAP */
+/* =========================================================
+   MAP + DRAG FIX
+   ========================================================= */
 const mapEl = document.getElementById('map');
 const tooltip = document.getElementById('tooltip');
 const ghost = document.getElementById('placeGhost');
-let isDragging = false, dragStart = {x:0,y:0}, dragMoved = false;
+let isDragging = false;
+let dragStartMouse = { x: 0, y: 0 };
+let dragStartCam = { x: 0, y: 0 };
+let dragMoved = false;
+let pointerDownTarget = null;
+
 function applyTransform() {
   worldEl.style.transform = `translate(${state.camX}px, ${state.camY}px) scale(${state.zoom})`;
   updateMinimapView();
 }
+
+// Mousedown auf mapEl UND worldEl abfangen (worldEl ist nicht mehr pointer-events: none)
 mapEl.addEventListener('mousedown', (e) => {
-  if (e.button === 0 && !state.placing && !state.sellMode && !attackMode) {
-    isDragging = true; dragMoved = false;
-    dragStart = { x: e.clientX - state.camX, y: e.clientY - state.camY };
-    mapEl.classList.add('dragging');
+  if (e.button !== 0) {
+    if (e.button === 2) { cancelPlacing(); cancelAttack(); }
+    return;
   }
-  if (e.button === 2) { cancelPlacing(); cancelAttack(); }
+  // Nur Dragging starten, wenn wir NICHT in placement/sell/attack mode sind
+  if (state.placing || state.sellMode || attackMode) return;
+  // Wenn auf ein Building geklickt wurde: prüfen ob es ein UI-Klick ist
+  // Wir erlauben Drag trotzdem, weil click events separat gefeuert werden
+  isDragging = true;
+  dragMoved = false;
+  dragStartMouse.x = e.clientX;
+  dragStartMouse.y = e.clientY;
+  dragStartCam.x = state.camX;
+  dragStartCam.y = state.camY;
+  mapEl.classList.add('dragging');
+  pointerDownTarget = e.target;
 });
+
 window.addEventListener('mousemove', (e) => {
   if (isDragging) {
-    const nx = e.clientX - state.camX, ny = e.clientY - state.camY;
-    if (Math.abs(nx - state.camX) > 3 || Math.abs(ny - state.camY) > 3) dragMoved = true;
-    state.camX = nx; state.camY = ny;
+    const dx = e.clientX - dragStartMouse.x;
+    const dy = e.clientY - dragStartMouse.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+    state.camX = dragStartCam.x + dx;
+    state.camY = dragStartCam.y + dy;
     applyTransform();
   }
   updateGhost(e);
@@ -2103,7 +2109,14 @@ window.addEventListener('mousemove', (e) => {
     tooltip.style.top = (e.clientY + 16) + 'px';
   }
 });
-window.addEventListener('mouseup', () => { isDragging = false; mapEl.classList.remove('dragging'); });
+
+window.addEventListener('mouseup', (e) => {
+  if (isDragging) {
+    isDragging = false;
+    mapEl.classList.remove('dragging');
+  }
+});
+
 mapEl.addEventListener('wheel', (e) => {
   e.preventDefault();
   const oldZoom = state.zoom;
@@ -2114,8 +2127,9 @@ mapEl.addEventListener('wheel', (e) => {
   state.camY = my - (my - state.camY) * (state.zoom / oldZoom);
   applyTransform();
 }, { passive: false });
+
 mapEl.addEventListener('click', (e) => {
-  if (dragMoved) return;
+  if (dragMoved) { dragMoved = false; return; }
   if (state.placing) { placeBuilding(e); return; }
   if (attackMode) { tryAttack(e); return; }
   if (state.sellMode) {
@@ -2134,7 +2148,9 @@ mapEl.addEventListener('click', (e) => {
   }
   hideDetailPanel();
 });
+
 mapEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'q' || e.key === 'Q') { if (state.placing) { cancelPlacing(); notify("Placement cancelled"); } }
   if (e.key === 'Escape') {
@@ -2147,12 +2163,13 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.key === 'Enter' && document.activeElement === document.getElementById('chatInput')) sendChat();
 });
+
 function screenToWorld(clientX, clientY) {
   const rect = mapEl.getBoundingClientRect();
   return { x: (clientX - rect.left - state.camX) / state.zoom, y: (clientY - rect.top - state.camY) / state.zoom };
 }
 
-/* PLACEMENT */
+/* PLACEMENT — unverändert */
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) { notify(`Requires Level ${def.unlockLevel}`, true); return; }
@@ -2566,7 +2583,7 @@ function sellBuilding(b) {
 }
 
 /* =========================================================
-   COMBAT — synced via Firebase / attacks node
+   COMBAT
    ========================================================= */
 function toggleAttackMode() {
   if (state.soldiers < 1) {
@@ -2613,6 +2630,9 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
     const enemyCount = soldierUnits.filter(s => s.side === 'enemy').length;
     if (enemyCount >= MAX_ENEMY_UNITS) return null;
   }
+  const now = Date.now();
+  const dist = Math.hypot(tx - x, ty - y);
+  const travelMs = (dist / (ATTACK_SPEED * 60)) * 1000;
   const unit = {
     x, y, tx, ty,
     hp: 100, maxHp: 100,
@@ -2621,24 +2641,17 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
     targetBuilding: targetBuilding || null,
     fighting: false,
     facing: 'right',
-    _duelTimer: 0,
-    _hitTimer: 0,
-    _idle: 0,
+    _duelTimer: 0, _hitTimer: 0, _idle: 0,
     _animTime: Math.random() * 1000,
-    // Deterministische Bewegung: startX, startY, startTime, arriveTime
     startX: x, startY: y,
-    startTime: Date.now(),
-    arriveTime: null
+    startTime: now,
+    arriveTime: now + travelMs
   };
-  // Berechne arriveTime deterministisch
-  const dist = Math.hypot(tx - x, ty - y);
-  unit.arriveTime = Date.now() + (dist / (ATTACK_SPEED * 60)) * 1000;
   soldierUnits.push(unit);
   return unit;
 }
 
 function getMilitarySpawnPoints() {
-  // Sammle alle Militärgebäude als Spawn-Punkte
   const points = [];
   state.buildings.forEach(b => {
     if (b.construction) return;
@@ -2650,7 +2663,6 @@ function getMilitarySpawnPoints() {
     }
   });
   if (points.length === 0) {
-    // Fallback: Main
     const mainB = state.buildings.find(b => b.type === 'main');
     if (mainB) {
       const size = BUILDINGS.main.size * TILE;
@@ -2675,13 +2687,11 @@ function performAttack(b, ownerName, ownerHwid) {
   const attackCount = Math.min(state.soldiers, MAX_ATTACKERS_PER_WAVE);
   if (spawnPoints.length === 0) { notify("No military buildings to spawn soldiers!", true); return; }
 
-  // Verteile Soldaten auf Militärgebäude
   const marches = [];
   for (let i = 0; i < attackCount; i++) {
     const sp = spawnPoints[i % spawnPoints.length];
     const sx = sp.x + (Math.random() - 0.5) * 40;
     const sy = sp.y + (Math.random() - 0.5) * 40;
-    // Berechne deterministische Ankunftszeit
     const dist = Math.hypot(targetCX - sx, targetCY - sy);
     const travelMs = (dist / (ATTACK_SPEED * 60)) * 1000;
     const arriveTime = now + travelMs;
@@ -2703,7 +2713,6 @@ function performAttack(b, ownerName, ownerHwid) {
     marches.push({ sx, sy, arriveTime });
   }
 
-  // Erstelle einen "March"-Eintrag für UI
   const firstArrive = marches.reduce((min, m) => Math.min(min, m.arriveTime), Infinity);
   const marchEntry = {
     id: 'own-' + now,
@@ -2715,12 +2724,12 @@ function performAttack(b, ownerName, ownerHwid) {
     targetName: ownerName,
     targetHwid: ownerHwid,
     buildingId: b.id,
+    buildingName: def.name,
     targetBuilding: b,
     isIncoming: false
   };
   activeMarches.push(marchEntry);
 
-  // Broadcast an Firebase
   if (firebase) {
     try {
       const { ref, push, set } = firebase;
@@ -2732,10 +2741,11 @@ function performAttack(b, ownerName, ownerHwid) {
         targetName: ownerName,
         fromX: spawnPoints[0].x, fromY: spawnPoints[0].y,
         toX: targetCX, toY: targetCY,
-        soldierCount: Math.min(state.soldiers, 60), // Bandbreite begrenzen
+        soldierCount: Math.min(state.soldiers, 60),
         startTime: now,
         arriveTime: firstArrive,
         buildingId: b.id,
+        buildingName: def.name,
         ts: now
       });
       setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 60000);
@@ -2761,10 +2771,6 @@ function performAttack(b, ownerName, ownerHwid) {
   }
 }
 
-/* =========================================================
-   SOLDIER AI — Priorität: Gegner-in-Nähe > Gebäude > Idle
-   Deterministisch: Position wird aus startTime + Geschwindigkeit berechnet
-   ========================================================= */
 function updateSoldierUnits(dt) {
   const FIGHT_RANGE = 60;
   const ATTACK_RANGE = 20;
@@ -2774,10 +2780,6 @@ function updateSoldierUnits(dt) {
   for (const s of soldierUnits) s.fighting = false;
 
   for (const s of soldierUnits) {
-    // Prüfe ob "in Bewegung" (deterministisch) — bevor Kampf
-    // Wenn in Bewegung zur Zielposition, dann bewege linear mit korrekter Geschwindigkeit
-    // Sobald angekommen, wechsle zu lokalem Verhalten
-
     let closestEnemy = null;
     let closestDist = FIGHT_RANGE;
     for (const o of soldierUnits) {
@@ -2868,10 +2870,8 @@ function updateSoldierUnits(dt) {
     if (soldierUnits[i].hp <= 0) soldierUnits.splice(i, 1);
   }
 
-  // Marches aufräumen (abgelaufen)
   activeMarches = activeMarches.filter(m => Date.now() < m.arriveTime + 20000);
 
-  // Soldaten-Zähler
   const badge = document.getElementById('soldierCountBadge');
   if (badge) {
     const alive = soldierUnits.filter(s => s.side === 'friendly').length;
@@ -2887,17 +2887,9 @@ function clearSoldierUnits() {
   activeMarches = [];
 }
 
-/* Soldaten-Nachproduktion: 1 pro Sekunde bis zum Cap.
-   Soldaten bleiben "at home" → werden nur intern gezählt, NICHT als Canvas-Units gespawnt.
-   Nur beim Angriff werden sie als sichtbare Units erzeugt. */
-function soldierSpawnTick() {
-  // Soldaten sind "at home" — keine Canvas-Units nötig.
-  // state.soldiers = state.soldierCap wird in recalc() gesetzt.
-  // Beim Angriff werden alle Soldaten als Units gespawnt.
-}
+function soldierSpawnTick() {}
 
 function respawnSoldiers() {
-  // Nur intern — Soldaten at home
   state.soldiers = state.soldierCap;
 }
 
@@ -2975,17 +2967,12 @@ function triggerDefense(attackerX, attackerY) {
   notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
 }
 
-/* =========================================================
-   MARCH BANNER — zeigt Ankunftszeit für eigenen/feindlichen Angriff
-   ========================================================= */
 let marchBannerHideTimer = null;
 function updateMarchBanner() {
   const banner = document.getElementById('marchBanner');
   if (!banner) return;
   const now = Date.now();
 
-  // Priorität: eigener Angriff > eingehender Angriff
-  // 1) Aktiver eigener Angriff?
   let ownMarch = null;
   for (const m of activeMarches) {
     if (m.isIncoming) continue;
@@ -2993,7 +2980,6 @@ function updateMarchBanner() {
       if (!ownMarch || m.arriveTime < ownMarch.arriveTime) ownMarch = m;
     }
   }
-  // 2) Eingehender Angriff auf uns?
   let incomingMarch = null;
   for (const m of activeMarches) {
     if (!m.isIncoming) continue;
@@ -3002,7 +2988,6 @@ function updateMarchBanner() {
     }
   }
 
-  // Priorität: incoming > own (Defense wichtiger)
   const target = incomingMarch || ownMarch;
   if (!target) {
     banner.classList.remove('show');
@@ -3044,7 +3029,7 @@ function updateMarchBanner() {
 }
 
 /* =========================================================
-   CANVAS RENDERER FOR UNITS
+   CANVAS RENDERER
    ========================================================= */
 const unitCanvas = document.getElementById('unitCanvas');
 const uctx = unitCanvas.getContext('2d');
@@ -3282,7 +3267,7 @@ function renderCanvasUnits(now) {
 }
 
 /* =========================================================
-   PERFORMANCE MONITOR: FPS + Real Ping
+   PERF MONITOR
    ========================================================= */
 const perfBadge = document.getElementById('perfBadge');
 const fpsValEl = document.getElementById('fpsVal');
@@ -3355,15 +3340,13 @@ function startFPSLoop() {
 }
 
 /* =========================================================
-   LIVE MULTIPLAYER VISUALS — ALLE Soldaten an Firebase
+   MULTIPLAYER VISUALS
    ========================================================= */
 function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
     const { ref, set } = firebase;
-    // Sende ALLE eigenen Soldaten (nicht limitiert)
     const allSoldiers = soldierUnits.filter(s => s.side === 'friendly');
-    // Bei sehr vielen (200+) reduzieren wir die Update-Frequenz, aber senden alle
     const mySoldiers = allSoldiers.map(s => ({
       x: Math.round(s.x), y: Math.round(s.y),
       hp: Math.round(s.hp), maxHp: s.maxHp,
@@ -3427,18 +3410,14 @@ function startAttacksListener() {
       if (seenAttacks.has(id)) continue;
       const a = data[id];
       if (!a) continue;
-      // Ignoriere zu alte
       if (a.arriveTime && now > a.arriveTime + 30000) { seenAttacks.add(id); continue; }
       if (!a.arriveTime && now - (a.ts || 0) > 30000) { seenAttacks.add(id); continue; }
       seenAttacks.add(id);
       if (a.attackerHwid === ACTIVE_HWID) continue;
 
-      // Eingehender Angriff auf mich?
       if (a.targetHwid === ACTIVE_HWID) {
-        // Zielgebäude finden
         let targetB = state.buildings.find(b => b.id === a.buildingId);
         if (!targetB) {
-          // Fallback: Koordinaten
           let bestDist = Infinity;
           state.buildings.forEach(b => {
             const def = BUILDINGS[b.type];
@@ -3450,7 +3429,6 @@ function startAttacksListener() {
           });
         }
 
-        // Erstelle March-Eintrag für eigenes UI
         const marchEntry = {
           id: 'incoming-' + id,
           startX: a.fromX, startY: a.fromY,
@@ -3466,9 +3444,6 @@ function startAttacksListener() {
         };
         activeMarches.push(marchEntry);
 
-        // Spawne die ankommenden Soldaten als Canvas-Units für alle sichtbar
-        // WICHTIG: Sie erscheinen an ihrer aktuellen Position basierend auf
-        // startTime + (jetzt - startTime) * speed — synchron
         const count = Math.min(a.soldierCount || 3, 60);
         const sx0 = a.fromX, sy0 = a.fromY;
         const tx0 = a.toX, ty0 = a.toY;
@@ -3502,9 +3477,6 @@ function startAttacksListener() {
         }
 
         showAttackPopup(a.attackerName, targetB ? BUILDINGS[targetB.type].name : 'your base', 0);
-      } else {
-        // Nur zusehen — andere Spieler kämpfen
-        // Erstelle auch einen visuellen Effekt (ohne UI-Banner)
       }
     }
   });
@@ -3556,9 +3528,7 @@ function spawnExplosion(x, y, type) {
   setTimeout(() => el.remove(), 900);
 }
 
-/* =========================================================
-   VILLAGERS — Canvas (nur bei Home)
-   ========================================================= */
+/* VILLAGERS */
 function trySpawnVillagers() {
   const now = Date.now();
   if (now - lastVillagerSpawn < 3000) return;
@@ -3901,7 +3871,7 @@ mmInner.addEventListener('click', (e) => {
   applyTransform();
 });
 
-/* SAVE */
+/* SAVE — verwendet ACTIVE_HWID (Google-UID bei Google-Login) */
 function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => saveGame(true), 1200);
@@ -4162,7 +4132,6 @@ async function startGame() {
     updateVillagers(dt);
     constructionTick();
 
-    // Soldaten-Nachproduktion jede 1 Sekunde — nur intern, Soldaten bleiben at home
     spawnAccum += dt;
     if (spawnAccum >= 1) {
       respawnSoldiers();
@@ -4251,13 +4220,15 @@ document.getElementById('btnLogout').onclick = () => {
     (async () => {
       try {
         if (firebase) {
+          // WICHTIG: Speichere VOR dem Logout damit Progress sicher ist
+          await saveGame(true);
           const { ref, set } = firebase;
+          // Nur units + presence löschen, NICHT world/saves!
           await set(ref(firebase.db, 'units/' + ACTIVE_HWID), null);
-          await set(ref(firebase.db, 'world/' + ACTIVE_HWID), null);
+          await set(ref(firebase.db, 'presence/' + ACTIVE_HWID), null);
         }
         if (window.__BR_auth) await window.__BR_authFns.signOut(window.__BR_auth);
       } catch(e) {}
-      await saveGame(true);
       location.reload();
     })();
   }
@@ -4270,12 +4241,28 @@ document.getElementById('btnChat').onclick = () => {
 };
 document.getElementById('chatClose').onclick = () => document.getElementById('chatPanel').classList.remove('show');
 document.getElementById('chatSend').onclick = sendChat;
+
 window.addEventListener('beforeunload', () => {
-  publishEvent('leave', `${currentUser?.username || 'Unknown'} left the realm.`);
-  saveGame(true);
-  if (firebase && ACTIVE_HWID) {
+  // Speichere synchron bevor wir gehen
+  if (currentUser && firebase) {
     try {
       const { ref, set } = firebase;
+      // Fire-and-forget Save
+      const data = {
+        money: Math.floor(state.money), gold: Math.floor(state.gold),
+        food: Math.floor(state.food), wood: Math.floor(state.wood), stone: Math.floor(state.stone),
+        population: state.population, populationCap: state.populationCap,
+        workers: state.workers, workersNeeded: state.workersNeeded,
+        soldiers: state.soldiers, soldierCap: state.soldierCap,
+        happiness: Math.round(state.happiness), level: state.level,
+        xp: Math.floor(state.xp), xpNeeded: state.xpNeeded,
+        nextId: state.nextId, lastTick: Date.now(),
+        playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
+        baseX: state.baseX, baseY: state.baseY,
+        username: currentUser.username, hwid: ACTIVE_HWID,
+        buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp || 100, maxHp: b.maxHp || 100 }))
+      };
+      set(ref(firebase.db, 'saves/' + ACTIVE_HWID), data);
       set(ref(firebase.db, 'units/' + ACTIVE_HWID), null);
     } catch(e) {}
   }
