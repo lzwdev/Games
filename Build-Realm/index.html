@@ -304,7 +304,6 @@
   .spacer { flex: 1; }
   .hint { font-size: 11px; color: #7b8dab; white-space: nowrap; }
 
-  /* To My Soldiers button */
   .btn-soldiers {
     background: linear-gradient(135deg, #e3f2fd, #bbdefb);
     border-color: #64b5f6; color: #1565c0;
@@ -1095,7 +1094,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v22 (Canvas Units + FPS/Ping + To My Soldiers)
+   BUILD A REALM — v23 (Soldier-Cap only, Nachproduktion jede 1s)
    ========================================================= */
 
 const ICONS = {
@@ -1148,7 +1147,7 @@ const ICONS = {
 const tips = [
   "Tip: Mouse wheel to zoom · Drag to move",
   "Tip: Build Barracks or Fortress to spawn soldiers",
-  "Tip: Soldiers respawn every 20 seconds",
+  "Tip: Soldiers respawn every second up to your Soldier Cap",
   "Tip: Repair damaged buildings with Wood + Stone",
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
   "Tip: Level 5 unlocks a 4th build slot · Level 10 unlocks a 5th",
@@ -1584,6 +1583,11 @@ let eventFeedCollapsed = false;
 let remoteUnitsData = {};
 let lastAttackTime = 0;
 
+// Nur Rendering-Schutz, echtes Limit ist state.soldierCap
+const MAX_FRIENDLY_UNITS = 500;
+const MAX_ENEMY_UNITS = 300;
+const MAX_ATTACKERS_PER_WAVE = 200;
+
 /* BUILDINGS */
 const BUILDINGS = {
   main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 50% of your money to the attacker.", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 } },
@@ -1864,7 +1868,11 @@ function recalc() {
   state.defensePower = defense;
   if (state.population > state.populationCap) state.population = state.populationCap;
   state.workers = Math.max(0, Math.min(state.workersNeeded, state.population));
-  if (state.soldiers > state.soldierCap) state.soldiers = state.soldierCap;
+
+  // WICHTIG: Soldaten werden automatisch bis zum Cap rekrutiert.
+  // Sie spawnen dann in der nächsten Loop-Iteration (siehe soldierSpawnTick).
+  // state.soldiers ist der Zielwert = soldierCap.
+  state.soldiers = state.soldierCap;
 }
 
 function productionTick(dt) {
@@ -2460,9 +2468,6 @@ function sellBuilding(b) {
 /* =========================================================
    COMBAT — Canvas-basiert
    ========================================================= */
-const MAX_FRIENDLY_UNITS = 20;
-const MAX_ENEMY_UNITS = 40;
-
 function toggleAttackMode() {
   if (state.soldiers < 1) {
     notify("You need soldiers to attack! Build Barracks or Fortress first.", true);
@@ -2501,10 +2506,13 @@ function tryAttack(e) {
 }
 
 function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
-  const friendlyCount = soldierUnits.filter(s => s.side === 'friendly').length;
-  const enemyCount = soldierUnits.filter(s => s.side === 'enemy').length;
-  if (side === 'friendly' && friendlyCount >= MAX_FRIENDLY_UNITS) return null;
-  if (side === 'enemy' && enemyCount >= MAX_ENEMY_UNITS) return null;
+  if (side === 'friendly') {
+    const friendlyCount = soldierUnits.filter(s => s.side === 'friendly').length;
+    if (friendlyCount >= MAX_FRIENDLY_UNITS) return null;
+  } else {
+    const enemyCount = soldierUnits.filter(s => s.side === 'enemy').length;
+    if (enemyCount >= MAX_ENEMY_UNITS) return null;
+  }
   const unit = {
     x, y, tx, ty,
     hp: 100, maxHp: 100,
@@ -2525,7 +2533,7 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
 function performAttack(b, ownerName, ownerHwid) {
   if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
   const now = Date.now();
-  if (now - lastAttackTime < 2000) { notify("⏳ Soldiers are marching — wait a moment!", true); return; }
+  if (now - lastAttackTime < 1500) { notify("⏳ Soldiers are marching — wait a moment!", true); return; }
   lastAttackTime = now;
 
   const targetCX = b.x + (BUILDINGS[b.type]?.size || 2) * TILE / 2;
@@ -2533,6 +2541,7 @@ function performAttack(b, ownerName, ownerHwid) {
 
   const existing = soldierUnits.filter(s => s.side === 'friendly');
   if (existing.length > 0) {
+    // ALLE vorhandenen Soldaten umleiten
     existing.forEach(s => {
       s.tx = targetCX + (Math.random() - 0.5) * 60;
       s.ty = targetCY + (Math.random() - 0.5) * 60;
@@ -2540,18 +2549,21 @@ function performAttack(b, ownerName, ownerHwid) {
     });
     notify(`⚔ Redirecting ${existing.length} soldiers to ${ownerName}'s ${BUILDINGS[b.type].name}!`);
   } else {
+    // Alle Soldaten spawnen
     const mainB = state.buildings.find(x => x.type === 'main');
     const startX = mainB ? mainB.x + BUILDINGS.main.size * TILE / 2 : state.baseX;
     const startY = mainB ? mainB.y + BUILDINGS.main.size * TILE / 2 : state.baseY;
-    const attackCount = Math.min(state.soldiers, 8);
+    const attackCount = Math.min(state.soldiers, MAX_ATTACKERS_PER_WAVE);
     for (let i = 0; i < attackCount; i++) {
       spawnSoldierUnit(
-        startX + (Math.random() - 0.5) * 80,
-        startY + (Math.random() - 0.5) * 80,
-        targetCX, targetCY, 'friendly', b
+        startX + (Math.random() - 0.5) * 120,
+        startY + (Math.random() - 0.5) * 120,
+        targetCX + (Math.random() - 0.5) * 60,
+        targetCY + (Math.random() - 0.5) * 60,
+        'friendly', b
       );
     }
-    notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name}!`, false, false, false, true);
+    notify(`⚔ Attacking ${ownerName}'s ${BUILDINGS[b.type].name} with ${attackCount} soldiers!`, false, false, false, true);
   }
 
   if (firebase) {
@@ -2562,7 +2574,8 @@ function performAttack(b, ownerName, ownerHwid) {
         attackerHwid: ACTIVE_HWID, attackerName: currentUser.username,
         targetHwid: ownerHwid || 'unknown', targetName: ownerName,
         fromX: state.baseX, fromY: state.baseY, toX: b.x, toY: b.y,
-        soldierCount: Math.min(state.soldiers, 8), ts: Date.now()
+        soldierCount: Math.min(state.soldiers, 30), // Nur 30 an andere senden
+        ts: Date.now()
       });
       setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 30000);
     } catch(e) {}
@@ -2705,11 +2718,12 @@ function clearSoldierUnits() {
   soldierUnits = [];
 }
 
-function respawnSoldiers() {
+/* NEU: Soldaten-Nachproduktion — jede Sekunde bis zum Cap */
+function soldierSpawnTick() {
   const currentCount = soldierUnits.filter(s => s.side === 'friendly').length;
-  if (currentCount > 0) return;
-  const needed = state.soldiers;
-  if (needed <= 0) return;
+  const target = state.soldiers; // = state.soldierCap
+  if (currentCount >= target) return;
+  const needed = Math.min(target - currentCount, 30); // max 30 pro Tick, damit's nicht laggt
   const mainB = state.buildings.find(b => b.type === 'main');
   if (!mainB) return;
   const size = BUILDINGS.main.size * TILE;
@@ -2717,7 +2731,7 @@ function respawnSoldiers() {
   const cy = mainB.y + size + 20;
   for (let i = 0; i < needed; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const r = 40 + Math.random() * 60;
+    const r = 40 + Math.random() * 80;
     spawnSoldierUnit(
       cx + Math.cos(angle) * r,
       cy + Math.sin(angle) * r,
@@ -2726,6 +2740,11 @@ function respawnSoldiers() {
       'friendly', null
     );
   }
+}
+
+function respawnSoldiers() {
+  // Alte Funktion bleibt für Kompatibilität — leitet an neue weiter
+  soldierSpawnTick();
 }
 
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
@@ -3076,7 +3095,6 @@ function tickFPS(now) {
   }
 }
 
-/* Echter Ping über Firebase serverTimestamp Round-Trip */
 async function measurePing() {
   if (!firebase || pingInFlight) return;
   pingInFlight = true;
@@ -3084,7 +3102,6 @@ async function measurePing() {
   try {
     const pingRef = ref(firebase.db, 'ping_probe/' + ACTIVE_HWID);
     const t0 = performance.now();
-    // Write mit serverTimestamp — dann Read — echte Round-Trip-Zeit
     await set(pingRef, { t: Date.now() });
     const snap = await get(pingRef);
     const t1 = performance.now();
@@ -3115,7 +3132,6 @@ function startFPSLoop() {
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
-  // Ping alle 3 Sekunden messen
   setTimeout(() => { measurePing(); setInterval(measurePing, 3000); }, 1500);
 }
 
@@ -3126,14 +3142,16 @@ function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
     const { ref, set } = firebase;
-    const mySoldiers = soldierUnits
-      .filter(s => s.side === 'friendly')
-      .map(s => ({
-        x: Math.round(s.x), y: Math.round(s.y),
-        hp: Math.round(s.hp), maxHp: s.maxHp,
-        facing: s.facing, fighting: !!s.fighting
-      }));
-    const myVillagers = villagerUnits.map(v => ({ x: Math.round(v.x), y: Math.round(v.y) }));
+    // Sende nur eine Stichprobe, damit Firebase nicht überlastet wird
+    // Max 60 Soldaten an andere Spieler übertragen (Rendering bei anderen)
+    const allSoldiers = soldierUnits.filter(s => s.side === 'friendly');
+    const sendSoldiers = allSoldiers.length <= 60 ? allSoldiers : allSoldiers.slice(0, 60);
+    const mySoldiers = sendSoldiers.map(s => ({
+      x: Math.round(s.x), y: Math.round(s.y),
+      hp: Math.round(s.hp), maxHp: s.maxHp,
+      facing: s.facing, fighting: !!s.fighting
+    }));
+    const myVillagers = villagerUnits.slice(0, 30).map(v => ({ x: Math.round(v.x), y: Math.round(v.y) }));
     const myBuilders = [];
     state.buildings.forEach(b => {
       if (b.construction && b._builders) {
@@ -3147,6 +3165,7 @@ function broadcastMyUnits() {
       soldiers: mySoldiers,
       villagers: myVillagers,
       builders: myBuilders,
+      totalSoldiers: allSoldiers.length,
       baseX: state.baseX, baseY: state.baseY,
       ts: Date.now()
     }).catch(()=>{});
@@ -3169,7 +3188,8 @@ function startUnitsListener() {
         username: u.username,
         soldiers: u.soldiers || [],
         villagers: u.villagers || [],
-        builders: u.builders || []
+        builders: u.builders || [],
+        totalSoldiers: u.totalSoldiers || (u.soldiers || []).length
       };
     }
     for (const hwid in remoteUnitsData) {
@@ -3211,7 +3231,7 @@ function startAttacksListener() {
         if (d < bs && d < bestDist) { targetB = b; bestDist = d; }
       }
 
-      const count = Math.min(a.soldierCount || 3, 8);
+      const count = Math.min(a.soldierCount || 3, 30);
       for (let i = 0; i < count; i++) {
         spawnSoldierUnit(
           a.fromX + (Math.random() - 0.5) * 60,
@@ -3440,6 +3460,8 @@ function setupAttackPopup() {
 function updateUI() {
   const resGroup = document.getElementById('resGroup');
   const fmt = (n) => Math.floor(n).toLocaleString('en-US');
+  const aliveSoldiers = soldierUnits.filter(s => s.side === 'friendly').length;
+  const soldierDisplay = aliveSoldiers > 0 ? `${aliveSoldiers}/${state.soldiers}` : `${state.soldiers}`;
   resGroup.innerHTML = `
     <div class="res">${ICONS.money}<span class="val">${fmt(state.money)}</span></div>
     <div class="res">${ICONS.gold}<span class="val">${fmt(state.gold)}</span></div>
@@ -3448,7 +3470,7 @@ function updateUI() {
     <div class="res">${ICONS.stone}<span class="val">${fmt(state.stone)}</span></div>
     <div class="res">${ICONS.pop}<span class="val">${state.population}/${state.populationCap}</span></div>
     <div class="res">${ICONS.worker}<span class="val">${state.workers}/${state.workersNeeded}</span></div>
-    <div class="res">${ICONS.soldier}<span class="val">${state.soldiers}/${state.soldierCap}</span></div>
+    <div class="res">${ICONS.soldier}<span class="val">${soldierDisplay}</span></div>
     <div class="res">${ICONS.star}<span class="val">Lv.${state.level}</span></div>
   `;
   const statsBody = document.getElementById('statsBody');
@@ -3464,6 +3486,7 @@ function updateUI() {
     <div class="sp-row"><span>Build slots</span><span class="v">${maxB}${maxB < 5 ? ` (next: Lv.${maxB === 3 ? 5 : 10})` : ''}</span></div>
     <div class="sp-row"><span>Under construction</span><span class="v ${constructing >= maxB ? 'bad' : ''}">${constructing}/${maxB}</span></div>
     <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
+    <div class="sp-row"><span>Soldiers (alive / cap)</span><span class="v ${aliveSoldiers >= state.soldiers ? 'good' : 'bad'}">${aliveSoldiers} / ${state.soldiers}</span></div>
     <div class="sp-row"><span>Happiness</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
     <div class="sp-row"><span>Defense</span><span class="v">${state.defensePower || 0}</span></div>
   `;
@@ -3838,7 +3861,7 @@ async function startGame() {
   updateMinimapBuildings();
   renderOnlineList();
   centerCamera();
-  respawnSoldiers();
+  soldierSpawnTick(); // Erste Füllung
 
   if (firebase) {
     try {
@@ -3868,7 +3891,7 @@ async function startGame() {
   }
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, soldierAccum = 0, worldAccum = 0, respawnAccum = 0, unitsAccum = 0;
+  let prodAccum = 0, saveAccum = 0, soldierTickAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -3876,20 +3899,26 @@ async function startGame() {
     updateSoldierUnits(dt);
     updateVillagers(dt);
     constructionTick();
-    prodAccum += dt;
-    if (prodAccum >= 1) { productionTick(prodAccum); prodAccum = 0; updateUI(); }
-    soldierAccum += dt;
-    if (soldierAccum >= 2) { trySpawnVillagers(); soldierAccum = 0; }
-    respawnAccum += dt;
-    if (respawnAccum >= 20) {
-      const friendlyCount = soldierUnits.filter(s => s.side === 'friendly').length;
-      if (friendlyCount < state.soldiers) respawnSoldiers();
-      respawnAccum = 0;
+
+    // Soldaten-Nachproduktion jede 1 Sekunde
+    soldierTickAccum += dt;
+    if (soldierTickAccum >= 1) {
+      soldierSpawnTick();
+      soldierTickAccum = 0;
     }
+
+    prodAccum += dt;
+    if (prodAccum >= 1) { productionTick(prodAccum); prodAccum = 0; }
+
+    uiAccum += dt;
+    if (uiAccum >= 0.5) { updateUI(); uiAccum = 0; }
+
     unitsAccum += dt;
-    if (unitsAccum >= 0.2) { broadcastMyUnits(); unitsAccum = 0; }
+    if (unitsAccum >= 0.3) { broadcastMyUnits(); unitsAccum = 0; }
+
     saveAccum += dt;
     if (saveAccum >= 15) { saveGame(true); saveAccum = 0; }
+
     worldAccum += dt;
     if (worldAccum >= 0.5) {
       if (firebase) {
@@ -3925,7 +3954,6 @@ function cameraToMySoldiers() {
     notify("No soldiers alive right now!", true);
     return;
   }
-  // Durchschnittsposition aller eigenen Soldaten
   let sx = 0, sy = 0;
   mySoldiers.forEach(s => { sx += s.x; sy += s.y; });
   sx /= mySoldiers.length;
