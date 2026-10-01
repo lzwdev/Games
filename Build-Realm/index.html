@@ -122,7 +122,7 @@
   #map.placing { cursor: crosshair; }
   #map.selling { cursor: not-allowed; }
   #map.attacking { cursor: crosshair; }
-  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: 60000px; height: 60000px; }
+  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: 60000px; height: 60000px; pointer-events: none; }
   #grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(60,100,60,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(60,100,60,0.10) 1px, transparent 1px); background-size: 48px 48px; }
   .terrain-patch { position: absolute; border-radius: 50%; pointer-events: none; }
   .tree-deco, .rock-deco { position: absolute; pointer-events: none; }
@@ -453,6 +453,188 @@
   .btn-premium-cta { background: linear-gradient(135deg, #a87ee0, #7c4dbb); border-color: #7c4dbb; color: #fff; }
   .btn-premium-cta:disabled { background: #e0d0f0; border-color: #c9a3e8; color: #a08bc0; cursor: not-allowed; }
   .premium-soon { font-size: 11.5px; color: #8d6eb5; font-weight: 700; margin-top: 14px; }
+
+  /* ============ ATTACK/DEFEND SLIDER MODAL ============ */
+  #troopModal {
+    position: fixed !important; inset: 0 !important; z-index: 99998 !important;
+    background: rgba(30,53,94,0.6);
+    backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: modalFadeIn 0.2s ease;
+  }
+  #troopModal.show { display: flex; }
+  @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .tm-box {
+    background: linear-gradient(135deg, #ffffff, #f7faff);
+    border: 2px solid #2f6fd0;
+    border-radius: 20px;
+    padding: 28px 30px;
+    width: min(480px, 92vw);
+    box-shadow: 0 30px 90px rgba(47,111,208,0.4);
+    text-align: center;
+    animation: tmPopIn 0.35s cubic-bezier(0.2,0.9,0.3,1.2);
+  }
+  .tm-box.defend {
+    border-color: #c62828;
+    background: linear-gradient(135deg, #ffffff, #fff5f5);
+    box-shadow: 0 30px 90px rgba(198,40,40,0.4);
+  }
+  @keyframes tmPopIn {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .tm-icon {
+    width: 68px; height: 68px; margin: 0 auto 14px;
+    background: linear-gradient(135deg, #2f6fd0, #6aa9f5);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 30px rgba(47,111,208,0.4);
+  }
+  .tm-box.defend .tm-icon {
+    background: linear-gradient(135deg, #c62828, #ef5350);
+    box-shadow: 0 10px 30px rgba(198,40,40,0.4);
+  }
+  .tm-icon svg { width: 36px; height: 36px; }
+  .tm-title {
+    font-size: 22px; font-weight: 900;
+    color: #1565c0; margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .tm-box.defend .tm-title { color: #c62828; }
+  .tm-subtitle {
+    font-size: 13px; color: #5c7099; font-weight: 600;
+    margin-bottom: 22px;
+  }
+  .tm-target-info {
+    background: rgba(47,111,208,0.08);
+    border: 1px dashed rgba(47,111,208,0.35);
+    border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 20px;
+    font-size: 12.5px; color: #26344e; font-weight: 600;
+  }
+  .tm-box.defend .tm-target-info {
+    background: rgba(198,40,40,0.08);
+    border-color: rgba(198,40,40,0.35);
+  }
+  .tm-target-info b { color: #1565c0; font-weight: 800; }
+  .tm-box.defend .tm-target-info b { color: #c62828; }
+  .tm-slider-wrap { margin-bottom: 8px; }
+  .tm-slider-value {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin-bottom: 12px;
+  }
+  .tm-slider-value .num {
+    font-size: 40px; font-weight: 900;
+    color: #1565c0; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.15s;
+  }
+  .tm-box.defend .tm-slider-value .num { color: #c62828; }
+  .tm-slider-value .unit {
+    font-size: 14px; font-weight: 700; color: #6b7d99;
+    align-self: flex-end; padding-bottom: 6px;
+  }
+  .tm-slider-value .max-hint {
+    font-size: 12px; color: #8fa3c8; font-weight: 600;
+    align-self: flex-end; padding-bottom: 6px;
+  }
+  input[type="range"].tm-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 12px;
+    background: #d3dded;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+    background-image: linear-gradient(90deg, #2f6fd0, #6aa9f5);
+    background-repeat: no-repeat;
+  }
+  .tm-box.defend input[type="range"].tm-slider {
+    background-image: linear-gradient(90deg, #c62828, #ef5350);
+  }
+  input[type="range"].tm-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 4px solid #2f6fd0;
+    cursor: grab;
+    box-shadow: 0 4px 12px rgba(47,111,208,0.5);
+    transition: transform 0.15s;
+  }
+  .tm-box.defend input[type="range"].tm-slider::-webkit-slider-thumb {
+    border-color: #c62828;
+    box-shadow: 0 4px 12px rgba(198,40,40,0.5);
+  }
+  input[type="range"].tm-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.15);
+  }
+  input[type="range"].tm-slider::-moz-range-thumb {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 4px solid #2f6fd0;
+    cursor: grab;
+    box-shadow: 0 4px 12px rgba(47,111,208,0.5);
+  }
+  .tm-box.defend input[type="range"].tm-slider::-moz-range-thumb {
+    border-color: #c62828;
+  }
+  .tm-quick-btns {
+    display: flex; gap: 6px; margin-bottom: 20px;
+  }
+  .tm-quick-btns .tm-qbtn {
+    flex: 1;
+    background: #f2f6fc;
+    border: 1.5px solid #d3dded;
+    color: #26344e;
+    padding: 7px 4px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tm-quick-btns .tm-qbtn:hover {
+    background: #e6efff;
+    border-color: #2f6fd0;
+    color: #2f6fd0;
+  }
+  .tm-box.defend .tm-quick-btns .tm-qbtn:hover {
+    background: #ffeaea;
+    border-color: #c62828;
+    color: #c62828;
+  }
+  .tm-actions { display: flex; gap: 10px; }
+  .tm-actions .btn { flex: 1; padding: 13px; justify-content: center; font-size: 14px; font-weight: 800; }
+  .tm-confirm {
+    background: linear-gradient(135deg, #2f6fd0, #4a8ae0);
+    border-color: #2f6fd0;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(47,111,208,0.35);
+  }
+  .tm-confirm:hover { background: linear-gradient(135deg, #4a8ae0, #6aa9f5); color: #fff; }
+  .tm-confirm:disabled {
+    background: #d3dded;
+    border-color: #d3dded;
+    color: #8fa3c8;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .tm-box.defend .tm-confirm {
+    background: linear-gradient(135deg, #c62828, #ef5350);
+    border-color: #c62828;
+    box-shadow: 0 6px 18px rgba(198,40,40,0.35);
+  }
+  .tm-box.defend .tm-confirm:hover { background: linear-gradient(135deg, #ef5350, #ff8a80); }
+  .tm-cancel {
+    background: #f2f6fc;
+    border-color: #d3dded;
+    color: #6b7d99;
+  }
+  .tm-cancel:hover { background: #e6efff; color: #2f6fd0; }
 
   #minimap { position: absolute; bottom: 62px; right: 342px; width: 220px; height: 220px; z-index: 44; background: #ffffff; border: 1px solid #d3dded; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(40,70,120,0.15); }
   #minimap .mm-inner { position: relative; width: 100%; height: 100%; background: #cfe3b8; }
@@ -946,6 +1128,7 @@
     <div class="panel-head"><span>Buildings</span><span class="count" id="bCount">0</span></div>
     <div class="panel-tabs">
       <button class="tab-btn active" data-cat="all">All</button>
+      <button class="tab-btn" data-cat="core">Core</button>
       <button class="tab-btn" data-cat="civic">Civic</button>
       <button class="tab-btn" data-cat="production">Prod</button>
       <button class="tab-btn" data-cat="economy">Econ</button>
@@ -983,7 +1166,7 @@
     </div>
     <div class="ab-text">
       <span>Attack mode</span>
-      <small>Click on an enemy building to attack it with soldiers</small>
+      <small>Click on an enemy building to attack it</small>
     </div>
     <button class="ab-cancel" id="abCancel">Cancel</button>
   </div>
@@ -1072,6 +1255,36 @@
 
 </div>
 <!-- END #game -->
+
+<!-- TROOP SLIDER MODAL -->
+<div id="troopModal">
+  <div class="tm-box" id="tmBox">
+    <div class="tm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z" fill="#fff" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="tm-title" id="tmTitle">Send Troops</div>
+    <div class="tm-subtitle" id="tmSubtitle">Choose how many soldiers to send</div>
+    <div class="tm-target-info" id="tmTargetInfo">—</div>
+    <div class="tm-slider-value">
+      <span class="num" id="tmNum">10</span>
+      <span class="unit">soldiers</span>
+      <span class="max-hint" id="tmMaxHint">/ 10 max</span>
+    </div>
+    <input type="range" class="tm-slider" id="tmSlider" min="10" max="10" value="10" step="1">
+    <div class="tm-quick-btns" id="tmQuickBtns">
+      <button class="tm-qbtn" data-pct="0.25">25%</button>
+      <button class="tm-qbtn" data-pct="0.5">50%</button>
+      <button class="tm-qbtn" data-pct="0.75">75%</button>
+      <button class="tm-qbtn" data-pct="1">MAX</button>
+    </div>
+    <div class="tm-actions">
+      <button class="btn tm-cancel" id="tmCancel">Cancel</button>
+      <button class="btn tm-confirm" id="tmConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <!-- ATTACK POPUP -->
   <div id="attackPopup">
@@ -1187,7 +1400,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v25 (Google-UID Primary + Drag-Fix)
+   BUILD A REALM — v26 (Main baubar + Slider + Radius + Cap)
    ========================================================= */
 
 const ICONS = {
@@ -1240,11 +1453,11 @@ const ICONS = {
 const tips = [
   "Tip: Mouse wheel to zoom · Drag to move",
   "Tip: Build Barracks or Fortress to spawn soldiers",
-  "Tip: Soldiers stay hidden at home until you attack",
-  "Tip: Repair damaged buildings with Wood + Stone",
+  "Tip: Choose how many soldiers to send when attacking",
+  "Tip: Defend with a slider to pick how many soldiers to deploy",
   "Tip: Destroy the enemy Main Building to steal 50% of their money!",
-  "Tip: Watch the march timer at the top when attacking",
-  "Tip: Google accounts save progress on the cloud",
+  "Tip: You can rebuild your Main Building for free (only 1 allowed)",
+  "Tip: Soldiers regenerate every second until they hit the Cap",
   "Tip: Click 'Soldiers' button to jump to your army",
   "Tip: Houses increase your population cap",
   "Tip: Units are rendered on Canvas — smooth even with many units"
@@ -1280,7 +1493,6 @@ setInterval(() => {
   setTimeout(() => { tipText.textContent = tips[tipIndex]; tipText.style.opacity = 1; }, 400);
 }, 2600);
 
-/* HWID */
 function generateHWID() {
   const nav = window.navigator;
   const scr = window.screen;
@@ -1300,9 +1512,8 @@ function generateHWID() {
 }
 
 const LOCAL_HWID = generateHWID();
-// ACTIVE_HWID ist der PRIMARY KEY für Speichern. Bei Google = GOOGLE-<uid>, bei Nick = HWID.
 let ACTIVE_HWID = LOCAL_HWID;
-let GOOGLE_UID = null; // z.B. "GOOGLE-abc123..."
+let GOOGLE_UID = null;
 let IS_GOOGLE_USER = false;
 
 let currentUser = null;
@@ -1342,12 +1553,10 @@ whenFirebaseReady(() => {
           const snap = await get(ref(firebase.db, 'users_by_hwid/' + GOOGLE_UID));
           if (snap.exists()) {
             const data = snap.val();
-            // NICHT ACTIVE_HWID setzen ohne User-Klick! Zeige nur den Continue-Link.
             loginExisting.innerHTML = `👋 Welcome back, <b style="color:#2f6fd0">${escapeHtml(data.username)}</b>! (Google)<br><span class="link" id="continueLink">Continue as ${escapeHtml(data.username)} →</span>`;
             const cl = document.getElementById('continueLink');
             if (cl) cl.onclick = async () => {
               ACTIVE_HWID = GOOGLE_UID;
-              GOOGLE_UID = GOOGLE_UID;
               IS_GOOGLE_USER = true;
               currentUser = { username: data.username, hwid: GOOGLE_UID };
               await handleAccountStatusCheck();
@@ -1408,7 +1617,6 @@ async function loginWithIdentity(name, identityHwid, email) {
   loginError.textContent = '';
   try {
     const { ref, get, set } = firebase;
-    // Ban-Check NUR auf identityHwid (Google-UID bei Google-Login)
     const banSnap = await get(ref(firebase.db, 'bans/' + identityHwid));
     if (banSnap.exists()) {
       const ban = banSnap.val();
@@ -1447,7 +1655,6 @@ async function loginWithIdentity(name, identityHwid, email) {
 async function checkExistingUser() {
   try {
     const { ref, get } = firebase;
-    // Nur Nick-basierten User anzeigen, Google handled onAuthStateChanged
     const snap = await get(ref(firebase.db, 'users_by_hwid/' + LOCAL_HWID));
     if (snap.exists()) {
       const data = snap.val();
@@ -1465,14 +1672,10 @@ async function checkExistingUser() {
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 
-/* =========================================================
-   ACCOUNT STATUS CHECK
-   ========================================================= */
 async function checkAccountStatus() {
   if (!firebase) return { ban: null, deleted: false, reset: null };
   try {
     const { ref, get } = firebase;
-    // FIX: Prüfe NUR ACTIVE_HWID, nicht mehr LOCAL_HWID zusätzlich
     const banSnap = await get(ref(firebase.db, 'bans/' + ACTIVE_HWID));
     if (banSnap.exists()) {
       const ban = banSnap.val();
@@ -1496,7 +1699,6 @@ async function checkAccountStatus() {
 }
 
 async function handleAccountStatusCheck() {
-  // ACTIVE_HWID wurde schon vom User-Click gesetzt — NICHT überschreiben!
   const status = await checkAccountStatus();
   if (status.ban) { showBanPopup(status.ban); return false; }
   if (status.deleted) { showDeletedPopup(); return false; }
@@ -1513,9 +1715,6 @@ async function acknowledgeReset() {
   } catch(e) {}
 }
 
-/* =========================================================
-   POPUPS
-   ========================================================= */
 function hideAllScreens() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('loader').classList.add('hidden');
@@ -1578,9 +1777,6 @@ function showResetPopup(info) {
   };
 }
 
-/* =========================================================
-   LOGIN (nickname)
-   ========================================================= */
 async function doLogin() {
   const name = sanitizeUsername(usernameInput.value);
   const err = validateUsername(name);
@@ -1623,9 +1819,6 @@ function runLoadingScreen() {
   }, 90);
 }
 
-/* =========================================================
-   GAME STATE
-   ========================================================= */
 const WORLD_SIZE = 60000;
 function getMaxBuilds() {
   if (state.level >= 10) return 5;
@@ -1660,16 +1853,22 @@ let eventFeedCollapsed = false;
 let remoteUnitsData = {};
 let lastAttackTime = 0;
 
-const MAX_FRIENDLY_UNITS = 500;
+// NEU: Soldaten werden beim Senden aus dem Cap abgezogen
+// state.soldiers = verfügbare Soldaten (at home)
+// state.soldierCap = MAX (regeneriert jede Sekunde)
+// state.soldiersReserved = wie viele gerade unterwegs sind (nicht neu spawnbar)
+const MAX_FRIENDLY_UNITS = 1000; // Rendering-Schutz
 const MAX_ENEMY_UNITS = 300;
-const MAX_ATTACKERS_PER_WAVE = 200;
+const MAX_ATTACKERS_PER_WAVE = 300;
 const ATTACK_SPEED = 1.8;
+const FIGHT_RANGE = 600; // 10x größer als vorher (war 60)
+const ATTACK_RANGE = 20;
+const HIT_INTERVAL = 1.0;
 
 let activeMarches = [];
 
-/* BUILDINGS — unverändert */
 const BUILDINGS = {
-  main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 50% of your money to the attacker.", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 } },
+  main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 50% of your money. Can be rebuilt for FREE (only 1 allowed).", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 }, buildTime: 5, isMain: true },
   house: { name: "House", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10, desc: "Provides space for residents. Produces a bit of wood & stone.", baseCost: 250, costMult: 1.95, produces: { wood: 1, stone: 1 }, needs: { workers: 1 }, popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160], buildTime: 8, resourceCost: { wood: 20, stone: 10 } },
   tavern: { name: "Tavern", icon: "tavern", category: "civic", size: 2, cost: 500, maxLevel: 8, desc: "Increases happiness.", baseCost: 500, costMult: 2.0, produces: { gold: 2 }, needs: { workers: 2 }, happyBonus: [3, 6, 10, 14, 19, 25, 32, 40], buildTime: 10, resourceCost: { wood: 60, stone: 30 } },
   well: { name: "Well", icon: "well", category: "civic", size: 1, cost: 220, maxLevel: 6, desc: "Supplies water.", baseCost: 220, costMult: 1.9, produces: {}, needs: { workers: 1 }, happyBonus: [2, 4, 7, 10, 14, 19], buildTime: 5, resourceCost: { wood: 15, stone: 40 } },
@@ -1705,8 +1904,6 @@ const BUILDINGS = {
   garrison: { name: "Garrison", icon: "garrison", category: "military", size: 2, cost: 2800, maxLevel: 8, desc: "Elite troops spawn here.", baseCost: 2800, costMult: 2.25, produces: { gold: 4 }, needs: { workers: 8 }, soldierPerLevel: [5, 11, 19, 29, 42, 58, 77, 100], unlockLevel: 5, buildTime: 24, spawnsSoldiers: true, defenseBonus: [3, 6, 11, 18, 28, 40, 55, 75], resourceCost: { wood: 250, stone: 350 } }
 };
 
-const MILITARY_TYPES = ['barracks', 'fortress', 'garrison', 'armory', 'arena', 'tower', 'watchtower', 'wall', 'stable'];
-
 const worldEl = document.getElementById('world');
 function buildTerrain() {
   const colors = ['#b8d99a', '#a8cd88', '#c6e0a8', '#9fc47f', '#b0d490'];
@@ -1741,7 +1938,6 @@ function buildTerrain() {
   }
 }
 
-/* buildingSVG und Cost-Funktionen — unverändert */
 function buildingSVG(type, level, w, h) {
   const lvl = level;
   if (type === 'main') {
@@ -1867,12 +2063,16 @@ function buildingSVG(type, level, w, h) {
 
 function getCost(type, level) {
   const def = BUILDINGS[type];
+  // Main Building kostet immer 0 beim Bauen
+  if (type === 'main' && level === 0) return 0;
   if (level === 0) return Math.round(def.cost);
   return Math.round(def.baseCost * Math.pow(def.costMult, level));
 }
 function getUpgradeCost(b) { return getCost(b.type, b.level); }
 function getResourceCost(type, level) {
   const def = BUILDINGS[type];
+  // Main Building braucht keine Ressourcen beim Bauen
+  if (type === 'main' && level === 0) return { wood: 0, stone: 0 };
   if (!def.resourceCost) return { wood: 0, stone: 0 };
   const mult = level === 0 ? 1 : Math.pow(1.6, level);
   return { wood: Math.round(def.resourceCost.wood * mult), stone: Math.round(def.resourceCost.stone * mult) };
@@ -1919,6 +2119,7 @@ function getSellValue(b) {
   return Math.floor(sum * 0.5);
 }
 function countActiveBuilds() { return state.buildings.filter(b => b.construction).length; }
+function hasMainBuilding() { return state.buildings.some(b => b.type === 'main'); }
 
 function addXP(amount) {
   state.xp += amount;
@@ -1956,7 +2157,10 @@ function recalc() {
   state.defensePower = defense;
   if (state.population > state.populationCap) state.population = state.populationCap;
   state.workers = Math.max(0, Math.min(state.workersNeeded, state.population));
-  state.soldiers = state.soldierCap;
+  // WICHTIG: state.soldiers wird NICHT mehr hart auf cap gesetzt.
+  // Es repräsentiert die aktuell verfügbaren (at home) Soldaten.
+  // Regeneration passiert im soldierSpawnTick jede Sekunde.
+  if (state.soldiers > state.soldierCap) state.soldiers = state.soldierCap;
 }
 
 function productionTick(dt) {
@@ -2058,7 +2262,7 @@ function pickBasePosition() {
 }
 
 /* =========================================================
-   MAP + DRAG FIX
+   MAP
    ========================================================= */
 const mapEl = document.getElementById('map');
 const tooltip = document.getElementById('tooltip');
@@ -2067,23 +2271,18 @@ let isDragging = false;
 let dragStartMouse = { x: 0, y: 0 };
 let dragStartCam = { x: 0, y: 0 };
 let dragMoved = false;
-let pointerDownTarget = null;
 
 function applyTransform() {
   worldEl.style.transform = `translate(${state.camX}px, ${state.camY}px) scale(${state.zoom})`;
   updateMinimapView();
 }
 
-// Mousedown auf mapEl UND worldEl abfangen (worldEl ist nicht mehr pointer-events: none)
 mapEl.addEventListener('mousedown', (e) => {
   if (e.button !== 0) {
     if (e.button === 2) { cancelPlacing(); cancelAttack(); }
     return;
   }
-  // Nur Dragging starten, wenn wir NICHT in placement/sell/attack mode sind
   if (state.placing || state.sellMode || attackMode) return;
-  // Wenn auf ein Building geklickt wurde: prüfen ob es ein UI-Klick ist
-  // Wir erlauben Drag trotzdem, weil click events separat gefeuert werden
   isDragging = true;
   dragMoved = false;
   dragStartMouse.x = e.clientX;
@@ -2091,7 +2290,6 @@ mapEl.addEventListener('mousedown', (e) => {
   dragStartCam.x = state.camX;
   dragStartCam.y = state.camY;
   mapEl.classList.add('dragging');
-  pointerDownTarget = e.target;
 });
 
 window.addEventListener('mousemove', (e) => {
@@ -2110,7 +2308,7 @@ window.addEventListener('mousemove', (e) => {
   }
 });
 
-window.addEventListener('mouseup', (e) => {
+window.addEventListener('mouseup', () => {
   if (isDragging) {
     isDragging = false;
     mapEl.classList.remove('dragging');
@@ -2159,6 +2357,7 @@ window.addEventListener('keydown', (e) => {
     if (state.sellMode) toggleSellMode();
     hideDetailPanel();
     closePremiumModal();
+    closeTroopModal();
     document.getElementById('chatPanel').classList.remove('show');
   }
   if (e.key === 'Enter' && document.activeElement === document.getElementById('chatInput')) sendChat();
@@ -2169,10 +2368,15 @@ function screenToWorld(clientX, clientY) {
   return { x: (clientX - rect.left - state.camX) / state.zoom, y: (clientY - rect.top - state.camY) / state.zoom };
 }
 
-/* PLACEMENT — unverändert */
+/* PLACEMENT */
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) { notify(`Requires Level ${def.unlockLevel}`, true); return; }
+  // Main Building: nur 1 erlaubt
+  if (type === 'main' && hasMainBuilding()) {
+    notify("You already have a Main Building! Only 1 allowed.", true);
+    return;
+  }
   if (countActiveBuilds() >= getMaxBuilds()) { notify(`Too many builders working! (Max ${getMaxBuilds()})`, true); return; }
   state.placing = type;
   ghost.style.display = 'block';
@@ -2227,6 +2431,11 @@ function placeBuilding(e) {
   const w = screenToWorld(e.clientX, e.clientY);
   const size = def.size * TILE;
   const x = w.x - size / 2, y = w.y - size / 2;
+  if (state.placing === 'main' && hasMainBuilding()) {
+    notify("You already have a Main Building!", true);
+    cancelPlacing();
+    return;
+  }
   if (countActiveBuilds() >= getMaxBuilds()) { notify(`Too many builders working! (Max ${getMaxBuilds()})`, true); cancelPlacing(); return; }
   if (checkPlacementCollision(x, y, size)) { notify("Space is occupied!", true); return; }
   const moneyCost = getCost(state.placing, 0);
@@ -2245,7 +2454,9 @@ function placeBuilding(e) {
   addXP(15);
   updateUI();
   updateMinimapBuildings();
-  notify(`${def.name} under construction (${formatTime(bt)})`);
+  renderBuildingList();
+  if (state.placing === 'main') notify(`🏰 Main Building placed for FREE! (${formatTime(bt)})`, false, true);
+  else notify(`${def.name} under construction (${formatTime(bt)})`);
   cancelPlacing();
   scheduleSave();
 }
@@ -2299,7 +2510,7 @@ function createBuildingEl(b, isEnemy, ownerName) {
   el.addEventListener('click', (ev) => {
     ev.stopPropagation();
     if (state.placing || state.sellMode) return;
-    if (attackMode) { if (isEnemy) performAttack(b, ownerName, b.ownerHwid); return; }
+    if (attackMode) { if (isEnemy) tryAttackBuilding(b, ownerName, b.ownerHwid); return; }
     if (isEnemy) notify(`This belongs to ${ownerName}`, true);
     else selectBuilding(b.id);
   });
@@ -2385,7 +2596,7 @@ function constructionTick() {
       notify(`${BUILDINGS[b.type].name} completed!`, false, true);
     }
   }
-  if (changed) { recalc(); updateUI(); updateMinimapBuildings(); scheduleSave(); }
+  if (changed) { recalc(); updateUI(); updateMinimapBuildings(); renderBuildingList(); scheduleSave(); }
 }
 
 function selectBuilding(id) {
@@ -2577,9 +2788,92 @@ function sellBuilding(b) {
   recalc();
   updateUI();
   updateMinimapBuildings();
+  renderBuildingList();
   hideDetailPanel();
   notify(`Sold! +${refund.toLocaleString('en-US')} money`, false, true);
   scheduleSave();
+}
+
+/* =========================================================
+   TROOP MODAL (Slider für Attack & Defend)
+   ========================================================= */
+const troopModal = document.getElementById('troopModal');
+const tmBox = document.getElementById('tmBox');
+const tmSlider = document.getElementById('tmSlider');
+const tmNum = document.getElementById('tmNum');
+const tmMaxHint = document.getElementById('tmMaxHint');
+const tmTitle = document.getElementById('tmTitle');
+const tmSubtitle = document.getElementById('tmSubtitle');
+const tmTargetInfo = document.getElementById('tmTargetInfo');
+const tmConfirmBtn = document.getElementById('tmConfirm');
+let tmCallback = null; // wird mit gewählter Anzahl aufgerufen
+let tmMaxValue = 10;
+let tmMinValue = 10;
+
+function openTroopModal(mode, opts, cb) {
+  // mode: 'attack' oder 'defend'
+  // opts: { targetName, buildingName, maxSoldiers, minSoldiers, isDefend }
+  tmCallback = cb;
+  const maxSoldiers = Math.max(1, Math.floor(opts.maxSoldiers || 1));
+  const minSoldiers = Math.min(maxSoldiers, Math.max(1, Math.floor(opts.minSoldiers || 1)));
+  tmMaxValue = maxSoldiers;
+  tmMinValue = minSoldiers;
+
+  if (mode === 'defend') {
+    tmBox.classList.add('defend');
+    tmTitle.textContent = '🛡 Defend';
+    tmSubtitle.textContent = 'Choose how many soldiers to deploy';
+    tmTargetInfo.innerHTML = `<b>${escapeHtml(opts.targetName || 'Attacker')}</b> is attacking your <b>${escapeHtml(opts.buildingName || 'base')}</b>`;
+  } else {
+    tmBox.classList.remove('defend');
+    tmTitle.textContent = '⚔ Send Troops';
+    tmSubtitle.textContent = 'Choose how many soldiers to send';
+    tmTargetInfo.innerHTML = `Target: <b>${escapeHtml(opts.targetName || 'Enemy')}</b>'s <b>${escapeHtml(opts.buildingName || 'building')}</b>`;
+  }
+
+  tmSlider.min = minSoldiers;
+  tmSlider.max = maxSoldiers;
+  tmSlider.value = Math.min(maxSoldiers, Math.max(minSoldiers, Math.ceil((minSoldiers + maxSoldiers) / 2)));
+  tmMaxHint.textContent = `/ ${maxSoldiers} max`;
+  updateSliderUI();
+  troopModal.classList.add('show');
+}
+
+function updateSliderUI() {
+  const v = parseInt(tmSlider.value);
+  tmNum.textContent = v;
+  // Fill der Range
+  const pct = ((v - tmMinValue) / Math.max(1, tmMaxValue - tmMinValue)) * 100;
+  tmSlider.style.backgroundSize = `${pct}% 100%`;
+}
+
+tmSlider.addEventListener('input', updateSliderUI);
+
+document.querySelectorAll('#tmQuickBtns .tm-qbtn').forEach(btn => {
+  btn.onclick = () => {
+    const pct = parseFloat(btn.dataset.pct);
+    const val = Math.round(tmMinValue + (tmMaxValue - tmMinValue) * pct);
+    tmSlider.value = Math.max(tmMinValue, Math.min(tmMaxValue, val));
+    updateSliderUI();
+  };
+});
+
+document.getElementById('tmCancel').onclick = () => {
+  troopModal.classList.remove('show');
+  tmCallback = null;
+};
+tmConfirmBtn.onclick = () => {
+  const v = parseInt(tmSlider.value);
+  if (isNaN(v) || v < 1) return;
+  const cb = tmCallback;
+  troopModal.classList.remove('show');
+  tmCallback = null;
+  if (cb) cb(v);
+};
+
+function closeTroopModal() {
+  troopModal.classList.remove('show');
+  tmCallback = null;
 }
 
 /* =========================================================
@@ -2614,12 +2908,157 @@ function tryAttack(e) {
       if (!def) continue;
       const obs = def.size * TILE;
       if (w.x >= ob.x && w.x <= ob.x + obs && w.y >= ob.y && w.y <= ob.y + obs) {
-        performAttack(ob, otherPlayers[hwid]?.username || 'Enemy', hwid);
+        tryAttackBuilding(ob, otherPlayers[hwid]?.username || 'Enemy', hwid);
         return;
       }
     }
   }
   notify("No enemy building there", true);
+}
+
+function tryAttackBuilding(b, ownerName, ownerHwid) {
+  if (state.soldiers < 1) { notify("No soldiers available at home!", true); return; }
+  const now = Date.now();
+  if (now - lastAttackTime < 1500) { notify("⏳ Soldiers are already marching!", true); return; }
+
+  const maxSend = Math.min(state.soldiers, MAX_ATTACKERS_PER_WAVE);
+  if (maxSend < 1) { notify("Not enough soldiers!", true); return; }
+  const minSend = 1;
+
+  openTroopModal('attack', {
+    targetName: ownerName,
+    buildingName: BUILDINGS[b.type].name,
+    maxSoldiers: maxSend,
+    minSoldiers: minSend
+  }, (count) => {
+    lastAttackTime = Date.now();
+    performAttackWithCount(b, ownerName, ownerHwid, count);
+  });
+}
+
+function getMilitarySpawnPoints() {
+  const points = [];
+  state.buildings.forEach(b => {
+    if (b.construction) return;
+    const def = BUILDINGS[b.type];
+    if (!def) return;
+    if (def.soldierPerLevel && def.soldierPerLevel[b.level-1] > 0) {
+      const size = def.size * TILE;
+      points.push({ x: b.x + size/2, y: b.y + size/2, building: b });
+    }
+  });
+  if (points.length === 0) {
+    const mainB = state.buildings.find(b => b.type === 'main');
+    if (mainB) {
+      const size = BUILDINGS.main.size * TILE;
+      points.push({ x: mainB.x + size/2, y: mainB.y + size/2, building: mainB });
+    }
+  }
+  return points;
+}
+
+function performAttackWithCount(b, ownerName, ownerHwid, count) {
+  if (count < 1) return;
+  if (state.soldiers < count) { notify("Not enough soldiers available!", true); return; }
+
+  const def = BUILDINGS[b.type];
+  const bs = def.size * TILE;
+  const targetCX = b.x + bs / 2;
+  const targetCY = b.y + bs / 2;
+
+  const spawnPoints = getMilitarySpawnPoints();
+  if (spawnPoints.length === 0) { notify("No military buildings to spawn soldiers!", true); return; }
+
+  // Soldaten vom "at home" Pool abziehen
+  state.soldiers -= count;
+  // Sofort speichern damit bei Disconnect der Verlust nicht verloren geht
+  scheduleSave();
+
+  const now = Date.now();
+  const marches = [];
+  for (let i = 0; i < count; i++) {
+    const sp = spawnPoints[i % spawnPoints.length];
+    const sx = sp.x + (Math.random() - 0.5) * 40;
+    const sy = sp.y + (Math.random() - 0.5) * 40;
+    const dist = Math.hypot(targetCX - sx, targetCY - sy);
+    const travelMs = (dist / (ATTACK_SPEED * 60)) * 1000;
+    const arriveTime = now + travelMs;
+    const unit = {
+      x: sx, y: sy, tx: targetCX + (Math.random() - 0.5) * 60, ty: targetCY + (Math.random() - 0.5) * 60,
+      hp: 100, maxHp: 100,
+      speed: ATTACK_SPEED,
+      side: 'friendly',
+      targetBuilding: b,
+      fighting: false,
+      facing: 'right',
+      _duelTimer: 0, _hitTimer: 0, _idle: 0,
+      _animTime: Math.random() * 1000,
+      startX: sx, startY: sy,
+      startTime: now,
+      arriveTime: arriveTime,
+      ownerHwid: ACTIVE_HWID
+    };
+    soldierUnits.push(unit);
+    marches.push({ sx, sy, arriveTime });
+  }
+
+  const firstArrive = marches.reduce((min, m) => Math.min(min, m.arriveTime), Infinity);
+  const marchEntry = {
+    id: 'own-' + now,
+    startX: spawnPoints[0].x, startY: spawnPoints[0].y,
+    toX: targetCX, toY: targetCY,
+    startTime: now,
+    arriveTime: firstArrive,
+    soldierCount: count,
+    targetName: ownerName,
+    targetHwid: ownerHwid,
+    buildingId: b.id,
+    buildingName: def.name,
+    targetBuilding: b,
+    isIncoming: false
+  };
+  activeMarches.push(marchEntry);
+
+  if (firebase) {
+    try {
+      const { ref, push, set } = firebase;
+      const aid = push(ref(firebase.db, 'attacks')).key;
+      set(ref(firebase.db, 'attacks/' + aid), {
+        attackerHwid: ACTIVE_HWID,
+        attackerName: currentUser.username,
+        targetHwid: ownerHwid || 'unknown',
+        targetName: ownerName,
+        fromX: spawnPoints[0].x, fromY: spawnPoints[0].y,
+        toX: targetCX, toY: targetCY,
+        soldierCount: Math.min(count, 60),
+        startTime: now,
+        arriveTime: firstArrive,
+        buildingId: b.id,
+        buildingName: def.name,
+        ts: now
+      });
+      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 60000);
+    } catch(e) {}
+  }
+
+  notify(`⚔ ${count} soldiers marching to ${ownerName}'s ${def.name}!`, false, false, false, true);
+  publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${def.name} with ${count} soldiers!`, ownerHwid);
+  if (ownerHwid && firebase) {
+    try {
+      const { ref, push } = firebase;
+      push(ref(firebase.db, 'notifications/' + ownerHwid), {
+        type: 'attack', attackerName: currentUser.username, attackerHwid: ACTIVE_HWID,
+        buildingName: def.name, damage: 0, soldierCount: count,
+        buildingX: b.x, buildingY: b.y, ts: now
+      });
+    } catch(e) {}
+  }
+
+  if (b.el) {
+    b.el.classList.add('under-attack');
+    setTimeout(() => { if (b.el) b.el.classList.remove('under-attack'); }, 2000);
+  }
+  updateUI();
 }
 
 function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
@@ -2651,135 +3090,27 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
   return unit;
 }
 
-function getMilitarySpawnPoints() {
-  const points = [];
-  state.buildings.forEach(b => {
-    if (b.construction) return;
-    const def = BUILDINGS[b.type];
-    if (!def) return;
-    if (def.soldierPerLevel && def.soldierPerLevel[b.level-1] > 0) {
-      const size = def.size * TILE;
-      points.push({ x: b.x + size/2, y: b.y + size/2, building: b });
-    }
-  });
-  if (points.length === 0) {
-    const mainB = state.buildings.find(b => b.type === 'main');
-    if (mainB) {
-      const size = BUILDINGS.main.size * TILE;
-      points.push({ x: mainB.x + size/2, y: mainB.y + size/2, building: mainB });
-    }
+/* Soldaten-Nachproduktion jede Sekunde: füllt state.soldiers bis state.soldierCap auf. */
+function soldierSpawnTick() {
+  if (state.soldiers < state.soldierCap) {
+    state.soldiers = Math.min(state.soldierCap, state.soldiers + 1);
   }
-  return points;
 }
 
-function performAttack(b, ownerName, ownerHwid) {
-  if (state.soldiers < 1) { notify("You need soldiers to attack!", true); return; }
-  const now = Date.now();
-  if (now - lastAttackTime < 1500) { notify("⏳ Soldiers are already marching!", true); return; }
-  lastAttackTime = now;
-
-  const def = BUILDINGS[b.type];
-  const bs = def.size * TILE;
-  const targetCX = b.x + bs / 2;
-  const targetCY = b.y + bs / 2;
-
-  const spawnPoints = getMilitarySpawnPoints();
-  const attackCount = Math.min(state.soldiers, MAX_ATTACKERS_PER_WAVE);
-  if (spawnPoints.length === 0) { notify("No military buildings to spawn soldiers!", true); return; }
-
-  const marches = [];
-  for (let i = 0; i < attackCount; i++) {
-    const sp = spawnPoints[i % spawnPoints.length];
-    const sx = sp.x + (Math.random() - 0.5) * 40;
-    const sy = sp.y + (Math.random() - 0.5) * 40;
-    const dist = Math.hypot(targetCX - sx, targetCY - sy);
-    const travelMs = (dist / (ATTACK_SPEED * 60)) * 1000;
-    const arriveTime = now + travelMs;
-    const unit = {
-      x: sx, y: sy, tx: targetCX + (Math.random() - 0.5) * 60, ty: targetCY + (Math.random() - 0.5) * 60,
-      hp: 100, maxHp: 100,
-      speed: ATTACK_SPEED,
-      side: 'friendly',
-      targetBuilding: b,
-      fighting: false,
-      facing: 'right',
-      _duelTimer: 0, _hitTimer: 0, _idle: 0,
-      _animTime: Math.random() * 1000,
-      startX: sx, startY: sy,
-      startTime: now,
-      arriveTime: arriveTime
-    };
-    soldierUnits.push(unit);
-    marches.push({ sx, sy, arriveTime });
-  }
-
-  const firstArrive = marches.reduce((min, m) => Math.min(min, m.arriveTime), Infinity);
-  const marchEntry = {
-    id: 'own-' + now,
-    startX: spawnPoints[0].x, startY: spawnPoints[0].y,
-    toX: targetCX, toY: targetCY,
-    startTime: now,
-    arriveTime: firstArrive,
-    soldierCount: attackCount,
-    targetName: ownerName,
-    targetHwid: ownerHwid,
-    buildingId: b.id,
-    buildingName: def.name,
-    targetBuilding: b,
-    isIncoming: false
-  };
-  activeMarches.push(marchEntry);
-
-  if (firebase) {
-    try {
-      const { ref, push, set } = firebase;
-      const aid = push(ref(firebase.db, 'attacks')).key;
-      set(ref(firebase.db, 'attacks/' + aid), {
-        attackerHwid: ACTIVE_HWID,
-        attackerName: currentUser.username,
-        targetHwid: ownerHwid || 'unknown',
-        targetName: ownerName,
-        fromX: spawnPoints[0].x, fromY: spawnPoints[0].y,
-        toX: targetCX, toY: targetCY,
-        soldierCount: Math.min(state.soldiers, 60),
-        startTime: now,
-        arriveTime: firstArrive,
-        buildingId: b.id,
-        buildingName: def.name,
-        ts: now
-      });
-      setTimeout(() => { try { set(ref(firebase.db, 'attacks/' + aid), null); } catch(e){} }, 60000);
-    } catch(e) {}
-  }
-
-  notify(`⚔ ${attackCount} soldiers marching to ${ownerName}'s ${def.name}!`, false, false, false, true);
-  publishEvent('attack', `${currentUser.username} attacked ${ownerName}'s ${def.name}!`, ownerHwid);
-  if (ownerHwid && firebase) {
-    try {
-      const { ref, push } = firebase;
-      push(ref(firebase.db, 'notifications/' + ownerHwid), {
-        type: 'attack', attackerName: currentUser.username, attackerHwid: ACTIVE_HWID,
-        buildingName: def.name, damage: 0,
-        buildingX: b.x, buildingY: b.y, ts: now
-      });
-    } catch(e) {}
-  }
-
-  if (b.el) {
-    b.el.classList.add('under-attack');
-    setTimeout(() => { if (b.el) b.el.classList.remove('under-attack'); }, 2000);
+function respawnSoldiers() {
+  // Wird im Loop jede Sekunde aufgerufen — füllt langsam auf
+  if (state.soldiers < state.soldierCap) {
+    state.soldiers = Math.min(state.soldierCap, state.soldiers + 1);
   }
 }
 
 function updateSoldierUnits(dt) {
-  const FIGHT_RANGE = 60;
-  const ATTACK_RANGE = 20;
-  const HIT_INTERVAL = 1.0;
   const now = Date.now();
 
   for (const s of soldierUnits) s.fighting = false;
 
   for (const s of soldierUnits) {
+    // FIGHT_RANGE = 600 (10x größer)
     let closestEnemy = null;
     let closestDist = FIGHT_RANGE;
     for (const o of soldierUnits) {
@@ -2887,12 +3218,6 @@ function clearSoldierUnits() {
   activeMarches = [];
 }
 
-function soldierSpawnTick() {}
-
-function respawnSoldiers() {
-  state.soldiers = state.soldierCap;
-}
-
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   const def = BUILDINGS[b.type];
   const iAmOwner = (!b.isEnemy && state.buildings.includes(b));
@@ -2909,7 +3234,7 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   if (b.type === 'main' && iAmOwner) {
     const stolen = Math.floor(state.money * 0.5);
     state.money -= stolen;
-    notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (50%) to the attacker.`, true);
+    notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (50%) to the attacker. You can rebuild it for FREE.`, true);
     publishEvent('attack', `${ownerName} destroyed ${currentUser.username}'s Main Building and stole ${stolen} money!`, ownerHwid);
     if (ownerHwid && firebase) {
       (async () => {
@@ -2949,14 +3274,19 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   recalc();
   updateUI();
   updateMinimapBuildings();
+  renderBuildingList();
   scheduleSave();
 }
 
-function triggerDefense(attackerX, attackerY) {
+function triggerDefense(attackerX, attackerY, count) {
   const spawnPoints = getMilitarySpawnPoints();
-  const count = Math.min(10, Math.max(1, state.soldiers));
   if (spawnPoints.length === 0) return;
-  for (let i = 0; i < count; i++) {
+  const available = state.soldiers;
+  const send = Math.min(count || available, available);
+  if (send < 1) { notify("No soldiers available to defend!", true); return; }
+  state.soldiers -= send;
+  scheduleSave();
+  for (let i = 0; i < send; i++) {
     const sp = spawnPoints[i % spawnPoints.length];
     const sx = sp.x + (Math.random() - 0.5) * 40;
     const sy = sp.y + (Math.random() - 0.5) * 40;
@@ -2964,7 +3294,7 @@ function triggerDefense(attackerX, attackerY) {
     const ty = attackerY || sy + (Math.random()-0.5) * 800;
     spawnSoldierUnit(sx, sy, tx, ty, 'friendly', null);
   }
-  notify(`🛡 Defense deployed! ${count} soldiers engaged.`, false, true);
+  notify(`🛡 Defense deployed! ${send} soldiers engaged.`, false, true);
 }
 
 let marchBannerHideTimer = null;
@@ -3666,14 +3996,18 @@ function startNotificationListener() {
 }
 function showAttackPopup(attackerName, buildingName, damage) {
   const popup = document.getElementById('attackPopup');
-  document.getElementById('apText').innerHTML = `<b>${escapeHtml(attackerName)}</b> is attacking your <b>${escapeHtml(buildingName)}</b>!<br><span style="font-size:13px;color:#8d6e63;">Press DEFEND to send your soldiers!</span>`;
+  document.getElementById('apText').innerHTML = `<b>${escapeHtml(attackerName)}</b> is attacking your <b>${escapeHtml(buildingName)}</b>!<br><span style="font-size:13px;color:#8d6e63;">Press DEFEND to choose troops!</span>`;
   popup.classList.add('show');
   window.__currentAttacker = attackerName;
+  window.__currentAttackBuilding = buildingName;
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }
 function setupAttackPopup() {
   document.getElementById('apDefendBtn').onclick = () => {
     document.getElementById('attackPopup').classList.remove('show');
+    // Slider öffnen: 10 bis max. verfügbare Soldaten (mind. 10, wenn cap < 10 dann cap)
+    const maxAvail = Math.max(1, state.soldiers);
+    const minDefend = Math.min(10, maxAvail);
     let ax = null, ay = null;
     const myMain = state.buildings.find(b => b.type === 'main');
     if (myMain) {
@@ -3681,8 +4015,15 @@ function setupAttackPopup() {
       ax = myMain.x + size/2 + (Math.random()-0.5) * 600;
       ay = myMain.y + size/2 + (Math.random()-0.5) * 600;
     }
-    triggerDefense(ax, ay);
-    publishEvent('defend', `${currentUser.username} defended against ${window.__currentAttacker || 'an attacker'}!`);
+    openTroopModal('defend', {
+      targetName: window.__currentAttacker || 'Attacker',
+      buildingName: window.__currentAttackBuilding || 'your base',
+      maxSoldiers: maxAvail,
+      minSoldiers: minDefend
+    }, (count) => {
+      triggerDefense(ax, ay, count);
+      publishEvent('defend', `${currentUser.username} defended with ${count} soldiers against ${window.__currentAttacker || 'an attacker'}!`);
+    });
   };
 }
 
@@ -3691,8 +4032,8 @@ function updateUI() {
   const resGroup = document.getElementById('resGroup');
   const fmt = (n) => Math.floor(n).toLocaleString('en-US');
   const aliveSoldiers = soldierUnits.filter(s => s.side === 'friendly').length;
-  const homeSoldiers = Math.max(0, state.soldiers - aliveSoldiers);
-  const soldierDisplay = `${homeSoldiers} 🏠 / ${state.soldiers}`;
+  const homeSoldiers = state.soldiers;
+  const soldierDisplay = `${homeSoldiers} 🏠 / ${state.soldierCap}`;
   resGroup.innerHTML = `
     <div class="res">${ICONS.money}<span class="val">${fmt(state.money)}</span></div>
     <div class="res">${ICONS.gold}<span class="val">${fmt(state.gold)}</span></div>
@@ -3719,7 +4060,7 @@ function updateUI() {
     <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
     <div class="sp-row"><span>At home</span><span class="v good">${homeSoldiers}</span></div>
     <div class="sp-row"><span>On march</span><span class="v ${aliveSoldiers > 0 ? 'bad' : ''}">${aliveSoldiers}</span></div>
-    <div class="sp-row"><span>Soldier Cap</span><span class="v">${state.soldiers}</span></div>
+    <div class="sp-row"><span>Soldier Cap</span><span class="v">${state.soldierCap}</span></div>
     <div class="sp-row"><span>Happiness</span><span class="v ${state.happiness>=70?'good':state.happiness>=40?'':'bad'}">${Math.round(state.happiness)}%</span></div>
     <div class="sp-row"><span>Defense</span><span class="v">${state.defensePower || 0}</span></div>
   `;
@@ -3728,24 +4069,37 @@ const buildingList = document.getElementById('buildingList');
 function renderBuildingList() {
   buildingList.innerHTML = '';
   let count = 0;
+  const mainPlaced = hasMainBuilding();
   for (const key in BUILDINGS) {
     const def = BUILDINGS[key];
-    if (key === 'main') continue;
     if (state.activeTab !== 'all' && def.category !== state.activeTab) continue;
-    const locked = def.unlockLevel && state.level < def.unlockLevel;
+    let locked = false;
+    let lockReason = '';
+    if (def.unlockLevel && state.level < def.unlockLevel) {
+      locked = true;
+      lockReason = `Lv.${def.unlockLevel}`;
+    }
+    // Main: nur wenn noch kein Main existiert
+    if (key === 'main' && mainPlaced) {
+      locked = true;
+      lockReason = 'Owned';
+    }
     if (!locked) count++;
     const card = document.createElement('div');
     card.className = 'bcard' + (locked ? ' locked' : '');
     card.dataset.type = key;
     const bt = getBuildTime(key, 0);
     const rc = getResourceCost(key, 0);
-    card.innerHTML = `<div class="icon">${ICONS[def.icon]}</div><div class="info"><div class="name">${def.name} ${locked?`<span class="lock">Lv.${def.unlockLevel}</span>`:''}</div><div class="desc">${def.desc}</div><div class="cost">${locked ? 'Locked' : getCost(key,0).toLocaleString('en-US') + '💰 · ' + rc.wood + '🪵 · ' + rc.stone + '🪨 · ' + formatTime(bt)}</div></div>`;
+    const cost = getCost(key, 0);
+    let costStr;
+    if (key === 'main') {
+      costStr = locked ? 'Already owned' : 'FREE';
+    } else {
+      costStr = locked ? 'Locked' : cost.toLocaleString('en-US') + '💰 · ' + rc.wood + '🪵 · ' + rc.stone + '🪨 · ' + formatTime(bt);
+    }
+    card.innerHTML = `<div class="icon">${ICONS[def.icon]}</div><div class="info"><div class="name">${def.name} ${locked && def.unlockLevel && state.level < def.unlockLevel ? `<span class="lock">${lockReason}</span>` : (locked && key === 'main' ? `<span class="lock" style="color:#2e7d32">✓</span>` : '')}</div><div class="desc">${def.desc}</div><div class="cost">${costStr}</div></div>`;
     if (!locked) {
       card.onclick = () => {
-        const rc2 = getResourceCost(key, 0);
-        if (state.money < getCost(key, 0)) { notify("Not enough money!", true); return; }
-        if (state.wood < rc2.wood) { notify(`Not enough wood! (${rc2.wood} needed)`, true); return; }
-        if (state.stone < rc2.stone) { notify(`Not enough stone! (${rc2.stone} needed)`, true); return; }
         if (state.sellMode) toggleSellMode();
         if (attackMode) cancelAttack();
         startPlacing(key);
@@ -3871,7 +4225,7 @@ mmInner.addEventListener('click', (e) => {
   applyTransform();
 });
 
-/* SAVE — verwendet ACTIVE_HWID (Google-UID bei Google-Login) */
+/* SAVE */
 function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => saveGame(true), 1200);
@@ -4132,9 +4486,10 @@ async function startGame() {
     updateVillagers(dt);
     constructionTick();
 
+    // Soldaten-Nachproduktion jede Sekunde (1 Soldat pro Sekunde bis Cap)
     spawnAccum += dt;
     if (spawnAccum >= 1) {
-      respawnSoldiers();
+      soldierSpawnTick();
       spawnAccum = 0;
     }
 
@@ -4220,10 +4575,8 @@ document.getElementById('btnLogout').onclick = () => {
     (async () => {
       try {
         if (firebase) {
-          // WICHTIG: Speichere VOR dem Logout damit Progress sicher ist
           await saveGame(true);
           const { ref, set } = firebase;
-          // Nur units + presence löschen, NICHT world/saves!
           await set(ref(firebase.db, 'units/' + ACTIVE_HWID), null);
           await set(ref(firebase.db, 'presence/' + ACTIVE_HWID), null);
         }
@@ -4243,11 +4596,9 @@ document.getElementById('chatClose').onclick = () => document.getElementById('ch
 document.getElementById('chatSend').onclick = sendChat;
 
 window.addEventListener('beforeunload', () => {
-  // Speichere synchron bevor wir gehen
   if (currentUser && firebase) {
     try {
       const { ref, set } = firebase;
-      // Fire-and-forget Save
       const data = {
         money: Math.floor(state.money), gold: Math.floor(state.gold),
         food: Math.floor(state.food), wood: Math.floor(state.wood), stone: Math.floor(state.stone),
