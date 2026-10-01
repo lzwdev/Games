@@ -12,7 +12,6 @@
     background: #eef2f8; color: #1a2233;
   }
 
-  /* ============ LOGIN ============ */
   #loginScreen {
     position: fixed; inset: 0; z-index: 10000;
     background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #dbe6f5 55%, #b8cdea 100%);
@@ -85,7 +84,6 @@
   .login-divider::before { left: 0; }
   .login-divider::after { right: 0; }
 
-  /* ============ LOADER ============ */
   #loader {
     position: fixed; inset: 0; z-index: 9999;
     background: radial-gradient(ellipse at 50% 40%, #ffffff 0%, #dbe6f5 60%, #c3d4ec 100%);
@@ -114,7 +112,6 @@
   .loader-tips { position: absolute; bottom: 44px; left: 0; right: 0; text-align: center; font-size: 12px; color: #7b8dab; letter-spacing: 0.5px; animation: fadeIn 1.5s ease 1.2s both; }
   .loader-tips .tip { transition: opacity 0.5s; }
 
-  /* ============ GAME ============ */
   #game { position: fixed; inset: 0; display: none; }
   #game.visible { display: block; }
   #map { position: absolute; inset: 0; overflow: hidden; cursor: grab; background: #cfe3b8; }
@@ -344,7 +341,6 @@
   #attackBanner .ab-text small { display: block; font-size: 11px; color: #8d6e63; font-weight: 500; margin-top: 2px; }
   #attackBanner .ab-cancel { background: #fff; color: #c62828; padding: 5px 12px; border-radius: 7px; font-size: 11px; font-weight: 800; border: 1px solid #ef9a9a; cursor: pointer; }
 
-  /* ============ MARCH BANNER ============ */
   #marchBanner {
     position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
     z-index: 71;
@@ -454,7 +450,6 @@
   .btn-premium-cta:disabled { background: #e0d0f0; border-color: #c9a3e8; color: #a08bc0; cursor: not-allowed; }
   .premium-soon { font-size: 11.5px; color: #8d6eb5; font-weight: 700; margin-top: 14px; }
 
-  /* ============ ATTACK/DEFEND SLIDER MODAL ============ */
   #troopModal {
     position: fixed !important; inset: 0 !important; z-index: 99998 !important;
     background: rgba(30,53,94,0.6);
@@ -730,7 +725,6 @@
   .ol-sub { font-size: 10.5px; color: #6b7d99; font-weight: 600; margin-top: 1px; }
   .ol-lvl { font-size: 11px; font-weight: 800; color: #2f6fd0; background: #e6efff; padding: 2px 7px; border-radius: 7px; }
 
-  /* ============ ATTACK POPUP ============ */
   #attackPopup {
     position: fixed !important; inset: 0 !important; z-index: 99999 !important;
     background: rgba(120,0,0,0.55);
@@ -784,7 +778,6 @@
   .ap-defend-btn:hover { background: linear-gradient(135deg, #ef5350, #c62828); transform: translateY(-2px); }
   .ap-defend-btn svg { width: 22px; height: 22px; }
 
-  /* ============ BAN POPUP ============ */
   #banPopup {
     position: fixed !important; inset: 0 !important; z-index: 100000 !important;
     background: rgba(30,0,0,0.85);
@@ -863,7 +856,6 @@
   }
   .bp-footer { font-size: 12px; color: #ff8a80; margin-top: 18px; font-weight: 600; }
 
-  /* ============ DELETED POPUP ============ */
   #deletedPopup {
     position: fixed !important; inset: 0 !important; z-index: 100000 !important;
     background: rgba(20,20,30,0.9);
@@ -905,7 +897,6 @@
     font-weight: 600;
   }
 
-  /* ============ RESET POPUP ============ */
   #resetPopup {
     position: fixed !important; inset: 0 !important; z-index: 100000 !important;
     background: rgba(40,30,0,0.85);
@@ -977,7 +968,6 @@
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
 <div id="loginScreen">
   <div class="login-bg-circle" style="width:420px;height:420px;top:8%;left:6%;"></div>
   <div class="login-bg-circle" style="width:320px;height:320px;bottom:6%;right:8%;animation-delay:2s;"></div>
@@ -1032,7 +1022,6 @@
   </div>
 </div>
 
-<!-- LOADER -->
 <div id="loader">
   <div class="loader-bg-circle" style="width:400px;height:400px;top:10%;left:8%;"></div>
   <div class="loader-bg-circle" style="width:300px;height:300px;bottom:8%;right:10%;animation-delay:2s;"></div>
@@ -1056,7 +1045,6 @@
   <div class="loader-tips"><span class="tip" id="tipText">Tip: Use the mouse wheel to zoom</span></div>
 </div>
 
-<!-- GAME -->
 <div id="game">
   <div id="map"><div id="world"><div id="grid"></div></div></div>
   <canvas id="unitCanvas"></canvas>
@@ -1254,9 +1242,7 @@
   </div>
 
 </div>
-<!-- END #game -->
 
-<!-- TROOP SLIDER MODAL -->
 <div id="troopModal">
   <div class="tm-box" id="tmBox">
     <div class="tm-icon">
@@ -1286,90 +1272,87 @@
   </div>
 </div>
 
-<!-- ATTACK POPUP -->
-  <div id="attackPopup">
-    <div class="ap-box">
-      <div class="ap-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6 M16 16 l4 4 M19 21 l2-2"/>
-        </svg>
-      </div>
-      <div class="ap-title">⚠ ATTACK INCOMING</div>
-      <div class="ap-text" id="apText">You are being attacked!</div>
-      <button class="ap-defend-btn" id="apDefendBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        DEFEND
-      </button>
+<div id="attackPopup">
+  <div class="ap-box">
+    <div class="ap-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6 M16 16 l4 4 M19 21 l2-2"/>
+      </svg>
     </div>
+    <div class="ap-title">⚠ ATTACK INCOMING</div>
+    <div class="ap-text" id="apText">You are being attacked!</div>
+    <button class="ap-defend-btn" id="apDefendBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      DEFEND
+    </button>
   </div>
+</div>
 
-  <!-- BAN POPUP -->
-  <div id="banPopup">
-    <div class="bp-box">
-      <div class="bp-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><path d="M4.93 4.93 L19.07 19.07"/>
-        </svg>
-      </div>
-      <div class="bp-title">BANNED</div>
-      <div class="bp-sub">You have been banned by <b id="bpBanner">Admin</b></div>
-      <div class="bp-timer" id="bpTimer">
-        <div class="bp-timer-box" id="bpBoxDays"><div class="bp-timer-num" id="bpDays">0</div><div class="bp-timer-label">Days</div></div>
-        <div class="bp-timer-box" id="bpBoxHours"><div class="bp-timer-num" id="bpHours">0</div><div class="bp-timer-label">Hours</div></div>
-        <div class="bp-timer-box" id="bpBoxMins"><div class="bp-timer-num" id="bpMins">0</div><div class="bp-timer-label">Minutes</div></div>
-        <div class="bp-timer-box" id="bpBoxSecs"><div class="bp-timer-num" id="bpSecs">0</div><div class="bp-timer-label">Seconds</div></div>
-      </div>
-      <div class="bp-until-row">
-        <span class="lbl">Unban at:</span>
-        <span class="val" id="bpUntil">—</span>
-      </div>
-      <div class="bp-reason-box">
-        <div class="bp-reason-label">Reason</div>
-        <div class="bp-reason-text" id="bpReason">No reason provided.</div>
-      </div>
-      <div class="bp-footer">Contact the owner if you believe this is a mistake.</div>
+<div id="banPopup">
+  <div class="bp-box">
+    <div class="bp-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M4.93 4.93 L19.07 19.07"/>
+      </svg>
     </div>
+    <div class="bp-title">BANNED</div>
+    <div class="bp-sub">You have been banned by <b id="bpBanner">Admin</b></div>
+    <div class="bp-timer" id="bpTimer">
+      <div class="bp-timer-box" id="bpBoxDays"><div class="bp-timer-num" id="bpDays">0</div><div class="bp-timer-label">Days</div></div>
+      <div class="bp-timer-box" id="bpBoxHours"><div class="bp-timer-num" id="bpHours">0</div><div class="bp-timer-label">Hours</div></div>
+      <div class="bp-timer-box" id="bpBoxMins"><div class="bp-timer-num" id="bpMins">0</div><div class="bp-timer-label">Minutes</div></div>
+      <div class="bp-timer-box" id="bpBoxSecs"><div class="bp-timer-num" id="bpSecs">0</div><div class="bp-timer-label">Seconds</div></div>
+    </div>
+    <div class="bp-until-row">
+      <span class="lbl">Unban at:</span>
+      <span class="val" id="bpUntil">—</span>
+    </div>
+    <div class="bp-reason-box">
+      <div class="bp-reason-label">Reason</div>
+      <div class="bp-reason-text" id="bpReason">No reason provided.</div>
+    </div>
+    <div class="bp-footer">Contact the owner if you believe this is a mistake.</div>
   </div>
+</div>
 
-  <!-- DELETED POPUP -->
-  <div id="deletedPopup">
-    <div class="dp2-box">
-      <div class="dp2-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-        </svg>
-      </div>
-      <div class="dp2-title">ACCOUNT DELETED</div>
-      <div class="dp2-text">
-        Your account has been <b>deleted by the admin</b>.<br>
-        Please contact the owner to find out why.
-      </div>
-      <div class="dp2-footer">This action cannot be undone.</div>
+<div id="deletedPopup">
+  <div class="dp2-box">
+    <div class="dp2-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      </svg>
     </div>
+    <div class="dp2-title">ACCOUNT DELETED</div>
+    <div class="dp2-text">
+      Your account has been <b>deleted by the admin</b>.<br>
+      Please contact the owner to find out why.
+    </div>
+    <div class="dp2-footer">This action cannot be undone.</div>
   </div>
+</div>
 
-  <!-- RESET POPUP -->
-  <div id="resetPopup">
-    <div class="rp-box">
-      <div class="rp-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>
-        </svg>
-      </div>
-      <div class="rp-title">ACCOUNT RESET</div>
-      <div class="rp-text">
-        Your account data has been <b>reset by the admin</b>.<br>
-        All buildings, resources and progress have been set back to starting values.
-      </div>
-      <div class="rp-reason-box">
-        <div class="rp-reason-label">Reason</div>
-        <div class="rp-reason-text" id="rpReason">Data reset by admin</div>
-      </div>
-      <button class="rp-ok-btn" id="rpOkBtn">I Understand</button>
+<div id="resetPopup">
+  <div class="rp-box">
+    <div class="rp-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>
+      </svg>
     </div>
+    <div class="rp-title">ACCOUNT RESET</div>
+    <div class="rp-text">
+      Your account data has been <b>reset by the admin</b>.<br>
+      All buildings, resources and progress have been set back to starting values.
+    </div>
+    <div class="rp-reason-box">
+      <div class="rp-reason-label">Reason</div>
+      <div class="rp-reason-text" id="rpReason">Data reset by admin</div>
+    </div>
+    <button class="rp-ok-btn" id="rpOkBtn">I Understand</button>
   </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, get, set, update, onValue, onDisconnect, serverTimestamp, remove, push, query, limitToLast }
@@ -1400,7 +1383,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v26 (Main baubar + Slider + Radius + Cap)
+   BUILD A REALM — v27 (Wall-Collision, Tower-Arrows, dynamic Build-Cap)
    ========================================================= */
 
 const ICONS = {
@@ -1453,13 +1436,13 @@ const ICONS = {
 const tips = [
   "Tip: Mouse wheel to zoom · Drag to move",
   "Tip: Build Barracks or Fortress to spawn soldiers",
+  "Tip: Walls block enemy soldiers — they must destroy them",
+  "Tip: Watchtowers shoot arrows at enemies in range",
+  "Tip: Tower upgrades: more HP, more damage, faster cooldown, more range",
+  "Tip: You get a free build slot every 5 levels",
+  "Tip: Destroy the enemy Main Building to steal 50% of their money!",
   "Tip: Choose how many soldiers to send when attacking",
   "Tip: Defend with a slider to pick how many soldiers to deploy",
-  "Tip: Destroy the enemy Main Building to steal 50% of their money!",
-  "Tip: You can rebuild your Main Building for free (only 1 allowed)",
-  "Tip: Soldiers regenerate every second until they hit the Cap",
-  "Tip: Click 'Soldiers' button to jump to your army",
-  "Tip: Houses increase your population cap",
   "Tip: Units are rendered on Canvas — smooth even with many units"
 ];
 const statuses = [
@@ -1641,7 +1624,6 @@ async function loginWithIdentity(name, identityHwid, email) {
     ACTIVE_HWID = identityHwid;
     IS_GOOGLE_USER = identityHwid.startsWith('GOOGLE-');
     currentUser = { username: finalName, hwid: identityHwid };
-    console.log('[LOGIN] Logged in as', finalName, 'as', ACTIVE_HWID);
     loginStatus.textContent = "Success!";
     loginStatus.className = "login-status ok";
     setTimeout(() => beginGameTransition(), 400);
@@ -1820,10 +1802,9 @@ function runLoadingScreen() {
 }
 
 const WORLD_SIZE = 60000;
+// NEU: dynamischer Build-Cap (+1 pro 5 Level)
 function getMaxBuilds() {
-  if (state.level >= 10) return 5;
-  if (state.level >= 5) return 4;
-  return 3;
+  return 3 + Math.floor((state.level - 1) / 5);
 }
 const state = {
   money: 5000, gold: 500, food: 300, wood: 500, stone: 400,
@@ -1847,25 +1828,39 @@ let otherPlayers = {};
 let otherPlayerEls = {};
 let soldierUnits = [];
 let villagerUnits = [];
+let projectiles = []; // Pfeile von Türmen
 let lastVillagerSpawn = 0;
 let attackMode = false;
 let eventFeedCollapsed = false;
 let remoteUnitsData = {};
 let lastAttackTime = 0;
 
-// NEU: Soldaten werden beim Senden aus dem Cap abgezogen
-// state.soldiers = verfügbare Soldaten (at home)
-// state.soldierCap = MAX (regeneriert jede Sekunde)
-// state.soldiersReserved = wie viele gerade unterwegs sind (nicht neu spawnbar)
-const MAX_FRIENDLY_UNITS = 1000; // Rendering-Schutz
+const MAX_FRIENDLY_UNITS = 1000;
 const MAX_ENEMY_UNITS = 300;
 const MAX_ATTACKERS_PER_WAVE = 300;
-const ATTACK_SPEED = 1.8;
-const FIGHT_RANGE = 600; // 10x größer als vorher (war 60)
+const ATTACK_SPEED = 1.2;
+const FIGHT_RANGE = 600;
 const ATTACK_RANGE = 20;
 const HIT_INTERVAL = 1.0;
 
 let activeMarches = [];
+
+/* Tower-Funktionen: Damage/Range/Cooldown skalieren mit Level (5% pro Level) */
+function getTowerStats(type, level) {
+  // Tower/Watchtower sind die einzigen mit Range-Angriff
+  if (type !== 'tower' && type !== 'watchtower') return null;
+  const baseDamage = 12;
+  const baseRange = 220;
+  const baseCooldown = 1500; // ms
+  const dmgMult = Math.pow(1.05, level - 1);       // +5% pro Level
+  const rangeMult = Math.pow(1.05, level - 1);     // +5% pro Level
+  const cdMult = Math.pow(0.95, level - 1);        // -5% pro Level (schneller)
+  return {
+    damage: Math.max(1, Math.round(baseDamage * dmgMult)),
+    range: Math.round(baseRange * rangeMult),
+    cooldown: Math.max(200, Math.round(baseCooldown * cdMult))
+  };
+}
 
 const BUILDINGS = {
   main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. If destroyed, you lose 50% of your money. Can be rebuilt for FREE (only 1 allowed).", baseCost: 900, costMult: 2.4, produces: { wood: 1, stone: 1 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 }, buildTime: 5, isMain: true },
@@ -1891,8 +1886,8 @@ const BUILDINGS = {
   temple: { name: "Temple", icon: "temple", category: "civic", size: 3, cost: 4000, maxLevel: 8, desc: "Sacred place.", baseCost: 4000, costMult: 2.3, produces: { gold: 12 }, needs: { workers: 10 }, happyBonus: [8, 16, 25, 35, 46, 58, 71, 85], unlockLevel: 5, buildTime: 30, resourceCost: { wood: 250, stone: 500 } },
   stable: { name: "Stable", icon: "stable", category: "production", size: 2, cost: 1600, maxLevel: 8, desc: "Animal breeding.", baseCost: 1600, costMult: 2.1, produces: { food: 6, gold: 3 }, needs: { workers: 5 }, soldierPerLevel: [0, 1, 2, 3, 5, 7, 9, 12], buildTime: 15, resourceCost: { wood: 200, stone: 80 } },
   barracks: { name: "Barracks", icon: "barracks", category: "military", size: 2, cost: 900, maxLevel: 10, desc: "Trains soldiers.", baseCost: 900, costMult: 2.15, produces: {}, needs: { workers: 4 }, soldierPerLevel: [2, 5, 9, 14, 20, 28, 38, 50, 65, 84], buildTime: 14, spawnsSoldiers: true, resourceCost: { wood: 120, stone: 80 } },
-  tower: { name: "Watchtower", icon: "watchtower", category: "military", size: 1, cost: 600, maxLevel: 8, desc: "Defensive structure.", baseCost: 600, costMult: 1.95, produces: {}, needs: { workers: 2 }, soldierPerLevel: [1, 2, 4, 6, 9, 13, 18, 24], buildTime: 8, defenseBonus: [1, 2, 4, 7, 11, 16, 22, 30], resourceCost: { wood: 20, stone: 100 } },
-  wall: { name: "City Wall", icon: "wall", category: "military", size: 1, cost: 800, maxLevel: 8, desc: "Protects the realm.", baseCost: 800, costMult: 2.0, produces: {}, needs: { workers: 3 }, soldierPerLevel: [0, 1, 2, 4, 6, 9, 13, 18], buildTime: 7, defenseBonus: [2, 4, 8, 14, 22, 32, 45, 60], resourceCost: { wood: 10, stone: 150 } },
+  tower: { name: "Watchtower", icon: "watchtower", category: "military", size: 1, cost: 600, maxLevel: 8, desc: "Shoots arrows at enemy soldiers in range. Upgrade for more HP, damage, speed & range (+5% per level).", baseCost: 600, costMult: 1.95, produces: {}, needs: { workers: 2 }, soldierPerLevel: [1, 2, 4, 6, 9, 13, 18, 24], buildTime: 8, defenseBonus: [1, 2, 4, 7, 11, 16, 22, 30], resourceCost: { wood: 20, stone: 100 } },
+  wall: { name: "City Wall", icon: "wall", category: "military", size: 1, cost: 800, maxLevel: 8, desc: "Blocks enemy soldiers — they must destroy it to pass. Upgrade for more HP.", baseCost: 800, costMult: 2.0, produces: {}, needs: { workers: 3 }, soldierPerLevel: [0, 1, 2, 4, 6, 9, 13, 18], buildTime: 7, defenseBonus: [2, 4, 8, 14, 22, 32, 45, 60], resourceCost: { wood: 10, stone: 150 } },
   arena: { name: "Arena", icon: "arena", category: "military", size: 3, cost: 3200, maxLevel: 8, desc: "Combat arena.", baseCost: 3200, costMult: 2.25, produces: { gold: 8 }, needs: { workers: 9 }, soldierPerLevel: [3, 7, 12, 18, 25, 33, 42, 52], happyBonus: [3, 6, 10, 14, 19, 24, 30, 36], unlockLevel: 4, buildTime: 26, spawnsSoldiers: true, resourceCost: { wood: 200, stone: 350 } },
   fortress: { name: "Fortress", icon: "fortress", category: "military", size: 3, cost: 6000, maxLevel: 10, desc: "Mighty military base.", baseCost: 6000, costMult: 2.4, produces: { gold: 12 }, needs: { workers: 15 }, soldierPerLevel: [10, 20, 35, 55, 80, 110, 150, 200, 260, 335], unlockLevel: 6, buildTime: 35, spawnsSoldiers: true, defenseBonus: [5, 10, 18, 30, 45, 65, 90, 120], resourceCost: { wood: 500, stone: 800 } },
   church: { name: "Church", icon: "church", category: "special", size: 2, cost: 1800, maxLevel: 8, desc: "Place of worship.", baseCost: 1800, costMult: 2.1, produces: { gold: 5 }, needs: { workers: 4 }, happyBonus: [5, 10, 16, 22, 29, 37, 46, 56], buildTime: 17, resourceCost: { wood: 150, stone: 250 } },
@@ -2063,7 +2058,6 @@ function buildingSVG(type, level, w, h) {
 
 function getCost(type, level) {
   const def = BUILDINGS[type];
-  // Main Building kostet immer 0 beim Bauen
   if (type === 'main' && level === 0) return 0;
   if (level === 0) return Math.round(def.cost);
   return Math.round(def.baseCost * Math.pow(def.costMult, level));
@@ -2071,7 +2065,6 @@ function getCost(type, level) {
 function getUpgradeCost(b) { return getCost(b.type, b.level); }
 function getResourceCost(type, level) {
   const def = BUILDINGS[type];
-  // Main Building braucht keine Ressourcen beim Bauen
   if (type === 'main' && level === 0) return { wood: 0, stone: 0 };
   if (!def.resourceCost) return { wood: 0, stone: 0 };
   const mult = level === 0 ? 1 : Math.pow(1.6, level);
@@ -2130,8 +2123,7 @@ function addXP(amount) {
     state.money += 500 * state.level;
     state.gold += 50 * state.level;
     notify(`🎉 Level Up! You are now Level ${state.level}!`, false, true);
-    if (state.level === 5) notify(`🏗️ 4th build slot unlocked!`, false, true);
-    if (state.level === 10) notify(`🏗️ 5th build slot unlocked!`, false, true);
+    if (state.level % 5 === 0) notify(`🏗️ ${getMaxBuilds()} build slots now available! (+1)`, false, true);
     if (currentUser) publishEvent('info', `${currentUser.username} reached Level ${state.level}!`);
   }
   updateUI();
@@ -2157,9 +2149,6 @@ function recalc() {
   state.defensePower = defense;
   if (state.population > state.populationCap) state.population = state.populationCap;
   state.workers = Math.max(0, Math.min(state.workersNeeded, state.population));
-  // WICHTIG: state.soldiers wird NICHT mehr hart auf cap gesetzt.
-  // Es repräsentiert die aktuell verfügbaren (at home) Soldaten.
-  // Regeneration passiert im soldierSpawnTick jede Sekunde.
   if (state.soldiers > state.soldierCap) state.soldiers = state.soldierCap;
 }
 
@@ -2261,9 +2250,6 @@ function pickBasePosition() {
   return bestPos || { x: WORLD_SIZE/2, y: WORLD_SIZE/2 };
 }
 
-/* =========================================================
-   MAP
-   ========================================================= */
 const mapEl = document.getElementById('map');
 const tooltip = document.getElementById('tooltip');
 const ghost = document.getElementById('placeGhost');
@@ -2368,11 +2354,9 @@ function screenToWorld(clientX, clientY) {
   return { x: (clientX - rect.left - state.camX) / state.zoom, y: (clientY - rect.top - state.camY) / state.zoom };
 }
 
-/* PLACEMENT */
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) { notify(`Requires Level ${def.unlockLevel}`, true); return; }
-  // Main Building: nur 1 erlaubt
   if (type === 'main' && hasMainBuilding()) {
     notify("You already have a Main Building! Only 1 allowed.", true);
     return;
@@ -2448,9 +2432,13 @@ function placeBuilding(e) {
   state.stone -= resCost.stone;
   const bt = getBuildTime(state.placing, 0);
   const maxHp = getMaxHp(state.placing, 1);
-  const b = { id: state.nextId++, type: state.placing, x, y, level: 1, construction: true, constructionStart: Date.now(), constructionDuration: bt * 1000, hp: maxHp, maxHp: maxHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
+  const b = { id: state.nextId++, type: state.placing, x, y, level: 1, construction: true, constructionStart: Date.now(), constructionDuration: bt * 1000, hp: maxHp, maxHp: maxHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username, lastTowerShot: 0 };
   state.buildings.push(b);
   createBuildingEl(b, false, currentUser.username);
+  if (state.placing === 'main') {
+    state.baseX = x + size / 2;
+    state.baseY = y + size / 2;
+  }
   addXP(15);
   updateUI();
   updateMinimapBuildings();
@@ -2630,6 +2618,17 @@ function showDetailPanel(b) {
     if (def.happyBonus) statsHTML += `<div class="dp-stat"><span class="k">Happiness</span><span class="v good">+${def.happyBonus[b.level-1]}</span></div>`;
     if (def.globalBonus) statsHTML += `<div class="dp-stat"><span class="k">Global Bonus</span><span class="v good">+${Math.round(def.globalBonus[b.level-1]*100)}%</span></div>`;
     if (def.defenseBonus) statsHTML += `<div class="dp-stat"><span class="k">Defense Power</span><span class="v good">+${def.defenseBonus[b.level-1]}</span></div>`;
+    // Tower-Stats anzeigen
+    const towerStats = getTowerStats(b.type, b.level);
+    if (towerStats) {
+      statsHTML += `<div class="dp-stat"><span class="k">Damage per arrow</span><span class="v good">${towerStats.damage}</span></div>`;
+      statsHTML += `<div class="dp-stat"><span class="k">Range</span><span class="v">${towerStats.range} px</span></div>`;
+      statsHTML += `<div class="dp-stat"><span class="k">Cooldown</span><span class="v">${(towerStats.cooldown/1000).toFixed(2)}s</span></div>`;
+      const nt = getTowerStats(b.type, Math.min(def.maxLevel, b.level+1));
+      if (nt && b.level < def.maxLevel) {
+        statsHTML += `<div class="dp-stat" style="color:#2f6fd0;font-weight:700;"><span class="k">Next level</span><span class="v">+${nt.damage - towerStats.damage} dmg · ${(nt.cooldown/1000).toFixed(2)}s cd · ${nt.range} px</span></div>`;
+      }
+    }
     if (def.needs && def.needs.workers) statsHTML += `<div class="dp-stat"><span class="k">Workers</span><span class="v">${def.needs.workers * b.level}</span></div>`;
     const hpPct = ((b.hp || 100) / (b.maxHp || 100)) * 100;
     const hpClass = hpPct >= 80 ? 'good' : hpPct >= 40 ? '' : 'bad';
@@ -2795,7 +2794,7 @@ function sellBuilding(b) {
 }
 
 /* =========================================================
-   TROOP MODAL (Slider für Attack & Defend)
+   TROOP MODAL
    ========================================================= */
 const troopModal = document.getElementById('troopModal');
 const tmBox = document.getElementById('tmBox');
@@ -2806,13 +2805,11 @@ const tmTitle = document.getElementById('tmTitle');
 const tmSubtitle = document.getElementById('tmSubtitle');
 const tmTargetInfo = document.getElementById('tmTargetInfo');
 const tmConfirmBtn = document.getElementById('tmConfirm');
-let tmCallback = null; // wird mit gewählter Anzahl aufgerufen
+let tmCallback = null;
 let tmMaxValue = 10;
 let tmMinValue = 10;
 
 function openTroopModal(mode, opts, cb) {
-  // mode: 'attack' oder 'defend'
-  // opts: { targetName, buildingName, maxSoldiers, minSoldiers, isDefend }
   tmCallback = cb;
   const maxSoldiers = Math.max(1, Math.floor(opts.maxSoldiers || 1));
   const minSoldiers = Math.min(maxSoldiers, Math.max(1, Math.floor(opts.minSoldiers || 1)));
@@ -2842,7 +2839,6 @@ function openTroopModal(mode, opts, cb) {
 function updateSliderUI() {
   const v = parseInt(tmSlider.value);
   tmNum.textContent = v;
-  // Fill der Range
   const pct = ((v - tmMinValue) / Math.max(1, tmMaxValue - tmMinValue)) * 100;
   tmSlider.style.backgroundSize = `${pct}% 100%`;
 }
@@ -2969,9 +2965,7 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
   const spawnPoints = getMilitarySpawnPoints();
   if (spawnPoints.length === 0) { notify("No military buildings to spawn soldiers!", true); return; }
 
-  // Soldaten vom "at home" Pool abziehen
   state.soldiers -= count;
-  // Sofort speichern damit bei Disconnect der Verlust nicht verloren geht
   scheduleSave();
 
   const now = Date.now();
@@ -2995,8 +2989,7 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
       _animTime: Math.random() * 1000,
       startX: sx, startY: sy,
       startTime: now,
-      arriveTime: arriveTime,
-      ownerHwid: ACTIVE_HWID
+      arriveTime: arriveTime
     };
     soldierUnits.push(unit);
     marches.push({ sx, sy, arriveTime });
@@ -3084,13 +3077,13 @@ function spawnSoldierUnit(x, y, tx, ty, side, targetBuilding) {
     _animTime: Math.random() * 1000,
     startX: x, startY: y,
     startTime: now,
-    arriveTime: now + travelMs
+    arriveTime: now + travelMs,
+    blockedByWall: null
   };
   soldierUnits.push(unit);
   return unit;
 }
 
-/* Soldaten-Nachproduktion jede Sekunde: füllt state.soldiers bis state.soldierCap auf. */
 function soldierSpawnTick() {
   if (state.soldiers < state.soldierCap) {
     state.soldiers = Math.min(state.soldierCap, state.soldiers + 1);
@@ -3098,19 +3091,57 @@ function soldierSpawnTick() {
 }
 
 function respawnSoldiers() {
-  // Wird im Loop jede Sekunde aufgerufen — füllt langsam auf
   if (state.soldiers < state.soldierCap) {
     state.soldiers = Math.min(state.soldierCap, state.soldiers + 1);
   }
 }
 
+/* Wall-Kollision: prüft ob eine Position in einer Wand liegt */
+function findBlockingWall(x, y, side) {
+  // Mauern blockieren NUR Enemy-Soldaten (nicht eigene)
+  for (const b of state.buildings) {
+    if (b.construction) continue;
+    if (b.type !== 'wall') continue;
+    // Nur Mauern die NICHT dem Soldaten gehören blockieren
+    // Soldat hat keine ownerHwid direkt — wir nehmen an:
+    // - friendly soldier blockiert durch enemy walls
+    // - enemy soldier blockiert durch meine walls (state.buildings)
+    // Da state.buildings NUR meine eigenen sind: enemy soldiers werden geblockt.
+    // Für friendly soldiers gegen feindliche Walls müssen wir otherPlayerEls prüfen.
+    if (side === 'enemy') {
+      const bs = BUILDINGS.wall.size * TILE;
+      if (x >= b.x - 4 && x <= b.x + bs + 4 && y >= b.y - 4 && y <= b.y + bs + 4) {
+        return b;
+      }
+    }
+  }
+  // Für friendly soldiers: prüfe andere Spieler Wände
+  if (side === 'friendly') {
+    for (const hwid in otherPlayerEls) {
+      const entry = otherPlayerEls[hwid];
+      if (!entry || !entry.buildings) continue;
+      for (const id in entry.buildings) {
+        const ob = entry.buildings[id];
+        if (!ob || ob.type !== 'wall') continue;
+        const bs = BUILDINGS.wall.size * TILE;
+        if (x >= ob.x - 4 && x <= ob.x + bs + 4 && y >= ob.y - 4 && y <= ob.y + bs + 4) {
+          return ob;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function updateSoldierUnits(dt) {
   const now = Date.now();
-
   for (const s of soldierUnits) s.fighting = false;
 
   for (const s of soldierUnits) {
-    // FIGHT_RANGE = 600 (10x größer)
+    // WICHTIG: Soldaten dürfen nicht durch Wände laufen
+    // Wenn der Soldat eine Wand überqueren würde, greift er sie stattdessen an
+
+    // Nächsten Feind-Soldaten finden
     let closestEnemy = null;
     let closestDist = FIGHT_RANGE;
     for (const o of soldierUnits) {
@@ -3119,6 +3150,7 @@ function updateSoldierUnits(dt) {
       if (d < closestDist) { closestDist = d; closestEnemy = o; }
     }
 
+    // Wenn Feind in Reichweite: dorthin
     if (closestEnemy) {
       s.fighting = true;
       const dx = closestEnemy.x - s.x;
@@ -3127,8 +3159,37 @@ function updateSoldierUnits(dt) {
       s.facing = dx < 0 ? 'left' : 'right';
 
       if (dist > ATTACK_RANGE) {
-        s.x += (dx / dist) * s.speed * dt * 60;
-        s.y += (dy / dist) * s.speed * dt * 60;
+        const nx = s.x + (dx / dist) * s.speed * dt * 60;
+        const ny = s.y + (dy / dist) * s.speed * dt * 60;
+        // Wall-Check: wenn nächster Schritt in Wand, stattdessen Wand angreifen
+        const wall = findBlockingWall(nx, ny, s.side);
+        if (wall) {
+          s.targetBuilding = wall;
+          s.blockedByWall = wall;
+          // Schaden an Wand
+          s._hitTimer += dt;
+          if (s._hitTimer >= HIT_INTERVAL * 1.5) {
+            s._hitTimer = 0;
+            const dmg = 5 + Math.floor(Math.random() * 8);
+            wall.hp = Math.max(0, (wall.hp || 100) - dmg);
+            updateBuildingHpVisual(wall);
+            showFloatText(wall.x + (BUILDINGS.wall.size*TILE)/2, wall.y, `-${dmg}`, '#e53935');
+            if (wall.el) {
+              wall.el.classList.add('under-attack');
+              setTimeout(() => { if (wall && wall.el) wall.el.classList.remove('under-attack'); }, 400);
+            }
+            if (wall.hp <= 0) {
+              const wallOwner = wall.ownerName || (s.side === 'enemy' ? currentUser.username : 'Enemy');
+              const wallOwnerHwid = wall.ownerHwid;
+              s.targetBuilding = null;
+              s.blockedByWall = null;
+              destroyBuilding(wall, wallOwner, wallOwnerHwid, true);
+            }
+          }
+          continue;
+        }
+        s.x = nx;
+        s.y = ny;
       } else {
         s._duelTimer += dt;
         if (s._duelTimer >= HIT_INTERVAL) {
@@ -3152,8 +3213,20 @@ function updateSoldierUnits(dt) {
       s.facing = dx < 0 ? 'left' : 'right';
 
       if (dist > bs / 2 + 15) {
-        s.x += (dx / dist) * s.speed * dt * 60;
-        s.y += (dy / dist) * s.speed * dt * 60;
+        const nx = s.x + (dx / dist) * s.speed * dt * 60;
+        const ny = s.y + (dy / dist) * s.speed * dt * 60;
+        // Wall-Check auf dem Weg zum Ziel (nicht wenn das Ziel selbst die Wand ist)
+        if (s.targetBuilding.type !== 'wall') {
+          const wall = findBlockingWall(nx, ny, s.side);
+          if (wall) {
+            s.blockedByWall = wall;
+            // Direkt Wand angreifen
+            s.targetBuilding = wall;
+            continue;
+          }
+        }
+        s.x = nx;
+        s.y = ny;
       } else {
         s.fighting = true;
         s._hitTimer += dt;
@@ -3185,8 +3258,16 @@ function updateSoldierUnits(dt) {
     const dist = Math.hypot(dx, dy);
     if (dist > 12) {
       s.facing = dx < 0 ? 'left' : 'right';
-      s.x += (dx / dist) * s.speed * dt * 60;
-      s.y += (dy / dist) * s.speed * dt * 60;
+      const nx = s.x + (dx / dist) * s.speed * dt * 60;
+      const ny = s.y + (dy / dist) * s.speed * dt * 60;
+      const wall = findBlockingWall(nx, ny, s.side);
+      if (wall) {
+        s.blockedByWall = wall;
+        s.targetBuilding = wall;
+        continue;
+      }
+      s.x = nx;
+      s.y = ny;
     } else {
       s._idle += dt;
       if (s._idle > 3) {
@@ -3201,6 +3282,11 @@ function updateSoldierUnits(dt) {
     if (soldierUnits[i].hp <= 0) soldierUnits.splice(i, 1);
   }
 
+  // Tower-Angriffe aktualisieren
+  updateTowerAttacks(dt);
+  // Projectiles aktualisieren
+  updateProjectiles(dt);
+
   activeMarches = activeMarches.filter(m => Date.now() < m.arriveTime + 20000);
 
   const badge = document.getElementById('soldierCountBadge');
@@ -3213,9 +3299,85 @@ function updateSoldierUnits(dt) {
   updateMarchBanner();
 }
 
+/* ============ TOWER ATTACKS ============ */
+function updateTowerAttacks(dt) {
+  const now = Date.now();
+  state.buildings.forEach(b => {
+    if (b.construction) return;
+    const stats = getTowerStats(b.type, b.level);
+    if (!stats) return;
+    const size = BUILDINGS[b.type].size * TILE;
+    const cx = b.x + size/2;
+    const cy = b.y + size/2;
+    // Nur schießen wenn Cooldown abgelaufen
+    const lastShot = b.lastTowerShot || 0;
+    if (now - lastShot < stats.cooldown) return;
+    // Nächsten Feind in Range finden
+    let bestTarget = null;
+    let bestDist = stats.range;
+    for (const s of soldierUnits) {
+      if (s.side !== 'enemy') continue; // Turm schießt nur auf Feind-Soldaten
+      const d = Math.hypot(s.x - cx, s.y - cy);
+      if (d < bestDist) {
+        bestDist = d;
+        bestTarget = s;
+      }
+    }
+    if (bestTarget) {
+      b.lastTowerShot = now;
+      // Pfeil erzeugen
+      spawnArrow(cx, cy, bestTarget, stats.damage);
+    }
+  });
+}
+
+function spawnArrow(fromX, fromY, targetUnit, damage) {
+  projectiles.push({
+    x: fromX,
+    y: fromY,
+    target: targetUnit,
+    damage,
+    speed: 480, // px/s
+    _spawnTime: Date.now(),
+    _trail: []
+  });
+}
+
+function updateProjectiles(dt) {
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    // Wenn Ziel weg ist: Projektil entfernen
+    if (!p.target || p.target.hp <= 0 || soldierUnits.indexOf(p.target) === -1) {
+      projectiles.splice(i, 1);
+      continue;
+    }
+    const dx = p.target.x - p.x;
+    const dy = p.target.y - p.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const step = p.speed * dt;
+    if (dist <= step) {
+      // Treffer
+      p.target.hp = Math.max(0, p.target.hp - p.damage);
+      showFloatText(p.target.x, p.target.y - 25, `-${p.damage}`, '#8e24aa');
+      if (p.target.hp <= 0) {
+        // Soldat tot (wird im updateSoldierUnits entfernt)
+      }
+      projectiles.splice(i, 1);
+      continue;
+    }
+    p.x += (dx / dist) * step;
+    p.y += (dy / dist) * step;
+    // Trail
+    if (!p._trail) p._trail = [];
+    p._trail.push({ x: p.x, y: p.y });
+    if (p._trail.length > 6) p._trail.shift();
+  }
+}
+
 function clearSoldierUnits() {
   soldierUnits = [];
   activeMarches = [];
+  projectiles = [];
 }
 
 function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
@@ -3234,7 +3396,7 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   if (b.type === 'main' && iAmOwner) {
     const stolen = Math.floor(state.money * 0.5);
     state.money -= stolen;
-    notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (50%) to the attacker. You can rebuild it for FREE.`, true);
+    notify(`💀 Your Main Building was destroyed! Lost ${stolen.toLocaleString('en-US')} money (50%). You can rebuild for FREE.`, true);
     publishEvent('attack', `${ownerName} destroyed ${currentUser.username}'s Main Building and stole ${stolen} money!`, ownerHwid);
     if (ownerHwid && firebase) {
       (async () => {
@@ -3541,16 +3703,76 @@ function renderCanvasUnits(now) {
            wy >= worldTop - 60 && wy <= worldBottom + 60;
   }
 
+  // Eigene Soldaten + off-screen Indikator
+  const ownSoldiers = soldierUnits.filter(s => s.side === 'friendly');
+  let offscreenOwn = 0;
+  let offscreenCx = 0, offscreenCy = 0;
+  for (const s of ownSoldiers) {
+    if (!inView(s.x, s.y)) {
+      offscreenOwn++;
+      offscreenCx += s.x;
+      offscreenCy += s.y;
+      continue;
+    }
+    const p = toScreen(s.x, s.y);
+    const hpPct = s.hp / s.maxHp;
+    ctx_drawHpBar(uctx, p.x, p.y - 30 * z, 24 * z, 4 * z, hpPct, true);
+    drawSoldier(uctx, p.x, p.y, z, '#2f6fd0', '#1a3a6e', s.facing, s.fighting, s._animTime + now);
+  }
+  // Off-screen-Indikator
+  if (offscreenOwn > 0) {
+    offscreenCx /= offscreenOwn;
+    offscreenCy /= offscreenOwn;
+    const centerSx = unitCanvas.clientWidth / 2;
+    const centerSy = unitCanvas.clientHeight / 2;
+    const p = toScreen(offscreenCx, offscreenCy);
+    const dx = p.x - centerSx;
+    const dy = p.y - centerSy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 0) {
+      const radius = Math.min(unitCanvas.clientWidth, unitCanvas.clientHeight) / 2 - 60;
+      const ax = centerSx + (dx / dist) * radius;
+      const ay = centerSy + (dy / dist) * radius;
+      const angle = Math.atan2(dy, dx);
+      uctx.save();
+      uctx.translate(ax, ay);
+      uctx.rotate(angle);
+      uctx.fillStyle = 'rgba(47,111,208,0.9)';
+      uctx.beginPath();
+      uctx.moveTo(16, 0);
+      uctx.lineTo(-8, -10);
+      uctx.lineTo(-4, 0);
+      uctx.lineTo(-8, 10);
+      uctx.closePath();
+      uctx.fill();
+      uctx.strokeStyle = '#fff';
+      uctx.lineWidth = 2;
+      uctx.stroke();
+      uctx.restore();
+      // Count-Badge
+      uctx.fillStyle = 'rgba(47,111,208,0.95)';
+      uctx.beginPath();
+      uctx.arc(ax, ay - 22, 12, 0, Math.PI * 2);
+      uctx.fill();
+      uctx.fillStyle = '#fff';
+      uctx.font = 'bold 11px Segoe UI, sans-serif';
+      uctx.textAlign = 'center';
+      uctx.textBaseline = 'middle';
+      uctx.fillText(String(offscreenOwn), ax, ay - 22);
+    }
+  }
+
+  // Enemy-Units (auch wenn nicht in Sicht)
   for (const s of soldierUnits) {
+    if (s.side === 'friendly') continue;
     if (!inView(s.x, s.y)) continue;
     const p = toScreen(s.x, s.y);
     const hpPct = s.hp / s.maxHp;
-    ctx_drawHpBar(uctx, p.x, p.y - 30 * z, 24 * z, 4 * z, hpPct, s.side === 'friendly');
-    const colorMain = s.side === 'friendly' ? '#2f6fd0' : '#c62828';
-    const colorDark = s.side === 'friendly' ? '#1a3a6e' : '#7f0000';
-    drawSoldier(uctx, p.x, p.y, z, colorMain, colorDark, s.facing, s.fighting, s._animTime + now);
+    ctx_drawHpBar(uctx, p.x, p.y - 30 * z, 24 * z, 4 * z, hpPct, false);
+    drawSoldier(uctx, p.x, p.y, z, '#c62828', '#7f0000', s.facing, s.fighting, s._animTime + now);
   }
 
+  // Remote-Units aus Firebase
   for (const hwid in remoteUnitsData) {
     const data = remoteUnitsData[hwid];
     for (const sd of data.soldiers || []) {
@@ -3562,6 +3784,32 @@ function renderCanvasUnits(now) {
     }
   }
 
+  // Pfeile zeichnen
+  for (const pr of projectiles) {
+    if (!inView(pr.x, pr.y)) continue;
+    const p = toScreen(pr.x, pr.y);
+    // Trail
+    if (pr._trail) {
+      for (let i = 0; i < pr._trail.length; i++) {
+        const t = pr._trail[i];
+        const tp = toScreen(t.x, t.y);
+        uctx.fillStyle = `rgba(142,36,170,${(i / pr._trail.length) * 0.6})`;
+        uctx.beginPath();
+        uctx.arc(tp.x, tp.y, 2 * z, 0, Math.PI * 2);
+        uctx.fill();
+      }
+    }
+    // Pfeilspitze
+    uctx.fillStyle = '#8e24aa';
+    uctx.beginPath();
+    uctx.arc(p.x, p.y, 4 * z, 0, Math.PI * 2);
+    uctx.fill();
+    uctx.strokeStyle = '#fff';
+    uctx.lineWidth = 1.2 * z;
+    uctx.stroke();
+  }
+
+  // Villager
   for (const v of villagerUnits) {
     if (!inView(v.x, v.y)) continue;
     const p = toScreen(v.x, v.y);
@@ -3576,6 +3824,7 @@ function renderCanvasUnits(now) {
     }
   }
 
+  // Builder
   for (const b of state.buildings) {
     if (!b.construction || !b._builders) continue;
     for (const bel of b._builders) {
@@ -3596,9 +3845,7 @@ function renderCanvasUnits(now) {
   requestAnimationFrame(renderCanvasUnits);
 }
 
-/* =========================================================
-   PERF MONITOR
-   ========================================================= */
+/* PERF MONITOR */
 const perfBadge = document.getElementById('perfBadge');
 const fpsValEl = document.getElementById('fpsVal');
 const pingValEl = document.getElementById('pingVal');
@@ -3669,9 +3916,7 @@ function startFPSLoop() {
   setTimeout(() => { measurePing(); setInterval(measurePing, 3000); }, 1500);
 }
 
-/* =========================================================
-   MULTIPLAYER VISUALS
-   ========================================================= */
+/* MULTIPLAYER */
 function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
@@ -3801,7 +4046,8 @@ function startAttacksListener() {
             _animTime: Math.random() * 1000,
             startX: cx0, startY: cy0,
             startTime: startT,
-            arriveTime: arriveT
+            arriveTime: arriveT,
+            blockedByWall: null
           };
           soldierUnits.push(unit);
         }
@@ -3858,7 +4104,6 @@ function spawnExplosion(x, y, type) {
   setTimeout(() => el.remove(), 900);
 }
 
-/* VILLAGERS */
 function trySpawnVillagers() {
   const now = Date.now();
   if (now - lastVillagerSpawn < 3000) return;
@@ -4005,7 +4250,6 @@ function showAttackPopup(attackerName, buildingName, damage) {
 function setupAttackPopup() {
   document.getElementById('apDefendBtn').onclick = () => {
     document.getElementById('attackPopup').classList.remove('show');
-    // Slider öffnen: 10 bis max. verfügbare Soldaten (mind. 10, wenn cap < 10 dann cap)
     const maxAvail = Math.max(1, state.soldiers);
     const minDefend = Math.min(10, maxAvail);
     let ax = null, ay = null;
@@ -4050,12 +4294,13 @@ function updateUI() {
   const workerClass = workerRatio >= 80 ? 'good' : workerRatio >= 40 ? '' : 'bad';
   const constructing = countActiveBuilds();
   const maxB = getMaxBuilds();
+  const nextSlotLv = Math.ceil((state.level + 1) / 5) * 5;
   statsBody.innerHTML = `
     <div class="sp-row"><span>Level</span><span class="v">${state.level}</span></div>
     <div class="sp-row"><span>XP</span><span class="v">${Math.floor(state.xp)} / ${state.xpNeeded}</span></div>
     <div class="sp-row"><span>Playtime</span><span class="v">${formatPlaytime(state.playtimeSeconds || 0)}</span></div>
     <div class="sp-row"><span>Buildings</span><span class="v">${state.buildings.length}</span></div>
-    <div class="sp-row"><span>Build slots</span><span class="v">${maxB}${maxB < 5 ? ` (next: Lv.${maxB === 3 ? 5 : 10})` : ''}</span></div>
+    <div class="sp-row"><span>Build slots</span><span class="v">${maxB} <span style="color:#8fa3c8;font-size:10px;">(+1 @ Lv.${nextSlotLv})</span></span></div>
     <div class="sp-row"><span>Under construction</span><span class="v ${constructing >= maxB ? 'bad' : ''}">${constructing}/${maxB}</span></div>
     <div class="sp-row"><span>Workers</span><span class="v ${workerClass}">${workerRatio}%</span></div>
     <div class="sp-row"><span>At home</span><span class="v good">${homeSoldiers}</span></div>
@@ -4079,7 +4324,6 @@ function renderBuildingList() {
       locked = true;
       lockReason = `Lv.${def.unlockLevel}`;
     }
-    // Main: nur wenn noch kein Main existiert
     if (key === 'main' && mainPlaced) {
       locked = true;
       lockReason = 'Owned';
@@ -4128,6 +4372,8 @@ function showTooltipForBuilding(b, ev) {
     if (def.produces) extra += `<div class="t-row">Production: ${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</div>`;
     if (def.soldierPerLevel) extra += `<div class="t-row">Soldiers: +${def.soldierPerLevel[b.level-1]}</div>`;
     if (def.defenseBonus) extra += `<div class="t-row">Defense: +${def.defenseBonus[b.level-1]}</div>`;
+    const ts = getTowerStats(b.type, b.level);
+    if (ts) extra += `<div class="t-row" style="color:#8e24aa;font-weight:700;">Arrows: ${ts.damage} dmg · ${(ts.cooldown/1000).toFixed(2)}s · ${ts.range}px</div>`;
     if (b.level < def.maxLevel) {
       const rc = getResourceCost(b.type, b.level);
       extra += `<div class="t-row" style="color:#2f6fd0;margin-top:6px;">Upgrade: ${getUpgradeCost(b).toLocaleString('en-US')}💰 ${rc.wood}🪵 ${rc.stone}🪨</div>`;
@@ -4282,7 +4528,7 @@ async function loadSave() {
     clearSoldierUnits();
     valid.forEach(b => {
       const maxHp = b.maxHp || getMaxHp(b.type, b.level || 1);
-      const nb = { id: b.id, type: b.type, x: b.x, y: b.y, level: b.level || 1, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp != null ? b.hp : maxHp, maxHp: maxHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
+      const nb = { id: b.id, type: b.type, x: b.x, y: b.y, level: b.level || 1, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp != null ? b.hp : maxHp, maxHp: maxHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username, lastTowerShot: 0 };
       createBuildingEl(nb, false, currentUser.username);
       state.buildings.push(nb);
     });
@@ -4421,10 +4667,10 @@ async function startGame() {
     }
     const ms = BUILDINGS.main.size * TILE;
     const mainHp = getMaxHp('main', 1);
-    const mainB = { id: state.nextId++, type: 'main', x: pos.x - ms/2, y: pos.y - ms/2, level: 1, hp: mainHp, maxHp: mainHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
+    const mainB = { id: state.nextId++, type: 'main', x: pos.x - ms/2, y: pos.y - ms/2, level: 1, hp: mainHp, maxHp: mainHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username, lastTowerShot: 0 };
     state.buildings.push(mainB); createBuildingEl(mainB, false, currentUser.username);
     const houseHp = getMaxHp('house', 1);
-    const house = { id: state.nextId++, type: 'house', x: pos.x + 2*TILE, y: pos.y - TILE, level: 1, hp: houseHp, maxHp: houseHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username };
+    const house = { id: state.nextId++, type: 'house', x: pos.x + 2*TILE, y: pos.y - TILE, level: 1, hp: houseHp, maxHp: houseHp, ownerHwid: ACTIVE_HWID, ownerName: currentUser.username, lastTowerShot: 0 };
     state.buildings.push(house); createBuildingEl(house, false, currentUser.username);
     publishEvent('join', `${currentUser.username} joined the realm!`);
     recalc();
@@ -4486,7 +4732,6 @@ async function startGame() {
     updateVillagers(dt);
     constructionTick();
 
-    // Soldaten-Nachproduktion jede Sekunde (1 Soldat pro Sekunde bis Cap)
     spawnAccum += dt;
     if (spawnAccum >= 1) {
       soldierSpawnTick();
@@ -4528,26 +4773,51 @@ async function startGame() {
 function centerCamera() {
   const rect = mapEl.getBoundingClientRect();
   state.zoom = 1;
-  state.camX = rect.width / 2 - state.baseX * state.zoom;
-  state.camY = rect.height / 2 - state.baseY * state.zoom;
+  const mainB = state.buildings.find(b => b.type === 'main');
+  let targetX, targetY;
+  if (mainB) {
+    const size = BUILDINGS.main.size * TILE;
+    targetX = mainB.x + size / 2;
+    targetY = mainB.y + size / 2;
+    state.baseX = targetX;
+    state.baseY = targetY;
+  } else {
+    targetX = state.baseX;
+    targetY = state.baseY;
+  }
+  state.camX = rect.width / 2 - targetX * state.zoom;
+  state.camY = rect.height / 2 - targetY * state.zoom;
   applyTransform();
+  notify('📍 Centered on your Main Building', false, true);
 }
 
 function cameraToMySoldiers() {
   const mySoldiers = soldierUnits.filter(s => s.side === 'friendly');
-  if (mySoldiers.length === 0) {
-    notify("All soldiers are at home — no marching soldiers.", true);
+  const rect = mapEl.getBoundingClientRect();
+  if (mySoldiers.length > 0) {
+    let sx = 0, sy = 0;
+    mySoldiers.forEach(s => { sx += s.x; sy += s.y; });
+    sx /= mySoldiers.length;
+    sy /= mySoldiers.length;
+    state.camX = rect.width / 2 - sx * state.zoom;
+    state.camY = rect.height / 2 - sy * state.zoom;
+    applyTransform();
+    notify(`📍 Jumped to ${mySoldiers.length} marching soldier${mySoldiers.length === 1 ? '' : 's'}`, false, true);
     return;
   }
-  let sx = 0, sy = 0;
-  mySoldiers.forEach(s => { sx += s.x; sy += s.y; });
-  sx /= mySoldiers.length;
-  sy /= mySoldiers.length;
-  const rect = mapEl.getBoundingClientRect();
-  state.camX = rect.width / 2 - sx * state.zoom;
-  state.camY = rect.height / 2 - sy * state.zoom;
+  const mainB = state.buildings.find(b => b.type === 'main');
+  if (!mainB) {
+    notify("No soldiers and no Main Building!", true);
+    return;
+  }
+  const size = BUILDINGS.main.size * TILE;
+  const cx = mainB.x + size / 2;
+  const cy = mainB.y + size / 2;
+  state.camX = rect.width / 2 - cx * state.zoom;
+  state.camY = rect.height / 2 - cy * state.zoom;
   applyTransform();
-  notify(`📍 Jumped to ${mySoldiers.length} marching soldier${mySoldiers.length === 1 ? '' : 's'}`, false, true);
+  const homeCount = state.soldiers;
+  notify(`🏠 ${homeCount} soldier${homeCount === 1 ? '' : 's'} at home (Main Building)`, false, true);
 }
 
 document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6, state.zoom * 1.2); applyTransform(); };
