@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spin the Realm — Cards</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: radial-gradient(ellipse at 50% 30%, #1a1e3a 0%, #0a0d1f 60%, #05060e 100%);
+    color: #e8ecf5;
+  }
+
+  /* Sternen-Hintergrund */
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute; width: 2px; height: 2px;
+    background: #fff; border-radius: 50%;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+  .bg-glow {
+    position: fixed; border-radius: 50%;
+    background: radial-gradient(circle, rgba(120,90,220,0.28), transparent 70%);
+    pointer-events: none; z-index: 0;
+    animation: floatBg 12s ease-in-out infinite;
+  }
+  @keyframes floatBg {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(40px, -30px) scale(1.15); }
+  }
+
+  /* ============ TOP BAR ============ */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 62px;
+    background: rgba(15,20,40,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(120,90,220,0.35);
+    display: flex; align-items: center; padding: 0 18px; gap: 14px;
+    z-index: 100;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+  }
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #2a3260, #1a1f40);
+    border: 1.5px solid rgba(120,150,220,0.5);
+    color: #cdd6ec; padding: 9px 16px;
+    border-radius: 10px; font-size: 13px; font-weight: 800;
+    cursor: pointer; transition: all 0.15s;
+    text-decoration: none;
+  }
+  .back-btn:hover {
+    background: linear-gradient(135deg, #3a4280, #242a52);
+    border-color: #7a8ad4;
+    color: #fff;
+    transform: translateX(-2px);
+  }
+  .back-btn svg { width: 16px; height: 16px; }
+
+  .spin-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; font-weight: 900; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .spin-logo .accent {
+    background: linear-gradient(90deg, #a87ee0, #7c4dbb, #a87ee0);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: logoShine 3s linear infinite;
+  }
+  @keyframes logoShine {
+    to { background-position: 200% 50%; }
+  }
+  .spin-logo svg { width: 32px; height: 32px; }
+
+  .topbar-spacer { flex: 1; }
+
+  .gem-display {
+    display: flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #2a2050, #1a1230);
+    border: 1.5px solid rgba(168,126,224,0.5);
+    padding: 8px 16px; border-radius: 12px;
+    font-size: 14px; font-weight: 800; color: #e0d0ff;
+    box-shadow: 0 4px 20px rgba(168,126,224,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: transform 0.2s;
+  }
+  .gem-display.bump { animation: gemBump 0.4s cubic-bezier(0.2,0.9,0.3,1.2); }
+  @keyframes gemBump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .gem-icon {
+    width: 22px; height: 22px; flex-shrink: 0;
+    filter: drop-shadow(0 0 6px rgba(168,126,224,0.8));
+  }
+
+  /* ============ MAIN LAYOUT ============ */
+  #mainArea {
+    position: fixed; top: 62px; left: 0; right: 0; bottom: 240px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+
+  .spin-stage {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 26px;
+    max-width: 100%;
+  }
+
+  /* Die Karten-Ausstellung */
+  .card-showcase {
+    position: relative;
+    width: 260px; height: 380px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Karte */
+  .spin-card {
+    position: absolute;
+    width: 240px; height: 340px;
+    border-radius: 18px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: default;
+    transform-style: preserve-3d;
+    transition: all 0.6s cubic-bezier(0.2,0.9,0.3,1.2);
+    overflow: hidden;
+    will-change: transform;
+  }
+  .spin-card.flipping { animation: cardFlip 0.6s cubic-bezier(0.2,0.9,0.3,1.2); }
+  @keyframes cardFlip {
+    0% { transform: rotateY(0deg) scale(1); }
+    50% { transform: rotateY(90deg) scale(0.92); }
+    100% { transform: rotateY(0deg) scale(1); }
+  }
+
+  /* Idle-Karte (vor dem Spin) */
+  .spin-card.idle {
+    background: linear-gradient(160deg, #2a2050 0%, #141828 60%, #0a0d1f 100%);
+    border: 2px solid rgba(168,126,224,0.4);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(120,90,220,0.25);
+  }
+  .spin-card.idle .card-back-icon {
+    width: 100px; height: 100px;
+    animation: idlePulse 2s ease-in-out infinite;
+  }
+  @keyframes idlePulse {
+    0%, 100% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+  .spin-card.idle .card-back-text {
+    margin-top: 20px;
+    font-size: 14px; letter-spacing: 4px;
+    color: #8ea3c8; font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  /* Seltenheit: Farbe + Effekte */
+  .spin-card.common {
+    background: linear-gradient(160deg, #4a5040 0%, #2a2e28 60%, #181a16 100%);
+    border: 2px solid #8a9380;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(138,147,128,0.3);
+  }
+  .spin-card.uncommon {
+    background: linear-gradient(160deg, #2e5a4a 0%, #1a3530 60%, #0e1e1a 100%);
+    border: 2px solid #4ec9a0;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(78,201,160,0.5);
+  }
+  .spin-card.rare {
+    background: linear-gradient(160deg, #1e4a8a 0%, #102a50 60%, #081a2e 100%);
+    border: 2px solid #4a9eff;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 50px rgba(74,158,255,0.6);
+  }
+  .spin-card.epic {
+    background: linear-gradient(160deg, #5a2a8a 0%, #2e1550 60%, #1a0d30 100%);
+    border: 2px solid #b366ff;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 60px rgba(179,102,255,0.7), inset 0 0 40px rgba(179,102,255,0.15);
+  }
+  .spin-card.legendary {
+    background: linear-gradient(160deg, #8a6a00 0%, #4a3800 60%, #2a1e00 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 80px rgba(255,215,0,0.8), inset 0 0 50px rgba(255,215,0,0.2);
+    animation: legendaryPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes legendaryPulse {
+    0%, 100% { box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 60px rgba(255,215,0,0.7); }
+    50% { box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 100px rgba(255,215,0,1); }
+  }
+  .spin-card.mythic {
+    background: linear-gradient(160deg, #8a0000 0%, #4a0000 60%, #2a0000 100%);
+    border: 2px solid #ff3a3a;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 100px rgba(255,58,58,0.9), inset 0 0 50px rgba(255,58,58,0.25);
+    animation: mythicPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes mythicPulse {
+    0%, 100% { box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 80px rgba(255,58,58,0.8); }
+    50% { box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 140px rgba(255,58,58,1); }
+  }
+
+  /* Regenbogen-Ring für Legendary / Mythic */
+  .rainbow-ring {
+    position: absolute; inset: -6px;
+    border-radius: 22px;
+    background: conic-gradient(from 0deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff00ff, #ff0000);
+    animation: spinRing 3s linear infinite;
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(6px);
+  }
+  @keyframes spinRing { to { transform: rotate(360deg); } }
+
+  /* Karten-Inhalt */
+  .card-content {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    padding: 20px;
+  }
+  .card-unit-frame {
+    width: 140px; height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .card-unit-frame svg {
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5));
+  }
+  .card-name {
+    font-size: 18px; font-weight: 900;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .card-rarity {
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 3px; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 8px;
+    margin-bottom: 12px;
+  }
+  .card-type {
+    font-size: 12px; font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .card-stats {
+    display: flex; gap: 12px;
+    font-size: 11.5px; font-weight: 700;
+    color: rgba(255,255,255,0.85);
+  }
+  .card-stats .st {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .card-stats .st svg { width: 12px; height: 12px; }
+
+  .card-rarity.common { background: rgba(138,147,128,0.3); color: #b8c0b0; border: 1px solid #8a9380; }
+  .card-rarity.uncommon { background: rgba(78,201,160,0.25); color: #7fefc4; border: 1px solid #4ec9a0; }
+  .card-rarity.rare { background: rgba(74,158,255,0.25); color: #7dc0ff; border: 1px solid #4a9eff; }
+  .card-rarity.epic { background: rgba(179,102,255,0.25); color: #d4a6ff; border: 1px solid #b366ff; }
+  .card-rarity.legendary { background: rgba(255,215,0,0.25); color: #ffe066; border: 1px solid #ffd700; }
+  .card-rarity.mythic { background: rgba(255,58,58,0.3); color: #ff9999; border: 1px solid #ff3a3a; }
+
+  /* Spin-Button */
+  .spin-btn-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 10px;
+  }
+  .spin-btn {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 16px 44px;
+    background: linear-gradient(135deg, #7c4dbb, #a87ee0, #7c4dbb);
+    background-size: 200% 100%;
+    animation: btnShine 3s linear infinite;
+    color: #fff;
+    border: none; border-radius: 16px;
+    font-size: 17px; font-weight: 900; letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 10px 30px rgba(124,77,187,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+    font-family: inherit;
+  }
+  @keyframes btnShine { to { background-position: 200% 50%; } }
+  .spin-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(124,77,187,0.7); }
+  .spin-btn:active:not(:disabled) { transform: translateY(0); }
+  .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.4); }
+  .spin-btn svg { width: 22px; height: 22px; }
+  .spin-cost {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.1);
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .spin-cost svg { width: 14px; height: 14px; }
+
+  /* Free Spin Banner */
+  .free-spin-banner {
+    display: none; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #2e7d32, #66bb6a);
+    color: #fff;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    box-shadow: 0 6px 24px rgba(46,125,50,0.5);
+    animation: freeBounce 0.6s ease-out;
+  }
+  .free-spin-banner.show { display: flex; }
+  @keyframes freeBounce {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ============ COLLECTION BOTTOM ============ */
+  #collection {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 240px;
+    background: rgba(10,14,30,0.92);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(120,90,220,0.35);
+    z-index: 90;
+    display: flex; flex-direction: column;
+  }
+  .coll-head {
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-wrap: wrap;
+  }
+  .coll-title {
+    font-size: 14px; font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #a87ee0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .coll-count {
+    background: rgba(168,126,224,0.2);
+    color: #d0b3f0;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 12px; font-weight: 800;
+  }
+  .coll-filters {
+    display: flex; gap: 6px;
+    margin-left: auto;
+  }
+  .filter-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #8ea3c8;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .filter-btn:hover { background: rgba(255,255,255,0.1); color: #cdd6ec; }
+  .filter-btn.active {
+    background: rgba(168,126,224,0.25);
+    border-color: #a87ee0;
+    color: #d0b3f0;
+  }
+
+  .coll-body {
+    flex: 1; overflow-x: auto; overflow-y: hidden;
+    padding: 12px 18px;
+    display: flex; gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .coll-body::-webkit-scrollbar { height: 8px; }
+  .coll-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+  .coll-body::-webkit-scrollbar-thumb { background: rgba(168,126,224,0.5); border-radius: 4px; }
+  .coll-body::-webkit-scrollbar-thumb:hover { background: rgba(168,126,224,0.8); }
+
+  .mini-card {
+    flex-shrink: 0;
+    width: 110px; height: 150px;
+    border-radius: 10px;
+    position: relative;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+  }
+  .mini-card:hover {
+    transform: translateY(-4px) scale(1.04);
+    z-index: 5;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+  }
+  .mini-card.common {
+    background: linear-gradient(160deg, #4a5040, #181a16);
+    border: 1.5px solid #8a9380;
+  }
+  .mini-card.uncommon {
+    background: linear-gradient(160deg, #2e5a4a, #0e1e1a);
+    border: 1.5px solid #4ec9a0;
+    box-shadow: 0 0 12px rgba(78,201,160,0.4);
+  }
+  .mini-card.rare {
+    background: linear-gradient(160deg, #1e4a8a, #081a2e);
+    border: 1.5px solid #4a9eff;
+    box-shadow: 0 0 16px rgba(74,158,255,0.5);
+  }
+  .mini-card.epic {
+    background: linear-gradient(160deg, #5a2a8a, #1a0d30);
+    border: 1.5px solid #b366ff;
+    box-shadow: 0 0 22px rgba(179,102,255,0.6);
+  }
+  .mini-card.legendary {
+    background: linear-gradient(160deg, #8a6a00, #2a1e00);
+    border: 1.5px solid #ffd700;
+    box-shadow: 0 0 28px rgba(255,215,0,0.7);
+  }
+  .mini-card.mythic {
+    background: linear-gradient(160deg, #8a0000, #2a0000);
+    border: 1.5px solid #ff3a3a;
+    box-shadow: 0 0 32px rgba(255,58,58,0.8);
+  }
+  .mini-card .mc-icon {
+    width: 60px; height: 60px;
+    margin-bottom: 6px;
+  }
+  .mini-card .mc-icon svg { width: 100%; height: 100%; }
+  .mini-card .mc-name {
+    font-size: 10px; font-weight: 800;
+    text-align: center; line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .mini-card .mc-count {
+    position: absolute; top: 5px; right: 5px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 10px; font-weight: 900;
+    padding: 2px 6px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .empty-coll {
+    color: #5c7099; font-size: 13px; font-style: italic;
+    display: flex; align-items: center; padding: 20px;
+  }
+
+  /* ============ RESULT OVERLAY ============ */
+  #resultOverlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: overlayFade 0.4s ease;
+  }
+  #resultOverlay.show { display: flex; }
+  @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+
+  .result-box {
+    position: relative;
+    max-width: 500px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+    animation: resultPop 0.7s cubic-bezier(0.2,0.9,0.3,1.4);
+  }
+  @keyframes resultPop {
+    0% { transform: scale(0.5) rotate(-8deg); opacity: 0; }
+    60% { transform: scale(1.08) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  .result-headline {
+    font-size: 28px; font-weight: 900;
+    letter-spacing: 4px; text-transform: uppercase;
+    text-align: center;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  }
+  .result-headline.common { color: #b8c0b0; }
+  .result-headline.uncommon { color: #7fefc4; }
+  .result-headline.rare { color: #7dc0ff; }
+  .result-headline.epic { color: #d4a6ff; text-shadow: 0 0 40px rgba(179,102,255,0.9), 0 4px 20px rgba(0,0,0,0.8); }
+  .result-headline.legendary {
+    color: #ffd700;
+    text-shadow: 0 0 60px rgba(255,215,0,1), 0 4px 20px rgba(0,0,0,0.8);
+    animation: legendText 1s ease-in-out infinite alternate;
+  }
+  @keyframes legendText {
+    0% { text-shadow: 0 0 40px rgba(255,215,0,0.7), 0 4px 20px rgba(0,0,0,0.8); }
+    100% { text-shadow: 0 0 90px rgba(255,215,0,1), 0 0 20px rgba(255,255,200,1), 0 4px 20px rgba(0,0,0,0.8); }
+  }
+  .result-headline.mythic {
+    color: #ff3a3a;
+    text-shadow: 0 0 60px rgba(255,58,58,1), 0 4px 20px rgba(0,0,0,0.8);
+    animation: mythicText 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes mythicText {
+    0% { transform: scale(1); text-shadow: 0 0 40px rgba(255,58,58,0.8), 0 4px 20px rgba(0,0,0,0.8); }
+    100% { transform: scale(1.05); text-shadow: 0 0 100px rgba(255,58,58,1), 0 0 30px rgba(255,200,200,1), 0 4px 20px rgba(0,0,0,0.8); }
+  }
+
+  .result-actions {
+    display: flex; gap: 12px;
+  }
+  .result-btn {
+    padding: 13px 26px;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; border: none;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .result-btn.primary {
+    background: linear-gradient(135deg, #7c4dbb, #a87ee0);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(124,77,187,0.5);
+  }
+  .result-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(124,77,187,0.7); }
+  .result-btn.secondary {
+    background: rgba(255,255,255,0.1);
+    color: #cdd6ec;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  .result-btn.secondary:hover { background: rgba(255,255,255,0.15); }
+
+  /* Konfetti */
+  .confetti-layer {
+    position: fixed; inset: 0; pointer-events: none; z-index: 150;
+    overflow: hidden;
+  }
+  .confetti {
+    position: absolute;
+    width: 10px; height: 10px;
+    opacity: 0.9;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Screenshake für legendäre Pulls */
+  body.shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  @keyframes shake {
+    10%, 90% { transform: translate3d(-2px, 0, 0); }
+    20%, 80% { transform: translate3d(4px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+    40%, 60% { transform: translate3d(6px, 0, 0); }
+  }
+
+  /* Login/HWID Indicator (klein oben) */
+  .hwid-chip {
+    display: none;
+    align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+    color: #8ea3c8; font-family: monospace;
+  }
+  .hwid-chip.show { display: inline-flex; }
+
+  /* Loading-Screen */
+  #loadOverlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: radial-gradient(ellipse at center, #1a1e3a 0%, #05060e 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    transition: opacity 0.5s, visibility 0.5s;
+  }
+  #loadOverlay.hidden { opacity: 0; visibility: hidden; }
+  .load-spinner {
+    width: 60px; height: 60px;
+    border: 4px solid rgba(168,126,224,0.2);
+    border-top-color: #a87ee0;
+    border-radius: 50%;
+    animation: spinRing 0.9s linear infinite;
+  }
+  .load-text {
+    font-size: 13px; letter-spacing: 3px;
+    color: #8ea3c8; font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  /* No user Found */
+  #noUserOverlay {
+    position: fixed; inset: 0; z-index: 250;
+    background: radial-gradient(ellipse at center, #1a1e3a 0%, #05060e 100%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    text-align: center;
+    padding: 20px;
+  }
+  #noUserOverlay.show { display: flex; }
+  #noUserOverlay h2 {
+    font-size: 26px; font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #e8ecf5;
+  }
+  #noUserOverlay p {
+    font-size: 14px; color: #8ea3c8;
+    max-width: 400px; line-height: 1.6;
+  }
+  #noUserOverlay .back-btn { padding: 12px 24px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- Background stars -->
+<div class="stars" id="stars"></div>
+<div class="bg-glow" style="width:400px;height:400px;top:15%;left:10%;"></div>
+<div class="bg-glow" style="width:500px;height:500px;bottom:20%;right:10%;animation-delay:3s;"></div>
+
+<!-- Loading -->
+<div id="loadOverlay">
+  <div class="load-spinner"></div>
+  <div class="load-text">Connecting to realm…</div>
+</div>
+
+<!-- No user -->
+<div id="noUserOverlay">
+  <h2>No Realm Found</h2>
+  <p>We couldn't find your realm. Please log in on the main game first, then come back to spin for cards.</p>
+  <a href="../" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Go to Main
+  </a>
+</div>
+
+<!-- Topbar -->
+<div id="topbar">
+  <a href="../" class="back-btn" title="Back to main game">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back
+  </a>
+  <div class="spin-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#a87ee0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 3 L12 6 M12 18 L12 21 M3 12 L6 12 M18 12 L21 12 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M5.6 18.4 L7.8 16.2 M16.2 7.8 L18.4 5.6"/>
+    </svg>
+    <span>SPIN THE <span class="accent">REALM</span></span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="hwid-chip" id="hwidChip">
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>
+    <span id="hwidChipText">—</span>
+  </div>
+  <div class="gem-display" id="gemDisplay">
+    <svg class="gem-icon" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="gemGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#e0c4ff"/>
+          <stop offset="50%" stop-color="#a87ee0"/>
+          <stop offset="100%" stop-color="#5a2a9a"/>
+        </linearGradient>
+      </defs>
+      <path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z" fill="url(#gemGrad)" stroke="#3a1a6a" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M6 3 L12 9 L18 3 M2 9 L12 9 L22 9 M12 9 L12 22" stroke="#3a1a6a" stroke-width="1" fill="none" opacity="0.5"/>
+    </svg>
+    <span id="gemCount">0</span>
+  </div>
+</div>
+
+<!-- Main stage -->
+<div id="mainArea">
+  <div class="spin-stage">
+    <div class="card-showcase" id="cardShowcase">
+      <div class="spin-card idle" id="mainCard">
+        <svg class="card-back-icon" viewBox="0 0 110 110">
+          <defs>
+            <linearGradient id="cardBackGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#a87ee0"/>
+              <stop offset="100%" stop-color="#5a2a9a"/>
+            </linearGradient>
+          </defs>
+          <circle cx="55" cy="55" r="45" fill="none" stroke="url(#cardBackGrad)" stroke-width="2" stroke-dasharray="8 6" opacity="0.7"/>
+          <path d="M35 65 L42 45 L50 55 L55 38 L60 55 L68 45 L75 65 Z" fill="url(#cardBackGrad)" stroke="#2a1550" stroke-width="1.5" stroke-linejoin="round"/>
+          <rect x="35" y="65" width="40" height="6" rx="2" fill="url(#cardBackGrad)" stroke="#2a1550" stroke-width="1"/>
+        </svg>
+        <div class="card-back-text">Ready to Spin</div>
+      </div>
+    </div>
+
+    <div class="free-spin-banner" id="freeSpinBanner">
+      ⚡ FREE SPIN! Spin again for free
+    </div>
+
+    <div class="spin-btn-wrap">
+      <button class="spin-btn" id="spinBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+        </svg>
+        <span id="spinBtnText">SPIN</span>
+        <span class="spin-cost">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z" fill="#a87ee0" stroke="#3a1a6a" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span id="spinCostVal">5</span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Collection -->
+<div id="collection">
+  <div class="coll-head">
+    <div class="coll-title">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#a87ee0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+      </svg>
+      Your Collection
+      <span class="coll-count" id="collCount">0</span>
+    </div>
+    <div class="coll-filters" id="collFilters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="common">C</button>
+      <button class="filter-btn" data-filter="uncommon">UC</button>
+      <button class="filter-btn" data-filter="rare">R</button>
+      <button class="filter-btn" data-filter="epic">E</button>
+      <button class="filter-btn" data-filter="legendary">L</button>
+      <button class="filter-btn" data-filter="mythic">M</button>
+    </div>
+  </div>
+  <div class="coll-body" id="collBody">
+    <div class="empty-coll">No cards yet — spin to collect!</div>
+  </div>
+</div>
+
+<!-- Result Overlay -->
+<div id="resultOverlay">
+  <div class="result-box">
+    <div class="result-headline" id="resultHeadline">—</div>
+    <div class="card-showcase" id="resultCardWrap"></div>
+    <div class="result-actions">
+      <button class="result-btn primary" id="resultAgain">Spin Again</button>
+      <button class="result-btn secondary" id="resultClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="confetti-layer" id="confettiLayer"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, get, set, update, onValue, push }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCy7BHQ04daaUViCJZ6q4MQjPgI_lztLnk",
+  authDomain: "build-realm.firebaseapp.com",
+  projectId: "build-realm",
+  storageBucket: "build-realm.firebasestorage.app",
+  messagingSenderId: "178474064555",
+  appId: "1:178474064564:web:bc88c8cb41c5b3bbd5b5ee",
+  measurementId: "G-QX9MPZ75FH",
+  databaseURL: "https://build-realm-default-rtdb.europe-west1.firebasedatabase.app/"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window.__SPIN_db = db;
+window.__SPIN_fns = { ref, get, set, update, onValue, push };
+window.dispatchEvent(new Event('spin-firebase-ready'));
+</script>
+
+<script>
+/* =========================================================
+   SPIN THE REALM — v1
+   Card pulling system with rarities + effects
+   ========================================================= */
+
+/* ============ RARITIES ============ */
+// Reihenfolge wichtig für Filter/Sortierung
+const RARITIES = {
+  common:    { id: 'common',    name: 'Common',    color: '#8a9380', glow: '#8a9380', order: 1, chance: 40.0 },
+  uncommon:  { id: 'uncommon',  name: 'Uncommon',  color: '#4ec9a0', glow: '#4ec9a0', order: 2, chance: 30.0 },
+  rare:      { id: 'rare',      name: 'Rare',      color: '#4a9eff', glow: '#4a9eff', order: 3, chance: 20.0 },
+  epic:      { id: 'epic',      name: 'Epic',      color: '#b366ff', glow: '#b366ff', order: 4, chance: 5.0 },
+  legendary: { id: 'legendary', name: 'Legendary', color: '#ffd700', glow: '#ffd700', order: 5, chance: 1.0 },
+  mythic:    { id: 'mythic',    name: 'Mythic',    color: '#ff3a3a', glow: '#ff3a3a', order: 6, chance: 0.5 },
+  spinAgain: { id: 'spinAgain', name: 'Free Spin', color: '#4caf50', glow: '#4caf50', order: 0, chance: 4.5 }
+};
+// Summe = 40+30+20+5+1+0.5+4.5 = 101% — wir nehmen letzten Rest als Fallback Common
+
+/* ============ SPIN CONFIG ============ */
+const SPIN_COST = 5; // Juwelen pro Spin
+
+/* ============ SOLDIER NAMES PRO RARITY ============ */
+// Jeder Eintrag: { name, type } wobei type = soldier/archer/spearman/tank/elite
+const CARD_POOL = {
+  common: [
+    { name: 'Footman',       type: 'soldier' },
+    { name: 'Militia',       type: 'soldier' },
+    { name: 'Recruit',       type: 'soldier' },
+    { name: 'Peasant',       type: 'soldier' },
+    { name: 'Hunter',        type: 'archer' },
+    { name: 'Villager',      type: 'soldier' },
+    { name: 'Scout',         type: 'archer' },
+    { name: 'Town Guard',    type: 'soldier' }
+  ],
+  uncommon: [
+    { name: 'Swordsman',     type: 'soldier' },
+    { name: 'Bowman',        type: 'archer' },
+    { name: 'Pikeman',       type: 'spearman' },
+    { name: 'Sentry',        type: 'soldier' },
+    { name: 'Ranger',        type: 'archer' },
+    { name: 'Squire',        type: 'soldier' },
+    { name: 'Lancer',        type: 'spearman' },
+    { name: 'Sharpshooter',  type: 'archer' }
+  ],
+  rare: [
+    { name: 'Knight',        type: 'soldier' },
+    { name: 'Marksman',      type: 'archer' },
+    { name: 'Halberdier',    type: 'spearman' },
+    { name: 'Vanguard',      type: 'soldier' },
+    { name: 'Longbowman',    type: 'archer' },
+    { name: 'Champion',      type: 'soldier' },
+    { name: 'Lancer Elite',  type: 'spearman' },
+    { name: 'Armored Tank',  type: 'tank' }
+  ],
+  epic: [
+    { name: 'Paladin',       type: 'elite' },
+    { name: 'Sharpeye',      type: 'archer' },
+    { name: 'Warlord',       type: 'soldier' },
+    { name: 'Iron Guard',    type: 'tank' },
+    { name: 'Sniper',        type: 'archer' },
+    { name: 'Berserker',     type: 'elite' },
+    { name: 'Dragoon',       type: 'spearman' }
+  ],
+  legendary: [
+    { name: 'Grand Marshal', type: 'elite' },
+    { name: 'Dragon Archer', type: 'archer' },
+    { name: 'Titan',         type: 'tank' },
+    { name: 'Death Knight',  type: 'elite' },
+    { name: 'Storm Shooter', type: 'archer' }
+  ],
+  mythic: [
+    { name: 'Void Reaper',   type: 'elite' },
+    { name: 'Celestial',     type: 'archer' },
+    { name: 'Colossus',      type: 'tank' },
+    { name: 'Godslayer',     type: 'elite' }
+  ]
+};
+
+/* ============ STATE ============ */
+let hwid = null;
+let gems = 0;
+let cardsCollection = {}; // { cardId: { count, rarity, type, name } }
+let currentFilter = 'all';
+let spinning = false;
+let freeSpinAvailable = false;
+
+/* ============ UNIQUE CARD ID ============ */
+function cardId(rarity, type, name) {
+  return `${rarity}::${type}::${name}`.toLowerCase().replace(/[^a-z0-9:]/g, '_');
+}
+
+/* ============ SVG SPRITES für jede Unit — nach Seltenheit verschönert ============ */
+function unitSVG(type, rarity) {
+  const r = rarity || 'common';
+  // Farben nach rarity
+  const palettes = {
+    common:    { main: '#8a9380', dark: '#4a5040', accent: '#a8b0a0' },
+    uncommon:  { main: '#4ec9a0', dark: '#1e6a50', accent: '#7fefc4' },
+    rare:      { main: '#4a9eff', dark: '#1e4a8a', accent: '#7dc0ff' },
+    epic:      { main: '#b366ff', dark: '#5a2a8a', accent: '#d4a6ff' },
+    legendary: { main: '#ffd700', dark: '#8a6a00', accent: '#fff0a0' },
+    mythic:    { main: '#ff3a3a', dark: '#8a0000', accent: '#ff9999' }
+  };
+  const p = palettes[r] || palettes.common;
+  const glow = r === 'legendary' || r === 'mythic';
+
+  if (type === 'archer') {
+    return `<svg viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="glow-${r}-archer" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-archer)"/>` : ''}
+      <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
+      <!-- Legs -->
+      <rect x="42" y="70" width="6" height="18" fill="${p.dark}"/>
+      <rect x="52" y="70" width="6" height="18" fill="${p.dark}"/>
+      <!-- Body -->
+      <path d="M35 40 Q50 34 65 40 L65 72 Q50 76 35 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+      <!-- Belt -->
+      <rect x="35" y="60" width="30" height="4" fill="${p.dark}" opacity="0.7"/>
+      <!-- Shoulders -->
+      <ellipse cx="32" cy="45" rx="6" ry="5" fill="${p.dark}"/>
+      <ellipse cx="68" cy="45" rx="6" ry="5" fill="${p.dark}"/>
+      <!-- Head -->
+      <circle cx="50" cy="30" r="12" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+      <!-- Hood -->
+      <path d="M36 30 Q50 12 64 30 L64 26 Q50 8 36 26 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <!-- Eyes -->
+      <rect x="44" y="28" width="4" height="2" fill="#1a1a1a"/>
+      <rect x="52" y="28" width="4" height="2" fill="#1a1a1a"/>
+      <!-- Bow -->
+      <path d="M75 30 Q92 55 75 80" stroke="${p.accent}" stroke-width="3" fill="none"/>
+      <line x1="75" y1="30" x2="75" y2="80" stroke="#e8e8e8" stroke-width="1"/>
+      <line x1="75" y1="55" x2="60" y2="55" stroke="#8d6e63" stroke-width="2"/>
+      ${glow ? `<path d="M75 30 Q92 55 75 80" stroke="${p.accent}" stroke-width="6" fill="none" opacity="0.4" filter="blur(3px)"/>` : ''}
+    </svg>`;
+  }
+
+  if (type === 'spearman') {
+    return `<svg viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="glow-${r}-spear" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-spear)"/>` : ''}
+      <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
+      <rect x="42" y="70" width="6" height="18" fill="${p.dark}"/>
+      <rect x="52" y="70" width="6" height="18" fill="${p.dark}"/>
+      <path d="M35 40 Q50 34 65 40 L65 72 Q50 76 35 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+      <rect x="35" y="60" width="30" height="4" fill="${p.dark}" opacity="0.7"/>
+      <ellipse cx="32" cy="45" rx="6" ry="5" fill="${p.dark}"/>
+      <ellipse cx="68" cy="45" rx="6" ry="5" fill="${p.dark}"/>
+      <circle cx="50" cy="30" r="12" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+      <!-- Helmet with plume -->
+      <path d="M36 26 Q50 12 64 26 L64 22 Q50 6 36 22 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <rect x="48" y="10" width="4" height="10" fill="${p.dark}"/>
+      <circle cx="50" cy="8" r="3" fill="${p.accent}"/>
+      <rect x="44" y="28" width="4" height="2" fill="#1a1a1a"/>
+      <rect x="52" y="28" width="4" height="2" fill="#1a1a1a"/>
+      <!-- Spear -->
+      <rect x="72" y="10" width="4" height="82" fill="#8d6e63" stroke="${p.dark}" stroke-width="1"/>
+      <path d="M74 2 L84 18 L74 22 L64 18 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <line x1="74" y1="4" x2="74" y2="20" stroke="#fff" stroke-width="0.5" opacity="0.6"/>
+      ${glow ? `<path d="M74 2 L84 18 L74 22 L64 18 Z" fill="${p.accent}" opacity="0.5" filter="blur(3px)"/>` : ''}
+    </svg>`;
+  }
+
+  if (type === 'tank') {
+    return `<svg viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="glow-${r}-tank" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-tank)"/>` : ''}
+      <ellipse cx="50" cy="92" rx="30" ry="5" fill="rgba(0,0,0,0.4)"/>
+      <!-- Legs armored -->
+      <rect x="38" y="68" width="10" height="22" fill="${p.dark}" rx="2"/>
+      <rect x="52" y="68" width="10" height="22" fill="${p.dark}" rx="2"/>
+      <!-- Heavy body -->
+      <path d="M28 36 Q50 30 72 36 L72 72 Q50 78 28 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2.5"/>
+      <!-- Chest plate -->
+      <path d="M35 42 L65 42 L65 58 L35 58 Z" fill="${p.dark}" opacity="0.5"/>
+      <!-- Shoulders huge -->
+      <ellipse cx="24" cy="42" rx="10" ry="8" fill="${p.dark}"/>
+      <ellipse cx="76" cy="42" rx="10" ry="8" fill="${p.dark}"/>
+      <ellipse cx="24" cy="42" rx="6" ry="5" fill="${p.accent}" opacity="0.6"/>
+      <ellipse cx="76" cy="42" rx="6" ry="5" fill="${p.accent}" opacity="0.6"/>
+      <!-- Head with great helm -->
+      <rect x="38" y="16" width="24" height="22" rx="4" fill="${p.main}" stroke="${p.dark}" stroke-width="2.5"/>
+      <!-- Visor slits -->
+      <rect x="42" y="26" width="4" height="2" fill="#1a1a1a"/>
+      <rect x="46" y="26" width="4" height="2" fill="#1a1a1a"/>
+      <rect x="50" y="26" width="4" height="2" fill="#1a1a1a"/>
+      <rect x="54" y="26" width="4" height="2" fill="#1a1a1a"/>
+      <!-- Crest -->
+      <path d="M50 8 Q58 12 50 16 Q42 12 50 8 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <!-- Mace in hand -->
+      <rect x="80" y="55" width="3" height="30" fill="#5d4037"/>
+      <circle cx="81.5" cy="52" r="7" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      ${glow ? `<circle cx="81.5" cy="52" r="12" fill="${p.accent}" opacity="0.4" filter="blur(4px)"/>` : ''}
+    </svg>`;
+  }
+
+  if (type === 'elite') {
+    return `<svg viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="glow-${r}-elite" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.7"/>
+          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      ${glow ? `<circle cx="50" cy="55" r="48" fill="url(#glow-${r}-elite)"/>` : ''}
+      <ellipse cx="50" cy="92" rx="28" ry="4" fill="rgba(0,0,0,0.5)"/>
+      <!-- Legs -->
+      <rect x="42" y="68" width="6" height="20" fill="${p.dark}"/>
+      <rect x="52" y="68" width="6" height="20" fill="${p.dark}"/>
+      <!-- Body -->
+      <path d="M33 38 Q50 32 67 38 L67 74 Q50 78 33 74 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2.5"/>
+      <!-- Gold chest -->
+      <path d="M38 48 L62 48 L58 62 L42 62 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
+      <!-- Shoulders -->
+      <path d="M28 42 Q24 34 32 32 Q36 34 34 42 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <path d="M72 42 Q76 34 68 32 Q64 34 66 42 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <!-- Head -->
+      <circle cx="50" cy="28" r="11" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+      <!-- Ornate helm -->
+      <path d="M36 26 Q50 8 64 26 L64 20 Q50 2 36 20 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+      <circle cx="50" cy="16" r="3" fill="${p.main}" stroke="${p.dark}" stroke-width="1"/>
+      <!-- Feathers -->
+      <path d="M50 12 Q56 4 62 10 Q56 8 50 12 Z" fill="${p.accent}"/>
+      <path d="M50 12 Q44 4 38 10 Q44 8 50 12 Z" fill="${p.accent}"/>
+      <!-- Eyes glow -->
+      <rect x="44" y="26" width="4" height="2" fill="#fff"/>
+      <rect x="52" y="26" width="4" height="2" fill="#fff"/>
+      <!-- Sword -->
+      <rect x="72" y="30" width="3" height="55" fill="#e8e8e8" stroke="${p.dark}" stroke-width="1"/>
+      <rect x="68" y="44" width="11" height="3" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
+      <path d="M73.5 22 L79 30 L73.5 34 L68 30 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
+      <!-- Shield -->
+      <path d="M16 44 Q12 44 12 52 L12 70 Q16 76 22 74 L22 44 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="2"/>
+      <circle cx="17" cy="55" r="4" fill="${p.main}" stroke="${p.dark}" stroke-width="1"/>
+      ${glow ? `<circle cx="17" cy="55" r="8" fill="${p.accent}" opacity="0.5" filter="blur(3px)"/>` : ''}
+    </svg>`;
+  }
+
+  // Default: soldier
+  return `<svg viewBox="0 0 100 100">
+    <defs>
+      <radialGradient id="glow-${r}-sol" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-sol)"/>` : ''}
+    <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
+    <!-- Legs -->
+    <rect x="42" y="68" width="6" height="20" fill="${p.dark}"/>
+    <rect x="52" y="68" width="6" height="20" fill="${p.dark}"/>
+    <!-- Body -->
+    <path d="M35 40 Q50 34 65 40 L65 72 Q50 76 35 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+    <rect x="35" y="60" width="30" height="4" fill="${p.dark}" opacity="0.7"/>
+    <!-- Shoulders -->
+    <ellipse cx="32" cy="45" rx="6" ry="5" fill="${p.dark}"/>
+    <ellipse cx="68" cy="45" rx="6" ry="5" fill="${p.dark}"/>
+    <!-- Head -->
+    <circle cx="50" cy="30" r="12" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
+    <!-- Helmet -->
+    <path d="M36 28 Q50 14 64 28 L64 24 Q50 10 36 24 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
+    <rect x="48" y="16" width="4" height="6" fill="${p.dark}"/>
+    <!-- Eyes -->
+    <rect x="44" y="28" width="4" height="2" fill="#1a1a1a"/>
+    <rect x="52" y="28" width="4" height="2" fill="#1a1a1a"/>
+    <!-- Sword & Shield -->
+    <rect x="72" y="38" width="3" height="40" fill="#e8e8e8" stroke="${p.dark}" stroke-width="1"/>
+    <path d="M73.5 32 L79 42 L73.5 46 L68 42 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
+    <path d="M18 46 Q14 46 14 54 L14 68 Q18 74 22 72 L22 46 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="2"/>
+    <circle cx="18" cy="54" r="3" fill="${p.main}" stroke="${p.dark}" stroke-width="0.8"/>
+    ${glow ? `<circle cx="50" cy="30" r="20" fill="${p.accent}" opacity="0.35" filter="blur(4px)"/>` : ''}
+  </svg>`;
+}
+
+/* ============ FIREBASE READY + INIT ============ */
+function whenFirebaseReady(cb) {
+  if (window.__SPIN_db) { cb(); return; }
+  window.addEventListener('spin-firebase-ready', cb, { once: true });
+}
+
+whenFirebaseReady(() => {
+  const db = window.__SPIN_db;
+  const { ref, get } = window.__SPIN_fns;
+
+  // Suche User anhand verfügbarer saves
+  // Da wir im spins-Ordner sind und keinen Login haben, versuchen wir:
+  // 1. localStorage "br_last_hwid" (falls main game das setzt)
+  // 2. Sonst: alle saves durchsuchen und fragen welcher der aktuelle ist
+
+  const storedHwid = localStorage.getItem('br_last_hwid');
+
+  (async () => {
+    let foundHwid = null;
+
+    if (storedHwid) {
+      try {
+        const snap = await get(ref(db, 'saves/' + storedHwid));
+        if (snap.exists()) foundHwid = storedHwid;
+      } catch(e) {}
+    }
+
+    // Fallback: Wenn main game setzt — nutzen wir HWID
+    // Sonst probieren wir die letzte gespeicherte HWID aus localStorage
+    if (!foundHwid) {
+      // Versuchen wir die zuletzt gespeicherte HWID
+      const lastHwid = localStorage.getItem('br_hwid');
+      if (lastHwid) {
+        try {
+          const snap = await get(ref(db, 'saves/' + lastHwid));
+          if (snap.exists()) foundHwid = lastHwid;
+        } catch(e) {}
+      }
+    }
+
+    if (!foundHwid) {
+      document.getElementById('loadOverlay').classList.add('hidden');
+      document.getElementById('noUserOverlay').classList.add('show');
+      return;
+    }
+
+    hwid = foundHwid;
+    await initUserData();
+  })();
+});
+
+async function initUserData() {
+  const db = window.__SPIN_db;
+  const { ref, get } = window.__SPIN_fns;
+
+  try {
+    // Lade User-Daten
+    const snap = await get(ref(db, 'saves/' + hwid));
+    if (!snap.exists()) {
+      document.getElementById('loadOverlay').classList.add('hidden');
+      document.getElementById('noUserOverlay').classList.add('show');
+      return;
+    }
+    const data = snap.val();
+    gems = data.gems != null ? Number(data.gems) : 0;
+    cardsCollection = data.cards || {};
+
+    // Zeige HWID chip
+    document.getElementById('hwidChipText').textContent = hwid.slice(0, 16) + '…';
+    document.getElementById('hwidChip').classList.add('show');
+
+    // Falls user keine gems hat, initial 25 geben (nur beim allerersten Mal)
+    if (data.gems == null && data.cards == null) {
+      gems = 25;
+      await update(ref(db, 'saves/' + hwid), { gems: 25, cards: {} });
+      cardsCollection = {};
+    }
+
+    updateGemDisplay();
+    renderCollection();
+    document.getElementById('loadOverlay').classList.add('hidden');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('loadOverlay').classList.add('hidden');
+    document.getElementById('noUserOverlay').classList.add('show');
+  }
+}
+
+/* ============ GEM DISPLAY ============ */
+function updateGemDisplay(bump) {
+  const el = document.getElementById('gemCount');
+  el.textContent = gems.toLocaleString('en-US');
+  if (bump) {
+    const box = document.getElementById('gemDisplay');
+    box.classList.remove('bump');
+    void box.offsetWidth;
+    box.classList.add('bump');
+  }
+}
+
+/* ============ SPIN LOGIC ============ */
+function rollRarity() {
+  const roll = Math.random() * 100;
+  let cumulative = 0;
+  // Order: common (40), uncommon (30), rare (20), epic (5), legendary (1), mythic (0.5), spinAgain (4.5)
+  const order = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'spinAgain'];
+  for (const r of order) {
+    cumulative += RARITIES[r].chance;
+    if (roll < cumulative) return r;
+  }
+  return 'common';
+}
+
+function pickCard(rarity) {
+  const pool = CARD_POOL[rarity];
+  if (!pool || pool.length === 0) return null;
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+  return { rarity, type: picked.type, name: picked.name };
+}
+
+/* ============ SPIN ACTION ============ */
+async function doSpin() {
+  if (spinning) return;
+  if (!freeSpinAvailable && gems < SPIN_COST) {
+    notify('Not enough gems!', true);
+    return;
+  }
+  spinning = true;
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = true;
+
+  // Kosten abziehen (außer free spin)
+  if (!freeSpinAvailable) {
+    gems -= SPIN_COST;
+    updateGemDisplay(true);
+    try {
+      await update(ref(window.__SPIN_db, 'saves/' + hwid), { gems: gems });
+    } catch(e) {}
+  } else {
+    freeSpinAvailable = false;
+    document.getElementById('freeSpinBanner').classList.remove('show');
+  }
+
+  // Karten-Animation: Karte wegflippen
+  const card = document.getElementById('mainCard');
+  card.classList.add('flipping');
+
+  // Roll die Rarity
+  const rarity = rollRarity();
+
+  // Nach 600ms: Ergebnis zeigen
+  setTimeout(async () => {
+    card.classList.remove('flipping');
+
+    if (rarity === 'spinAgain') {
+      // Free spin — kein Card-Ergebnis, aber Belohnung zeigen
+      freeSpinAvailable = true;
+      document.getElementById('freeSpinBanner').classList.add('show');
+      // Konfetti
+      spawnConfetti(20, '#4caf50');
+      notify('⚡ FREE SPIN! Spin again for free', false, true);
+      // Re-Enable button
+      spinning = false;
+      btn.disabled = false;
+      updateSpinButton();
+      return;
+    }
+
+    const pulled = pickCard(rarity);
+    if (!pulled) { spinning = false; btn.disabled = false; return; }
+
+    // Zeige Ergebnis im Overlay
+    showResult(pulled);
+
+    // Speichere in Firebase
+    const key = cardId(pulled.rarity, pulled.type, pulled.name);
+    if (!cardsCollection[key]) {
+      cardsCollection[key] = { rarity: pulled.rarity, type: pulled.type, name: pulled.name, count: 0 };
+    }
+    cardsCollection[key].count = (cardsCollection[key].count || 0) + 1;
+
+    try {
+      await update(ref(window.__SPIN_db, 'saves/' + hwid + '/cards/' + key), {
+        rarity: pulled.rarity, type: pulled.type, name: pulled.name, count: cardsCollection[key].count
+      });
+    } catch(e) { console.error(e); }
+
+    renderCollection();
+    updateCollectionCount();
+
+    // Re-enable
+    spinning = false;
+    btn.disabled = false;
+    updateSpinButton();
+  }, 600);
+}
+
+function updateSpinButton() {
+  const btn = document.getElementById('spinBtn');
+  const cost = document.getElementById('spinCostVal');
+  const text = document.getElementById('spinBtnText');
+  if (freeSpinAvailable) {
+    text.textContent = 'FREE SPIN';
+    cost.parentElement.style.display = 'none';
+    btn.disabled = false;
+  } else {
+    text.textContent = 'SPIN';
+    cost.parentElement.style.display = '';
+    cost.textContent = SPIN_COST;
+    btn.disabled = gems < SPIN_COST || spinning;
+  }
+}
+
+/* ============ RESULT OVERLAY ============ */
+function showResult(pulled) {
+  const overlay = document.getElementById('resultOverlay');
+  const headline = document.getElementById('resultHeadline');
+  const cardWrap = document.getElementById('resultCardWrap');
+
+  const rar = RARITIES[pulled.rarity];
+  headline.textContent = `${rar.name} Pull!`;
+  headline.className = 'result-headline ' + pulled.rarity;
+
+  // Karte rendern
+  cardWrap.innerHTML = renderFullCard(pulled);
+
+  overlay.classList.add('show');
+
+  // Effekte je nach rarity
+  if (pulled.rarity === 'legendary' || pulled.rarity === 'mythic') {
+    // Screenshake
+    document.body.classList.add('shake');
+    setTimeout(() => document.body.classList.remove('shake'), 600);
+    // Viele Konfetti
+    spawnConfetti(pulled.rarity === 'mythic' ? 150 : 100, rar.color);
+  } else if (pulled.rarity === 'epic') {
+    spawnConfetti(60, rar.color);
+  } else if (pulled.rarity === 'rare') {
+    spawnConfetti(30, rar.color);
+  } else if (pulled.rarity === 'uncommon') {
+    spawnConfetti(15, rar.color);
+  }
+}
+
+function renderFullCard(pulled) {
+  const rar = RARITIES[pulled.rarity];
+  const stats = getCardStats(pulled.rarity, pulled.type);
+  const rainbow = pulled.rarity === 'legendary' || pulled.rarity === 'mythic';
+  return `
+    <div class="spin-card ${pulled.rarity}" style="position:relative;">
+      ${rainbow ? '<div class="rainbow-ring"></div>' : ''}
+      <div class="card-content">
+        <div class="card-unit-frame">${unitSVG(pulled.type, pulled.rarity)}</div>
+        <div class="card-name" style="color:${rar.color};">${escapeHtml(pulled.name)}</div>
+        <div class="card-rarity ${pulled.rarity}">${rar.name}</div>
+        <div class="card-type">${pulled.type}</div>
+        <div class="card-stats">
+          <div class="st">
+            <svg viewBox="0 0 24 24" fill="#e53935"><path d="M12 21s-7-4-7-10V5l7-3 7 3v6c0 6-7 10-7 10z"/></svg>
+            ${stats.hp}
+          </div>
+          <div class="st">
+            <svg viewBox="0 0 24 24" fill="#ffb300"><path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6"/></svg>
+            ${stats.damage}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMiniCard(card) {
+  const rar = RARITIES[card.rarity];
+  return `
+    <div class="mini-card ${card.rarity}" data-key="${cardId(card.rarity, card.type, card.name)}">
+      ${card.count > 1 ? `<div class="mc-count">×${card.count}</div>` : ''}
+      <div class="mc-icon">${unitSVG(card.type, card.rarity)}</div>
+      <div class="mc-name" style="color:${rar.color};">${escapeHtml(card.name)}</div>
+    </div>
+  `;
+}
+
+/* ============ COLLECTION RENDER ============ */
+function renderCollection() {
+  const body = document.getElementById('collBody');
+  const entries = Object.entries(cardsCollection);
+  if (entries.length === 0) {
+    body.innerHTML = '<div class="empty-coll">No cards yet — spin to collect!</div>';
+    updateCollectionCount();
+    return;
+  }
+  // Sortiere nach rarity order desc dann name
+  entries.sort((a, b) => {
+    const ra = RARITIES[a[1].rarity]?.order || 0;
+    const rb = RARITIES[b[1].rarity]?.order || 0;
+    if (rb !== ra) return rb - ra;
+    return (a[1].name || '').localeCompare(b[1].name || '');
+  });
+  const filtered = currentFilter === 'all'
+    ? entries
+    : entries.filter(([k, v]) => v.rarity === currentFilter);
+
+  if (filtered.length === 0) {
+    body.innerHTML = '<div class="empty-coll">No cards in this filter.</div>';
+    updateCollectionCount();
+    return;
+  }
+
+  body.innerHTML = filtered.map(([k, v]) => renderMiniCard(v)).join('');
+  // Click handlers → show detail
+  body.querySelectorAll('.mini-card').forEach(el => {
+    el.onclick = () => {
+      const key = el.dataset.key;
+      const card = cardsCollection[key];
+      if (!card) return;
+      // Zeige Detail als Result-Overlay ohne Konfetti
+      showCardDetail(card);
+    };
+  });
+  updateCollectionCount();
+}
+
+function showCardDetail(card) {
+  const overlay = document.getElementById('resultOverlay');
+  const headline = document.getElementById('resultHeadline');
+  const cardWrap = document.getElementById('resultCardWrap');
+  const rar = RARITIES[card.rarity];
+  headline.textContent = `${rar.name} — ${card.count}×`;
+  headline.className = 'result-headline ' + card.rarity;
+  cardWrap.innerHTML = renderFullCard(card);
+  overlay.classList.add('show');
+}
+
+function updateCollectionCount() {
+  const total = Object.values(cardsCollection).reduce((sum, c) => sum + (c.count || 0), 0);
+  const unique = Object.keys(cardsCollection).length;
+  document.getElementById('collCount').textContent = `${unique} unique · ${total} total`;
+}
+
+/* ============ CARD STATS ============ */
+function getCardStats(rarity, type) {
+  // Basis Stats pro Type
+  const base = {
+    soldier:  { hp: 100, damage: 8 },
+    archer:   { hp: 70,  damage: 14 },
+    spearman: { hp: 90,  damage: 12 },
+    tank:     { hp: 300, damage: 10 },
+    elite:    { hp: 220, damage: 18 }
+  }[type] || { hp: 100, damage: 8 };
+
+  // Rarity multiplikator
+  const mult = {
+    common: 1.0, uncommon: 1.3, rare: 1.7,
+    epic: 2.3, legendary: 3.2, mythic: 4.5
+  }[rarity] || 1.0;
+
+  return {
+    hp: Math.round(base.hp * mult),
+    damage: Math.round(base.damage * mult)
+  };
+}
+
+/* ============ CONFETTI ============ */
+function spawnConfetti(count, baseColor) {
+  const layer = document.getElementById('confettiLayer');
+  const colors = baseColor
+    ? [baseColor, '#fff', baseColor, lighten(baseColor, 30)]
+    : ['#ff3a3a', '#ffd700', '#4a9eff', '#b366ff', '#4ec9a0', '#fff'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.top = '-20px';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.width = (6 + Math.random() * 8) + 'px';
+    el.style.height = (6 + Math.random() * 8) + 'px';
+    el.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+    const dur = 2 + Math.random() * 2;
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (Math.random() * 0.5) + 's';
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), (dur + 1) * 1000);
+  }
+}
+function lighten(hex, amt) {
+  const n = parseInt(hex.replace('#',''), 16);
+  let r = Math.min(255, (n >> 16) + amt);
+  let g = Math.min(255, ((n >> 8) & 0xff) + amt);
+  let b = Math.min(255, (n & 0xff) + amt);
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+}
+
+/* ============ NOTIFY ============ */
+function notify(msg, bad, good) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = `
+    position:fixed;top:76px;left:50%;transform:translateX(-50%);
+    background:${bad ? 'linear-gradient(135deg,#c62828,#e53935)' : good ? 'linear-gradient(135deg,#2e7d32,#4caf50)' : 'linear-gradient(135deg,#5a2a9a,#7c4dbb)'};
+    color:#fff;padding:12px 24px;border-radius:12px;
+    font-size:14px;font-weight:800;letter-spacing:1px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.5);
+    z-index:500;animation:overlayFade 0.3s ease;
+    text-transform:uppercase;
+  `;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.4s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 400);
+  }, 2500);
+}
+
+/* ============ STARS BG ============ */
+(function makeStars() {
+  const wrap = document.getElementById('stars');
+  for (let i = 0; i < 100; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 3) + 's';
+    const sz = 1 + Math.random() * 2;
+    s.style.width = sz + 'px';
+    s.style.height = sz + 'px';
+    wrap.appendChild(s);
+  }
+})();
+
+/* ============ EVENT HANDLERS ============ */
+document.getElementById('spinBtn').onclick = () => doSpin();
+
+document.getElementById('resultClose').onclick = () => {
+  document.getElementById('resultOverlay').classList.remove('show');
+};
+document.getElementById('resultAgain').onclick = () => {
+  document.getElementById('resultOverlay').classList.remove('show');
+  setTimeout(() => doSpin(), 200);
+};
+
+document.getElementById('resultOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'resultOverlay') {
+    e.target.classList.remove('show');
+  }
+});
+
+// Filter
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderCollection();
+  };
+});
+
+// Escape schließt Overlays
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('resultOverlay').classList.remove('show');
+  }
+});
+
+// Beim Laden: Button updaten sobald Daten da
+setTimeout(() => updateSpinButton(), 500);
+
+/* Helper */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+window.__SPIN = { doSpin, updateGemDisplay, renderCollection };
+</script>
+</body>
+</html>
