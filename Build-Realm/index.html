@@ -603,6 +603,23 @@
   .rp-ok-btn { background: linear-gradient(135deg, #ffb300, #e65100); color: #fff; border: none; padding: 14px 32px; border-radius: 10px; font-size: 14px; font-weight: 900; letter-spacing: 1px; cursor: pointer; margin-top: 10px; box-shadow: 0 8px 25px rgba(255,179,0,0.4); }
   .rp-ok-btn:hover { background: linear-gradient(135deg, #ffc233, #e65100); transform: translateY(-2px); }
 
+  /* SETTINGS MODAL */
+  #settingsModal { position: fixed !important; inset: 0 !important; z-index: 100000 !important; background: rgba(30,53,94,0.5); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 20px; }
+  #settingsModal.show { display: flex; }
+  .sm-box { background: #ffffff; border: 2px solid #bcd0ec; border-radius: 20px; padding: 28px 30px; width: min(440px, 92vw); box-shadow: 0 30px 90px rgba(40,70,120,0.35); }
+  .sm-title { font-size: 18px; font-weight: 900; color: #1e355e; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .sm-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e0e8f4; }
+  .sm-row:last-child { border-bottom: none; }
+  .sm-label { font-size: 13px; font-weight: 700; color: #26344e; }
+  .sm-label small { display: block; font-size: 11px; color: #6b7d99; font-weight: 500; margin-top: 2px; }
+  .sm-toggle { position: relative; width: 48px; height: 26px; background: #d3dded; border-radius: 13px; cursor: pointer; transition: background 0.2s; border: none; outline: none; flex-shrink: 0; }
+  .sm-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.2s; }
+  .sm-toggle.on { background: #4caf50; }
+  .sm-toggle.on::after { transform: translateX(22px); }
+  .sm-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .sm-actions .btn { flex: 1; justify-content: center; padding: 11px; font-size: 13px; }
+  .sm-close { background: #f2f6fc; border: 1px solid #d3dded; color: #6b7d99; }
+
   @media (max-width: 900px) {
     #rightPanel { width: 250px; }
     #bottombar { right: 250px; }
@@ -833,12 +850,6 @@
   </div>
 
   <div id="bottombar">
-    <button class="btn" id="btnZoomOut" title="Zoom out">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg>
-    </button>
-    <button class="btn" id="btnZoomIn" title="Zoom in">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg>
-    </button>
     <button class="btn" id="btnCenter" title="Center on my main building">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       Mine
@@ -849,10 +860,6 @@
       </svg>
       Soldiers
       <span class="soldier-count" id="soldierCountBadge" data-count="0">0</span>
-    </button>
-    <button class="btn" id="btnSellMode" title="Demolish mode">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M5 6l1 14h12l1-14M10 11v5M14 11v5"/></svg>
-      Sell
     </button>
     <button class="btn btn-attack" id="btnAttackMode" title="Attack enemy buildings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6 M16 16 l4 4"/></svg>
@@ -874,8 +881,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       Build
     </button>
+    <button class="btn btn-toggle" id="btnSettings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
     <div class="spacer"></div>
-    <span class="hint">Drag = Move · Wheel = Zoom · Q = Cancel</span>
+    <span class="hint">Drag = Move · Wheel = Zoom · E = Upgrade · Q = Cancel</span>
     <div class="spacer"></div>
     <a class="btn btn-spin" href="spins/" id="btnSpins" title="Spin for cards!">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -913,6 +924,26 @@
     </div>
   </div>
 
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal">
+    <div class="sm-box">
+      <div class="sm-title">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2f6fd0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </div>
+      <div class="sm-row">
+        <div class="sm-label">Rauch anzeigen<small>Zeigt Schornstein-Rauch bei Gebäuden</small></div>
+        <button class="sm-toggle on" id="smToggleSmoke"></button>
+      </div>
+      <div class="sm-row">
+        <div class="sm-label">Smooth<small>Weiche Animationen & Übergänge</small></div>
+        <button class="sm-toggle on" id="smToggleSmooth"></button>
+      </div>
+      <div class="sm-actions">
+        <button class="btn sm-close" id="smClose">Schließen</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="troopModal">
@@ -1080,11 +1111,40 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v31
-   Karten-System, Formation, Kampf-KI, Range, Spins-Link
+   BUILD A REALM — v32
+   Juwelen-Mine, Settings, Shortcuts, optimiertes UI
    ========================================================= */
 
-/* ============ SOLDIER RARITIES & TYPES (mirror from spins) ============ */
+/* ============ SETTINGS ============ */
+const settings = {
+  showSmoke: true,
+  smooth: true
+};
+function loadSettings() {
+  try {
+    const s = localStorage.getItem('br_settings');
+    if (s) Object.assign(settings, JSON.parse(s));
+  } catch(e) {}
+  applySettingsToUI();
+}
+function saveSettings() {
+  try { localStorage.setItem('br_settings', JSON.stringify(settings)); } catch(e) {}
+}
+function applySettingsToUI() {
+  const smokeBtn = document.getElementById('smToggleSmoke');
+  const smoothBtn = document.getElementById('smToggleSmooth');
+  if (smokeBtn) smokeBtn.classList.toggle('on', settings.showSmoke);
+  if (smoothBtn) smoothBtn.classList.toggle('on', settings.smooth);
+  // Smooth deaktiviert CSS-Transitions
+  if (!settings.smooth) {
+    document.documentElement.style.setProperty('--br-smooth', '0s');
+  } else {
+    document.documentElement.style.removeProperty('--br-smooth');
+  }
+}
+loadSettings();
+
+/* ============ SOLDIER RARITIES & TYPES ============ */
 const RARITIES = {
   common:    { id: 'common',    name: 'Common',    color: '#8a9380', order: 1, mult: 1.0 },
   uncommon:  { id: 'uncommon',  name: 'Uncommon',  color: '#4ec9a0', order: 2, mult: 1.3 },
@@ -1094,7 +1154,6 @@ const RARITIES = {
   mythic:    { id: 'mythic',    name: 'Mythic',    color: '#ff3a3a', order: 6, mult: 4.5 }
 };
 
-// Base-Stats pro Truppentyp
 const BASE_STATS = {
   soldier:  { hp: 100, damage: 8,  speed: 1.2, range: 30,  attackInterval: 1.0,  behavior: 'melee' },
   archer:   { hp: 70,  damage: 14, speed: 1.0, range: 350, attackInterval: 1.4,  behavior: 'ranged' },
@@ -1117,7 +1176,6 @@ function getCardStats(type, rarity, level) {
   };
 }
 
-/* ============ RARITY-based SVG (wie in spins) ============ */
 function rarityPalette(rarity) {
   return {
     common:    { main: '#8a9380', dark: '#4a5040', accent: '#a8b0a0' },
@@ -1134,11 +1192,7 @@ function drawCardSoldier(ctx, sx, sy, scale, facing, fighting, animTime, type, r
   let colorMain = pal.main;
   let colorDark = pal.dark;
   let colorAccent = pal.accent;
-  if (side === 'enemy') {
-    colorMain = '#c62828';
-    colorDark = '#7f0000';
-    colorAccent = '#ff8a80';
-  }
+  if (side === 'enemy') { colorMain = '#c62828'; colorDark = '#7f0000'; colorAccent = '#ff8a80'; }
   const glow = (rarity === 'legendary' || rarity === 'mythic');
   const bob = fighting ? Math.sin(animTime * 0.02) * 1.5 : Math.sin(animTime * 0.005) * 0.8;
   const swing = fighting ? Math.sin(animTime * 0.02) * 0.6 : 0;
@@ -1147,164 +1201,50 @@ function drawCardSoldier(ctx, sx, sy, scale, facing, fighting, animTime, type, r
   ctx.translate(sx, sy + bob);
   if (facing === 'left') ctx.scale(-1, 1);
   ctx.scale(scale, scale);
-
-  // Glow-Umriss bei legendary/mythic
-  if (glow) {
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = colorAccent;
-  }
-
-  // Shadow
+  if (glow) { ctx.shadowBlur = 12; ctx.shadowColor = colorAccent; }
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath();
-  ctx.ellipse(0, 14, 8, 2.5, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 14, 8, 2.5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.shadowBlur = 0;
-
-  // Legs
   ctx.fillStyle = colorDark;
-  if (type === 'tank') {
-    ctx.fillRect(-4.5, 8, 4, 6);
-    ctx.fillRect(0.5, 8, 4, 6);
-  } else {
-    ctx.fillRect(-3.5, 8, 3, 6);
-    ctx.fillRect(0.5, 8, 3, 6);
-  }
-
-  // Body
+  if (type === 'tank') { ctx.fillRect(-4.5, 8, 4, 6); ctx.fillRect(0.5, 8, 4, 6); }
+  else { ctx.fillRect(-3.5, 8, 3, 6); ctx.fillRect(0.5, 8, 3, 6); }
   ctx.fillStyle = colorMain;
   const bodyW = type === 'tank' ? 14 : type === 'elite' ? 11 : 10;
   const bodyH = type === 'tank' ? 12 : 10;
   ctx.fillRect(-bodyW/2, -2, bodyW, bodyH);
-  ctx.strokeStyle = colorDark;
-  ctx.lineWidth = 0.8;
+  ctx.strokeStyle = colorDark; ctx.lineWidth = 0.8;
   ctx.strokeRect(-bodyW/2, -2, bodyW, bodyH);
-
-  // Elite shoulder
-  if (type === 'elite') {
-    ctx.fillStyle = colorAccent;
-    ctx.fillRect(-bodyW/2 - 1, -1, 3, 3);
-    ctx.fillRect(bodyW/2 - 2, -1, 3, 3);
-  }
-
-  // Shoulders
+  if (type === 'elite') { ctx.fillStyle = colorAccent; ctx.fillRect(-bodyW/2 - 1, -1, 3, 3); ctx.fillRect(bodyW/2 - 2, -1, 3, 3); }
   ctx.fillStyle = colorDark;
   ctx.beginPath(); ctx.ellipse(-bodyW/2, 0, 2.5, 2, 0, 0, Math.PI*2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(bodyW/2, 0, 2.5, 2, 0, 0, Math.PI*2); ctx.fill();
-
-  // Head
-  ctx.fillStyle = colorMain;
-  ctx.fillRect(-3, -8, 6, 6);
-  ctx.strokeStyle = colorDark;
-  ctx.strokeRect(-3, -8, 6, 6);
-
-  // Helmet by type
-  if (type === 'archer') {
-    ctx.fillStyle = colorAccent;
-    ctx.beginPath();
-    ctx.moveTo(-3.5, -7);
-    ctx.lineTo(3.5, -7);
-    ctx.lineTo(0, -11);
-    ctx.closePath();
-    ctx.fill();
-  } else if (type === 'elite') {
-    ctx.fillStyle = colorAccent;
-    ctx.fillRect(-3.5, -8.5, 7, 3);
-    ctx.fillStyle = '#c62828';
-    ctx.fillRect(-1, -12, 2, 4);
-  } else if (type === 'tank') {
-    ctx.fillStyle = colorDark;
-    ctx.fillRect(-4, -9, 8, 4);
-  }
-
-  // Eyes
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(-2, -6, 1.5, 1.5);
-  ctx.fillRect(0.5, -6, 1.5, 1.5);
-
-  // Weapon by type
-  if (type === 'archer') {
-    ctx.strokeStyle = colorAccent;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(7, 0, 5, -Math.PI/2, Math.PI/2);
-    ctx.stroke();
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 0.4;
-    ctx.beginPath();
-    ctx.moveTo(7, -5);
-    ctx.lineTo(7, 5);
-    ctx.stroke();
-  } else if (type === 'spearman') {
-    ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(6, -8, 1.5, 20);
-    ctx.fillStyle = colorAccent;
-    ctx.beginPath();
-    ctx.moveTo(6.75, -12);
-    ctx.lineTo(7.5, -8);
-    ctx.lineTo(6, -8);
-    ctx.closePath();
-    ctx.fill();
-  } else if (type === 'tank') {
-    ctx.save();
-    ctx.translate(8, 2);
-    ctx.rotate(swing);
-    ctx.fillStyle = '#5d4037';
-    ctx.fillRect(-1, -2, 2, 10);
-    ctx.fillStyle = colorAccent;
-    ctx.beginPath();
-    ctx.arc(0, -3, 4, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  } else {
-    // Sword + Shield
-    ctx.save();
-    ctx.translate(-5, 3);
-    ctx.fillStyle = colorAccent;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 3, 3.5, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-    ctx.save();
-    ctx.translate(7, 2);
-    ctx.rotate(swing);
-    ctx.fillStyle = colorAccent;
-    ctx.fillRect(-0.8, -6, 1.6, 7);
-    ctx.beginPath();
-    ctx.moveTo(-0.8, -6); ctx.lineTo(0.8, -6); ctx.lineTo(0, -9); ctx.closePath();
-    ctx.fillStyle = '#f5f5f5';
-    ctx.fill();
-    ctx.restore();
-  }
-
+  ctx.fillStyle = colorMain; ctx.fillRect(-3, -8, 6, 6);
+  ctx.strokeStyle = colorDark; ctx.strokeRect(-3, -8, 6, 6);
+  if (type === 'archer') { ctx.fillStyle = colorAccent; ctx.beginPath(); ctx.moveTo(-3.5, -7); ctx.lineTo(3.5, -7); ctx.lineTo(0, -11); ctx.closePath(); ctx.fill(); }
+  else if (type === 'elite') { ctx.fillStyle = colorAccent; ctx.fillRect(-3.5, -8.5, 7, 3); ctx.fillStyle = '#c62828'; ctx.fillRect(-1, -12, 2, 4); }
+  else if (type === 'tank') { ctx.fillStyle = colorDark; ctx.fillRect(-4, -9, 8, 4); }
+  ctx.fillStyle = '#1a1a1a'; ctx.fillRect(-2, -6, 1.5, 1.5); ctx.fillRect(0.5, -6, 1.5, 1.5);
+  if (type === 'archer') { ctx.strokeStyle = colorAccent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(7, 0, 5, -Math.PI/2, Math.PI/2); ctx.stroke(); ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 0.4; ctx.beginPath(); ctx.moveTo(7, -5); ctx.lineTo(7, 5); ctx.stroke(); }
+  else if (type === 'spearman') { ctx.fillStyle = '#8d6e63'; ctx.fillRect(6, -8, 1.5, 20); ctx.fillStyle = colorAccent; ctx.beginPath(); ctx.moveTo(6.75, -12); ctx.lineTo(7.5, -8); ctx.lineTo(6, -8); ctx.closePath(); ctx.fill(); }
+  else if (type === 'tank') { ctx.save(); ctx.translate(8, 2); ctx.rotate(swing); ctx.fillStyle = '#5d4037'; ctx.fillRect(-1, -2, 2, 10); ctx.fillStyle = colorAccent; ctx.beginPath(); ctx.arc(0, -3, 4, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+  else { ctx.save(); ctx.translate(-5, 3); ctx.fillStyle = colorAccent; ctx.beginPath(); ctx.ellipse(0, 0, 3, 3.5, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); ctx.save(); ctx.translate(7, 2); ctx.rotate(swing); ctx.fillStyle = colorAccent; ctx.fillRect(-0.8, -6, 1.6, 7); ctx.beginPath(); ctx.moveTo(-0.8, -6); ctx.lineTo(0.8, -6); ctx.lineTo(0, -9); ctx.closePath(); ctx.fillStyle = '#f5f5f5'; ctx.fill(); ctx.restore(); }
   ctx.restore();
 }
-
-/* ============ CARD STORAGE & LOAD ============ */
-// state.cards wird aus saves/<HWID>/cards gelesen
-// Format: { cardId: { rarity, type, name, count } }
 
 function getCardKey(rarity, type, name) {
   return `${rarity}::${type}::${name}`.toLowerCase().replace(/[^a-z0-9:]/g, '_');
 }
-
 function listOwnedCards() {
   if (!state.cards) return [];
   return Object.entries(state.cards).map(([k, v]) => ({ key: k, ...v }));
 }
-
 function countCardsByType(rarity, type) {
   let total = 0;
-  for (const k in state.cards) {
-    const c = state.cards[k];
-    if (c.rarity === rarity && c.type === type) total += (c.count || 0);
-  }
+  for (const k in state.cards) { const c = state.cards[k]; if (c.rarity === rarity && c.type === type) total += (c.count || 0); }
   return total;
 }
 
-/* ============ BUILDER SPAWNING ============ */
 let builders = [];
-
 function spawnBuildersFor(b) {
   const mainB = state.buildings.find(x => x.type === 'main');
   if (!mainB) return;
@@ -1321,41 +1261,28 @@ function spawnBuildersFor(b) {
       y: startY + (Math.random() - 0.5) * 20,
       tx: b.x + 15 + Math.random() * (bsize - 30),
       ty: b.y + bsize * 0.6 + Math.random() * (bsize * 0.3),
-      targetId: b.id,
-      arrived: false,
-      speed: 0.9,
-      _animTime: Math.random() * 1000
+      targetId: b.id, arrived: false, speed: 0.9, _animTime: Math.random() * 1000
     });
   }
 }
-
 function updateBuilders(dt) {
   state.buildings.forEach(b => {
     if (!b.construction || !b._builders) return;
     b._builders.forEach(bel => {
-      if (bel.arrived) {
-        bel._animTime = (bel._animTime || 0) + dt * 1000;
-        return;
-      }
-      const dx = bel.tx - bel.x;
-      const dy = bel.ty - bel.y;
+      if (bel.arrived) { bel._animTime = (bel._animTime || 0) + dt * 1000; return; }
+      const dx = bel.tx - bel.x; const dy = bel.ty - bel.y;
       const dist = Math.hypot(dx, dy);
-      if (dist > 3) {
-        bel.x += (dx / dist) * bel.speed * dt * 60;
-        bel.y += (dy / dist) * bel.speed * dt * 60;
-      } else {
-        bel.arrived = true;
-      }
+      if (dist > 3) { bel.x += (dx / dist) * bel.speed * dt * 60; bel.y += (dy / dist) * bel.speed * dt * 60; }
+      else bel.arrived = true;
       bel._animTime = (bel._animTime || 0) + dt * 1000;
     });
   });
 }
 
-/* ============ SMOKE PARTICLES ============ */
 let smokeParticles = [];
 let nextSmokeSpawn = 0;
-
 function updateSmokeParticles(dt, now) {
+  if (!settings.showSmoke) { smokeParticles = []; return; }
   if (now - nextSmokeSpawn > 120) {
     nextSmokeSpawn = now;
     state.buildings.forEach(b => {
@@ -1371,13 +1298,9 @@ function updateSmokeParticles(dt, now) {
       const n = 1 + (Math.random() < 0.3 ? 1 : 0);
       for (let i = 0; i < n; i++) {
         smokeParticles.push({
-          x: cx + (Math.random() - 0.5) * 6,
-          y: cy + (Math.random() - 0.5) * 4,
-          vx: (Math.random() - 0.5) * 8,
-          vy: -20 - Math.random() * 15,
-          life: 2 + Math.random() * 1.5,
-          maxLife: 3.5,
-          size: 3 + Math.random() * 3,
+          x: cx + (Math.random() - 0.5) * 6, y: cy + (Math.random() - 0.5) * 4,
+          vx: (Math.random() - 0.5) * 8, vy: -20 - Math.random() * 15,
+          life: 2 + Math.random() * 1.5, maxLife: 3.5, size: 3 + Math.random() * 3,
           wobble: Math.random() * Math.PI * 2
         });
       }
@@ -1395,7 +1318,6 @@ function updateSmokeParticles(dt, now) {
   }
 }
 
-/* ============ SOLDIER TYPES base ============ */
 const SOLDIER_TYPES = {
   soldier:  { id: 'soldier',  name: 'Soldier',  desc: 'Standard melee' },
   archer:   { id: 'archer',   name: 'Archer',   desc: 'Ranged — keeps distance' },
@@ -1404,7 +1326,6 @@ const SOLDIER_TYPES = {
   elite:    { id: 'elite',    name: 'Elite',    desc: 'Elite knight' }
 };
 
-/* ============ ICONS ============ */
 const ICONS = {
   money: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#ffd54f" stroke="#c99a00" stroke-width="1.5"/><text x="12" y="16.5" font-size="11" font-weight="900" text-anchor="middle" fill="#7a5c00">$</text></svg>`,
   gold: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="18" rx="8" ry="3" fill="#ffca28" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="14" rx="8" ry="3" fill="#ffd54f" stroke="#b8860b" stroke-width="1.3"/><ellipse cx="12" cy="10" rx="8" ry="3" fill="#ffe082" stroke="#b8860b" stroke-width="1.3"/></svg>`,
@@ -1422,6 +1343,7 @@ const ICONS = {
   quarry: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 21 L6 10 L11 13 L15 7 L22 21 Z" fill="#b0bec5" stroke="#546e7a" stroke-width="1.3"/></svg>`,
   market: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="11" fill="#ffe0b2" stroke="#bf8f5a" stroke-width="1.3"/><polygon points="2,10 4,5 8,5 10,10" fill="#e53935"/><polygon points="10,10 12,5 16,5 18,10" fill="#43a047"/></svg>`,
   mine: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 22 Q12 4 22 22 Z" fill="#6d4c41" stroke="#3e2723" stroke-width="1.4"/><path d="M7 22 Q12 10 17 22 Z" fill="#1a1a1a"/></svg>`,
+  gemMine: `<svg viewBox="0 0 24 24" fill="none"><path d="M2 22 Q12 4 22 22 Z" fill="#6d4c41" stroke="#3e2723" stroke-width="1.4"/><path d="M7 22 Q12 10 17 22 Z" fill="#1a1a1a"/><path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z" fill="#a87ee0" stroke="#3a1a6a" stroke-width="1.5" stroke-linejoin="round" transform="translate(12 12) scale(0.4) translate(-12 -12)"/></svg>`,
   barracks: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="10" fill="#8d6e63" stroke="#4e342e" stroke-width="1.3"/><polygon points="2,11 12,4 22,11" fill="#5d4037"/></svg>`,
   tower: `<svg viewBox="0 0 24 24" fill="none"><rect x="9" y="7" width="6" height="15" fill="#78909c" stroke="#37474f" stroke-width="1.3"/><polygon points="7,5 9,1 12,4 15,1 17,5" fill="#b71c1c"/></svg>`,
   factory: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="10" width="20" height="12" fill="#546e7a" stroke="#37474f" stroke-width="1.3"/><rect x="5" y="4" width="2.5" height="6" fill="#37474f"/><rect x="10" y="2" width="2.5" height="8" fill="#37474f"/></svg>`,
@@ -1454,11 +1376,12 @@ const ICONS = {
 
 const tips = [
   "Tip: Drag = Move · Wheel = Zoom",
+  "Tip: E = Upgrade selected building",
   "Tip: Spins button (purple) opens the card spin page",
   "Tip: Cards from spins can be equipped in Barracks/Garrison/Fortress",
   "Tip: Archers keep their distance and shoot",
   "Tip: Click a soldier to see its card info",
-  "Tip: Elite cards are stronger than common ones",
+  "Tip: Gem Mine produces 10 gems/hour — even offline!",
   "Tip: Every 5 levels +1 build slot",
   "Tip: Walls block enemies",
   "Tip: Towers shoot arrows at enemies in range"
@@ -1642,7 +1565,6 @@ async function loginWithIdentity(name, identityHwid, email) {
     ACTIVE_HWID = identityHwid;
     IS_GOOGLE_USER = identityHwid.startsWith('GOOGLE-');
     currentUser = { username: finalName, hwid: identityHwid };
-    // WICHTIG: localStorage für spins/
     localStorage.setItem('br_last_hwid', ACTIVE_HWID);
     loginStatus.textContent = "Success!";
     loginStatus.className = "login-status ok";
@@ -1812,14 +1734,14 @@ const state = {
   soldiers: 3, soldierCap: 6, happiness: 100,
   level: 1, xp: 0, xpNeeded: 100,
   buildings: [],
-  cards: {},          // { cardId: { rarity, type, name, count } }
+  cards: {},
   zoom: 1, camX: 0, camY: 0,
   placing: null, selected: null, nextId: 1,
   speed: 1, sellMode: false, activeTab: 'all',
   lastTick: Date.now(), playtimeSeconds: 0,
   isPremium: false, baseX: 0, baseY: 0,
   lastSoldierSpawn: 0, defensePower: 0,
-  buildingTroopSelections: {} // { buildingId: cardKey } — die Karte, die dieses Gebäude einsetzt
+  buildingTroopSelections: {}
 };
 const TILE = 48;
 let saveTimeout = null;
@@ -1843,7 +1765,6 @@ const MIN_PLAYER_DISTANCE = 500;
 
 let activeMarches = [];
 
-/* ============ TOWER STATS ============ */
 function getTowerStats(type, level) {
   if (type !== 'tower' && type !== 'watchtower') return null;
   const baseDamage = 12;
@@ -1870,6 +1791,7 @@ const BUILDINGS = {
   workshop: { name: "Workshop", icon: "workshop", category: "production", size: 2, cost: 1100, maxLevel: 8, desc: "Crafts tools.", baseCost: 1100, costMult: 2.1, produces: { gold: 3, wood: 3 }, needs: { workers: 6 }, globalBonus: [0.03, 0.06, 0.10, 0.15, 0.21, 0.28, 0.36, 0.45], buildTime: 14, resourceCost: { wood: 100, stone: 80 } },
   market: { name: "Marketplace", icon: "market", category: "economy", size: 2, cost: 700, maxLevel: 10, desc: "Increases income.", baseCost: 700, costMult: 2.1, produces: { gold: 6 }, needs: { workers: 4 }, buildTime: 11, resourceCost: { wood: 60, stone: 40 } },
   mine: { name: "Gold Mine", icon: "mine", category: "economy", size: 2, cost: 1200, maxLevel: 10, desc: "Extracts gold.", baseCost: 1200, costMult: 2.2, produces: { gold: 11 }, needs: { workers: 6 }, buildTime: 14, resourceCost: { wood: 80, stone: 100 } },
+  gemMine: { name: "Gem Mine", icon: "gemMine", category: "economy", size: 2, cost: 1500, maxLevel: 8, desc: "Produces 10 gems per hour — also offline!", baseCost: 1500, costMult: 2.2, produces: {}, needs: { workers: 6 }, gemsPerHour: 10, buildTime: 16, resourceCost: { wood: 100, stone: 120 }, unlockLevel: 3 },
   bank: { name: "Bank", icon: "bank", category: "economy", size: 3, cost: 2500, maxLevel: 8, desc: "Generates passive income.", baseCost: 2500, costMult: 2.25, produces: { gold: 20 }, needs: { workers: 8 }, unlockLevel: 3, buildTime: 20, resourceCost: { wood: 150, stone: 200 } },
   university: { name: "University", icon: "university", category: "civic", size: 3, cost: 2800, maxLevel: 8, desc: "Trains specialists.", baseCost: 2800, costMult: 2.2, produces: { gold: 8 }, needs: { workers: 10 }, globalBonus: [0.05, 0.10, 0.16, 0.22, 0.29, 0.37, 0.46, 0.56], unlockLevel: 4, buildTime: 22, resourceCost: { wood: 200, stone: 220 } },
   factory: { name: "Factory", icon: "factory", category: "production", size: 3, cost: 3500, maxLevel: 10, desc: "Industrial production.", baseCost: 3500, costMult: 2.3, produces: { gold: 18, wood: 7, stone: 7, food: 5 }, needs: { workers: 12 }, unlockLevel: 4, buildTime: 25, resourceCost: { wood: 250, stone: 300 } },
@@ -1945,9 +1867,7 @@ function buildTerrain() {
   }
 }
 
-/* =========================================================
-   BUILDING SVGs (unverändert seit v29)
-   ========================================================= */
+/* ============ BUILDING SVGs ============ */
 function buildingSVG(type, level, w, h) {
   const lvl = level;
   const defs = `<defs><linearGradient id="shadowGrad-${type}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(0,0,0,0.35)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></linearGradient></defs>`;
@@ -2012,6 +1932,16 @@ function buildingSVG(type, level, w, h) {
       rocks += `<path d="M${rx-rs} ${ry+rs} L${rx-rs*0.6} ${ry-rs*0.3} L${rx} ${ry-rs} L${rx+rs*0.7} ${ry-rs*0.4} L${rx+rs} ${ry+rs} Z" fill="rgb(${shade},${shade+10},${shade+20})" stroke="#546e7a" stroke-width="0.8"/>`;
     }
     return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">${defs}<ellipse cx="50" cy="97" rx="46" ry="4" fill="url(#shadowGrad-${type})"/><ellipse cx="50" cy="80" rx="42" ry="14" fill="#8d8b82" stroke="#5a5850" stroke-width="1.2"/><ellipse cx="50" cy="79" rx="36" ry="10" fill="#6a6862"/><ellipse cx="50" cy="78" rx="28" ry="6" fill="#4a4842"/>${rocks}</svg>`;
+  }
+  if (type === 'gemMine') {
+    let gems = '';
+    for (let i = 0; i < 5; i++) {
+      const gx = 14 + i * 18;
+      const gy = 74 + Math.random() * 6;
+      const gs = 5 + Math.random() * 4;
+      gems += `<path d="M${gx} ${gy-gs} L${gx+gs*0.7} ${gy} L${gx} ${gy+gs} L${gx-gs*0.7} ${gy} Z" fill="#a87ee0" stroke="#5a2a9a" stroke-width="0.8"/><path d="M${gx} ${gy-gs} L${gx+gs*0.7} ${gy} L${gx} ${gy} Z" fill="#d4a6ff" opacity="0.7"/>`;
+    }
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">${defs}<ellipse cx="50" cy="97" rx="44" ry="4" fill="url(#shadowGrad-${type})"/><path d="M4 96 Q20 42 34 55 Q44 62 50 48 Q60 30 72 52 Q84 68 96 96 Z" fill="#5a4a6a" stroke="#2a1a3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M20 96 Q34 60 46 70 Q52 74 56 64 Q64 52 74 70 Q84 82 90 96 Z" fill="#3a2a4a" opacity="0.5"/><path d="M36 96 Q44 82 50 76 Q56 82 64 96 Z" fill="#1a0a2a" stroke="#000" stroke-width="1"/><rect x="42" y="74" width="16" height="4" fill="#6a5a7a"/><rect x="46" y="78" width="8" height="18" fill="#2a1a3a"/>${gems}</svg>`;
   }
   if (type === 'market') {
     return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">${defs}<ellipse cx="50" cy="97" rx="44" ry="4" fill="url(#shadowGrad-${type})"/><rect x="8" y="56" width="84" height="36" fill="#ffe0b2" stroke="#bf8f5a" stroke-width="1.4" rx="1"/><rect x="8" y="56" width="84" height="6" fill="#8d6e63"/><polygon points="4,56 20,40 36,56" fill="#e53935" stroke="#8a1a1a" stroke-width="1.2"/><polygon points="32,56 48,40 64,56" fill="#fbc02d" stroke="#a07a00" stroke-width="1.2"/><polygon points="60,56 76,40 92,56" fill="#43a047" stroke="#1b5e20" stroke-width="1.2"/><rect x="20" y="68" width="60" height="4" fill="#8d6e63"/><circle cx="30" cy="66" r="3" fill="#e53935"/><circle cx="45" cy="66" r="3" fill="#fbc02d"/><circle cx="60" cy="66" r="3" fill="#43a047"/><rect x="14" y="72" width="6" height="20" fill="#6d4c41"/><rect x="80" y="72" width="6" height="20" fill="#6d4c41"/><rect x="42" y="80" width="16" height="12" fill="#4a2f10"/></svg>`;
@@ -2131,7 +2061,7 @@ function buildingSVG(type, level, w, h) {
     factory: '#546e7a', university: '#e8dfc8', arena: '#a1887f',
     fortress: '#7a6a9a', church: '#e8dfc8',
     cathedral: '#e8dfc8', armory: '#78909c', monument: '#e8dfc8',
-    harbor2: '#8d6e63', garrison: '#6d4c41'
+    harbor2: '#8d6e63', garrison: '#6d4c41', gemMine: '#5a4a6a'
   };
   const baseColor = colors[type] || '#c9a84c';
   const bodyH = 22 + lvl * 2.4;
@@ -2147,7 +2077,6 @@ function buildingSVG(type, level, w, h) {
   return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">${defs}<ellipse cx="50" cy="97" rx="44" ry="4" fill="url(#shadowGrad-${type})"/><rect x="10" y="${bodyTop}" width="80" height="${bodyH}" fill="${baseColor}" stroke="#3a2a1a" stroke-width="1.5" rx="1"/>${roof}${windows}${extras}${accent}<rect x="44" y="86" width="12" height="10" fill="#3a2a1a" stroke="#1a0a00" stroke-width="0.6"/></svg>`;
 }
 
-/* ============ COST & UTILITY ============ */
 function getCost(type, level) {
   const def = BUILDINGS[type];
   if (type === 'main' && level === 0) return 0;
@@ -2322,7 +2251,6 @@ function pickBasePosition() {
   return bestPos || { x: WORLD_SIZE/2, y: WORLD_SIZE/2 };
 }
 
-/* ============ MAP + DRAG ============ */
 const mapEl = document.getElementById('map');
 const tooltip = document.getElementById('tooltip');
 const ghost = document.getElementById('placeGhost');
@@ -2384,7 +2312,6 @@ mapEl.addEventListener('wheel', (e) => {
 
 mapEl.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
-  // Prüfe ob auf Soldat geklickt
   if (!state.placing && !attackMode && !state.sellMode) {
     const w = screenToWorld(e.clientX, e.clientY);
     const hit = findSoldierAt(w.x, w.y);
@@ -2417,6 +2344,14 @@ mapEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'q' || e.key === 'Q') { if (state.placing) { cancelPlacing(); notify("Placement cancelled"); } }
+  if (e.key === 'e' || e.key === 'E') {
+    // Upgrade selected building
+    if (state.selected && !state.selected.construction && state.selected.level < BUILDINGS[state.selected.type].maxLevel) {
+      startUpgrade(state.selected);
+    } else if (state.selected) {
+      notify("Cannot upgrade this building!", true);
+    }
+  }
   if (e.key === 'Escape') {
     if (state.placing) cancelPlacing();
     if (attackMode) cancelAttack();
@@ -2426,6 +2361,7 @@ window.addEventListener('keydown', (e) => {
     closeTroopModal();
     hideCardInfoPopup();
     document.getElementById('chatPanel').classList.remove('show');
+    document.getElementById('settingsModal').classList.remove('show');
   }
   if (e.key === 'Enter' && document.activeElement === document.getElementById('chatInput')) sendChat();
 });
@@ -2435,9 +2371,7 @@ function screenToWorld(clientX, clientY) {
   return { x: (clientX - rect.left - state.camX) / state.zoom, y: (clientY - rect.top - state.camY) / state.zoom };
 }
 
-/* ============ CARD INFO POPUP (click on soldier) ============ */
 function findSoldierAt(wx, wy) {
-  // Radius um Klick
   const r = 30 / state.zoom;
   let best = null, bestDist = r;
   for (const s of soldierUnits) {
@@ -2457,21 +2391,16 @@ function showCardInfoPopup(soldier, clientX, clientY) {
   document.getElementById('cipRar').style.background = rar.color + '33';
   document.getElementById('cipRar').style.color = rar.color;
   document.getElementById('cipRar').style.border = '1px solid ' + rar.color;
-  // Icon
   document.getElementById('cipIcon').innerHTML = soldierIconSVG(soldier.troopType || 'soldier', rarity);
-  // Stats
   document.getElementById('cipHp').textContent = soldier.maxHp || 100;
   document.getElementById('cipDmg').textContent = soldier.damage || 8;
-  // HP bar
   const hpPct = (soldier.hp / (soldier.maxHp || 100)) * 100;
   document.getElementById('cipHpFill').style.width = hpPct + '%';
   document.getElementById('cipHpFill').style.background = hpPct > 50 ? '#4caf50' : hpPct > 25 ? '#ffb300' : '#e53935';
   document.getElementById('cipHpText').textContent = `${Math.round(soldier.hp)} / ${soldier.maxHp || 100} HP`;
-  // Owner
   document.getElementById('cipOwner').textContent = soldier.side === 'friendly'
     ? '🛡 Your soldier'
     : `⚔ Enemy soldier${soldier.ownerName ? ' (' + escapeHtml(soldier.ownerName) + ')' : ''}`;
-  // Position
   const rect = mapEl.getBoundingClientRect();
   let x = clientX + 15;
   let y = clientY - 100;
@@ -2487,7 +2416,6 @@ function hideCardInfoPopup() {
 }
 document.getElementById('cipClose').onclick = hideCardInfoPopup;
 
-/* ============ SVG Icon (für popups & card grid) ============ */
 function soldierIconSVG(type, rarity) {
   const pal = rarityPalette(rarity);
   const r = rarity || 'common';
@@ -2513,7 +2441,6 @@ function soldierIconSVG(type, rarity) {
   return `<svg viewBox="0 0 100 100">${glow ? `<circle cx="50" cy="55" r="48" fill="${colorAccent}" opacity="0.3"/>` : ''}${svgContent}</svg>`;
 }
 
-/* ============ PLACEMENT ============ */
 function startPlacing(type) {
   const def = BUILDINGS[type];
   if (def.unlockLevel && state.level < def.unlockLevel) { notify(`Requires Level ${def.unlockLevel}`, true); return; }
@@ -2726,7 +2653,6 @@ function constructionTick() {
   if (changed) { recalc(); updateUI(); updateMinimapBuildings(); renderBuildingList(); scheduleSave(); }
 }
 
-/* ============ SELECT BUILDING ============ */
 function selectBuilding(id) {
   const b = state.buildings.find(x => x.id === id);
   if (!b) return;
@@ -2754,6 +2680,7 @@ function showDetailPanel(b) {
     if (def.produces) statsHTML += `<div class="dp-stat"><span class="k">Production</span><span class="v">${Object.entries(def.produces).map(([k,v]) => `${v*b.level} ${k}`).join(', ')}</span></div>`;
     if (def.soldierPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Soldier Cap</span><span class="v good">+${def.soldierPerLevel[b.level-1]}</span></div>`;
     if (def.defenseBonus) statsHTML += `<div class="dp-stat"><span class="k">Defense Power</span><span class="v good">+${def.defenseBonus[b.level-1]}</span></div>`;
+    if (def.gemsPerHour) statsHTML += `<div class="dp-stat"><span class="k">Gems/Hour</span><span class="v good">${def.gemsPerHour * b.level} 💎</span></div>`;
     const ts = getTowerStats(b.type, b.level);
     if (ts) {
       statsHTML += `<div class="dp-stat"><span class="k">Arrow Damage</span><span class="v good">${ts.damage}</span></div>`;
@@ -2764,7 +2691,6 @@ function showDetailPanel(b) {
     statsHTML += `<div class="dp-stat"><span class="k">HP</span><span class="v ${hpClass}">${b.hp || 100} / ${b.maxHp || 100}</span></div>`;
     bodyHTML += statsHTML;
 
-    // TROOP / CARD SELECTOR für Militärgebäude
     if (def.spawnsSoldiers) {
       const ownedCards = listOwnedCards();
       const currentCardKey = state.buildingTroopSelections[b.id];
@@ -2795,7 +2721,6 @@ function showDetailPanel(b) {
       }
       bodyHTML += `</div>`;
 
-      // Slider: wie viele Einheiten (bis Slots)
       if (currentCard && slotsLeft > 0) {
         const curAmt = b._stationedAmount || Math.min(currentCard.count, slotsLeft);
         bodyHTML += `<div class="troop-slider-wrap">
@@ -2812,20 +2737,18 @@ function showDetailPanel(b) {
       const upTime = getBuildTime(b.type, b.level);
       const upRes = getResourceCost(b.type, b.level);
       const nextHp = getMaxHp(b.type, b.level + 1);
-      bodyHTML += `<div class="dp-upgrade-box"><div class="dp-up-title">Upgrade to Level ${b.level+1}</div><div class="dp-preview"><div class="prev">${buildingSVG(b.type, b.level, nextSize, nextSize)}</div><div class="arrow">→</div><div class="prev future">${buildingSVG(b.type, b.level+1, nextSize, nextSize)}</div></div><div class="dp-up-row"><span>Money</span><span class="v cost">${upCost.toLocaleString('en-US')}</span></div><div class="dp-up-row"><span>Wood</span><span class="v ${state.wood >= upRes.wood ? '' : 'bad'}">${upRes.wood} 🪵</span></div><div class="dp-up-row"><span>Stone</span><span class="v ${state.stone >= upRes.stone ? '' : 'bad'}">${upRes.stone} 🪨</span></div><div class="dp-up-row"><span>New Max HP</span><span class="v good">${nextHp}</span></div><div class="dp-up-row"><span>Build time</span><span class="v time">${formatTime(upTime)}</span></div></div>`;
+      bodyHTML += `<div class="dp-upgrade-box"><div class="dp-up-title">Upgrade to Level ${b.level+1} <span style="float:right;color:#8fa3c8;font-size:10px;">(E)</span></div><div class="dp-preview"><div class="prev">${buildingSVG(b.type, b.level, nextSize, nextSize)}</div><div class="arrow">→</div><div class="prev future">${buildingSVG(b.type, b.level+1, nextSize, nextSize)}</div></div><div class="dp-up-row"><span>Money</span><span class="v cost">${upCost.toLocaleString('en-US')}</span></div><div class="dp-up-row"><span>Wood</span><span class="v ${state.wood >= upRes.wood ? '' : 'bad'}">${upRes.wood} 🪵</span></div><div class="dp-up-row"><span>Stone</span><span class="v ${state.stone >= upRes.stone ? '' : 'bad'}">${upRes.stone} 🪨</span></div><div class="dp-up-row"><span>New Max HP</span><span class="v good">${nextHp}</span></div><div class="dp-up-row"><span>Build time</span><span class="v time">${formatTime(upTime)}</span></div></div>`;
     } else {
       bodyHTML += `<div class="dp-upgrade-box" style="text-align:center;color:#2e7d32;font-weight:800;">Max level reached</div>`;
     }
   }
   document.getElementById('dpBody').innerHTML = bodyHTML;
 
-  // Card selector click handlers
   document.querySelectorAll('.card-slot').forEach(slot => {
     slot.onclick = () => {
       const key = slot.dataset.cardkey;
       if (!key) return;
       state.buildingTroopSelections[b.id] = key;
-      // Setze stationed amount default auf max
       const card = state.cards[key];
       const slotsLeft = def.soldierPerLevel[b.level-1] || 0;
       b._stationedAmount = Math.min(card.count, slotsLeft);
@@ -2835,7 +2758,6 @@ function showDetailPanel(b) {
     };
   });
 
-  // Stationed slider
   const stationedSlider = document.getElementById('stationedSlider');
   if (stationedSlider) {
     stationedSlider.addEventListener('input', (e) => {
@@ -2847,7 +2769,6 @@ function showDetailPanel(b) {
       stationedSlider.style.backgroundSize = pct + '% 100%';
       scheduleSave();
     });
-    // init fill
     const pct = (stationedSlider.value / stationedSlider.max) * 100;
     stationedSlider.style.backgroundSize = pct + '% 100%';
   }
@@ -2857,7 +2778,7 @@ function showDetailPanel(b) {
   if (!b.construction && b.level < def.maxLevel) {
     const upBtn = document.createElement('button');
     upBtn.className = 'btn btn-primary';
-    upBtn.textContent = 'Upgrade';
+    upBtn.textContent = 'Upgrade (E)';
     const cost = getUpgradeCost(b);
     const rc = getResourceCost(b.type, b.level);
     if (state.money < cost || state.wood < rc.wood || state.stone < rc.stone) { upBtn.disabled = true; upBtn.style.opacity = '0.5'; }
@@ -2964,7 +2885,8 @@ function repairBuilding(b) {
 
 function toggleSellMode() {
   state.sellMode = !state.sellMode;
-  document.getElementById('btnSellMode').classList.toggle('active', state.sellMode);
+  const btn = document.getElementById('btnSellMode');
+  if (btn) btn.classList.toggle('active', state.sellMode);
   mapEl.classList.toggle('selling', state.sellMode);
   if (state.sellMode) { cancelPlacing(); cancelAttack(); hideDetailPanel(); notify("Sell mode: click a building"); }
 }
@@ -2972,7 +2894,8 @@ function sellBuilding(b) {
   if (b.type === 'main') { notify("Main building cannot be sold!", true); return; }
   if (state.sellMode) {
     state.sellMode = false;
-    document.getElementById('btnSellMode').classList.remove('active');
+    const btn = document.getElementById('btnSellMode');
+    if (btn) btn.classList.remove('active');
     mapEl.classList.remove('selling');
   }
   const refund = getSellValue(b);
@@ -2988,7 +2911,6 @@ function sellBuilding(b) {
   scheduleSave();
 }
 
-/* ============ TROOP MODAL ============ */
 const troopModal = document.getElementById('troopModal');
 const tmBox = document.getElementById('tmBox');
 const tmSlider = document.getElementById('tmSlider');
@@ -3052,7 +2974,6 @@ tmConfirmBtn.onclick = () => {
 };
 function closeTroopModal() { troopModal.classList.remove('show'); tmCallback = null; }
 
-/* ============ COMBAT ============ */
 function toggleAttackMode() {
   if (state.soldiers < 1) { notify("You need soldiers!", true); return; }
   attackMode = !attackMode;
@@ -3088,7 +3009,6 @@ function tryAttack(e) {
 }
 
 function tryAttackBuilding(b, ownerName, ownerHwid) {
-  // Sammle verfügbare Truppen aus Militärgebäuden
   const available = getAvailableTroops();
   const total = available.reduce((s, t) => s + t.count, 0);
   if (total < 1) { notify("No troops stationed! Assign cards in Barracks.", true); return; }
@@ -3106,7 +3026,6 @@ function tryAttackBuilding(b, ownerName, ownerHwid) {
   });
 }
 
-/* Sammle alle verfügbaren Truppen aus Militärgebäuden mit Karten */
 function getAvailableTroops() {
   const troops = [];
   state.buildings.forEach(b => {
@@ -3143,14 +3062,12 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
   const targetCX = b.x + bs / 2;
   const targetCY = b.y + bs / 2;
 
-  // Verteile count über verfügbare Gruppen
   let remaining = count;
   const spawns = [];
   for (const grp of available) {
     if (remaining <= 0) break;
     const take = Math.min(grp.count, remaining);
     remaining -= take;
-    // Reduziere stationed
     const bld = state.buildings.find(x => x.id === grp.buildingId);
     if (bld) bld._stationedAmount = Math.max(0, (bld._stationedAmount || 0) - take);
     spawns.push({ grp, count: take });
@@ -3169,7 +3086,6 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
       const travelMs = (dist / (ATTACK_SPEED * 60)) * 1000;
       const arriveTime = now + travelMs;
       const stats = getCardStats(grp.type, grp.rarity, 1);
-      // Formation offset — grid
       const offset = getFormationOffset(totalSpawned, count);
       const unit = {
         x: sx + offset.x,
@@ -3223,7 +3139,6 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
     try {
       const { ref, push, set } = firebase;
       const aid = push(ref(firebase.db, 'attacks')).key;
-      // Serialisiere Soldaten (mit rarity, troopType, name)
       const soldierData = soldierUnits.filter(s => s.side === 'friendly' && s.startTime === now).map(s => ({
         x: Math.round(s.x), y: Math.round(s.y),
         hp: s.hp, maxHp: s.maxHp,
@@ -3261,14 +3176,11 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
     } catch(e) {}
   }
   updateUI();
-  // refresh detail panel
   if (state.selected) showDetailPanel(state.selected);
 }
 
-// Formation: circle grid
 function getFormationOffset(idx, total) {
   if (total <= 1) return { x: 0, y: 0 };
-  // Spiral / grid pattern
   const cols = Math.ceil(Math.sqrt(total));
   const row = Math.floor(idx / cols);
   const col = idx % cols;
@@ -3342,7 +3254,6 @@ function updateSoldierUnits(dt) {
   for (const s of soldierUnits) s.fighting = false;
 
   for (const s of soldierUnits) {
-    // Find closest enemy soldier within FIGHT_RANGE
     let closestEnemy = null;
     let closestDist = FIGHT_RANGE;
     for (const o of soldierUnits) {
@@ -3351,7 +3262,6 @@ function updateSoldierUnits(dt) {
       if (d < closestDist) { closestDist = d; closestEnemy = o; }
     }
 
-    // Behavior: Archer keeps distance and shoots
     if (closestEnemy) {
       const isArcher = s.behavior === 'ranged';
       const preferDist = isArcher ? s.range * 0.9 : ATTACK_RANGE;
@@ -3361,19 +3271,15 @@ function updateSoldierUnits(dt) {
       s.facing = dx < 0 ? 'left' : 'right';
 
       if (isArcher) {
-        // Archer: if too close, back off. If in range, shoot. Otherwise approach
         if (dist < preferDist * 0.6) {
-          // Back off
           s.x -= (dx / dist) * s.speed * dt * 60 * 0.7;
           s.y -= (dy / dist) * s.speed * dt * 60 * 0.7;
           s.fighting = false;
         } else if (dist > s.range) {
-          // Approach
           s.x += (dx / dist) * s.speed * dt * 60;
           s.y += (dy / dist) * s.speed * dt * 60;
           s.fighting = false;
         } else {
-          // In sweet spot — shoot
           s.fighting = true;
           s._duelTimer += dt;
           if (s._duelTimer >= (s.attackSpeed || 1)) {
@@ -3385,7 +3291,6 @@ function updateSoldierUnits(dt) {
           }
         }
       } else {
-        // Melee — walk to attack
         if (dist > preferDist) {
           const nx = s.x + (dx / dist) * s.speed * dt * 60;
           const ny = s.y + (dy / dist) * s.speed * dt * 60;
@@ -3409,7 +3314,6 @@ function updateSoldierUnits(dt) {
       continue;
     }
 
-    // Target building
     if (s.targetBuilding && s.targetBuilding.el && s.targetBuilding.hp > 0) {
       const def = BUILDINGS[s.targetBuilding.type];
       const bs = def.size * TILE;
@@ -3456,7 +3360,6 @@ function updateSoldierUnits(dt) {
       continue;
     }
 
-    // Idle wander
     const dx = s.tx - s.x, dy = s.ty - s.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 12) {
@@ -3603,7 +3506,6 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
 }
 
 function triggerDefense(attackerX, attackerY, count) {
-  // Nutze verfügbare Truppen
   const available = getAvailableTroops();
   const total = available.reduce((s, t) => s + t.count, 0);
   if (total < 1) { notify("No troops stationed!", true); return; }
@@ -3664,7 +3566,6 @@ function updateMarchBanner() {
   banner.classList.add('show');
 }
 
-/* ============ CANVAS ============ */
 const unitCanvas = document.getElementById('unitCanvas');
 const particleCanvas = document.getElementById('particleCanvas');
 const unitCtx = unitCanvas.getContext('2d');
@@ -3755,7 +3656,6 @@ function renderUnits(now) {
   function toScreen(wx, wy) { return { x: wx * z + cx, y: wy * z + cy }; }
   function inView(wx, wy) { return wx >= worldLeft - 60 && wx <= worldRight + 60 && wy >= worldTop - 60 && wy <= worldBottom + 60; }
 
-  // Own soldiers
   const own = soldierUnits.filter(s => s.side === 'friendly');
   let offC = 0, offCx = 0, offCy = 0;
   for (const s of own) {
@@ -3765,7 +3665,6 @@ function renderUnits(now) {
     ctx_drawHpBar(unitCtx, p.x, p.y - 30 * z, 24 * z, 4 * z, hpPct, true);
     drawCardSoldier(unitCtx, p.x, p.y, z, s.facing, s.fighting, s._animTime + now, s.troopType || 'soldier', s.rarity || 'common', 'friendly', hpPct);
   }
-  // Offscreen indicator
   if (offC > 0) {
     offCx /= offC; offCy /= offC;
     const centerSx = viewW / 2, centerSy = viewH / 2;
@@ -3794,7 +3693,6 @@ function renderUnits(now) {
     }
   }
 
-  // Enemy soldiers
   for (const s of soldierUnits) {
     if (s.side === 'friendly') continue;
     if (!inView(s.x, s.y)) continue;
@@ -3804,7 +3702,6 @@ function renderUnits(now) {
     drawCardSoldier(unitCtx, p.x, p.y, z, s.facing, s.fighting, s._animTime + now, s.troopType || 'soldier', s.rarity || 'common', 'enemy', hpPct);
   }
 
-  // Remote units (from Firebase)
   for (const hwid in remoteUnitsData) {
     const data = remoteUnitsData[hwid];
     for (const sd of data.soldiers || []) {
@@ -3816,7 +3713,6 @@ function renderUnits(now) {
     }
   }
 
-  // Projectiles
   for (const pr of projectiles) {
     if (!inView(pr.x, pr.y)) continue;
     const p = toScreen(pr.x, pr.y);
@@ -3833,14 +3729,12 @@ function renderUnits(now) {
     unitCtx.strokeStyle = '#fff'; unitCtx.lineWidth = 1.2 * z; unitCtx.stroke();
   }
 
-  // Villagers
   for (const v of villagerUnits) { if (!inView(v.x, v.y)) continue; const p = toScreen(v.x, v.y); drawVillager(unitCtx, p.x, p.y, z, now + (v._animTime || 0)); }
   for (const hwid in remoteUnitsData) {
     const data = remoteUnitsData[hwid];
     for (const vd of data.villagers || []) { if (!inView(vd.x, vd.y)) continue; const p = toScreen(vd.x, vd.y); drawVillager(unitCtx, p.x, p.y, z, now); }
   }
 
-  // Builders
   state.buildings.forEach(b => {
     if (!b.construction || !b._builders) return;
     b._builders.forEach(bel => {
@@ -3853,6 +3747,7 @@ function renderUnits(now) {
 
 function renderParticles(now) {
   partCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+  if (!settings.showSmoke) return;
   const z = state.zoom;
   const cx = state.camX;
   const cy = state.camY;
@@ -3880,7 +3775,6 @@ function mainRenderLoop(now) {
   requestAnimationFrame(mainRenderLoop);
 }
 
-/* ============ FPS + PING ============ */
 const perfBadge = document.getElementById('perfBadge');
 const fpsValEl = document.getElementById('fpsVal');
 const pingValEl = document.getElementById('pingVal');
@@ -3927,7 +3821,6 @@ function startFPSLoop() {
   setTimeout(() => { measurePing(); setInterval(measurePing, 3000); }, 1500);
 }
 
-/* ============ MULTIPLAYER ============ */
 function broadcastMyUnits() {
   if (!firebase || !currentUser) return;
   try {
@@ -4014,7 +3907,6 @@ function startAttacksListener() {
           targetBuilding: targetB, isIncoming: true
         };
         activeMarches.push(marchEntry);
-        // Spawn visuals
         const count = Math.min(a.soldierCount || 3, 100);
         const sx0 = a.fromX, sy0 = a.fromY, tx0 = a.toX, ty0 = a.toY;
         const startT = a.startTime || a.ts;
@@ -4022,7 +3914,6 @@ function startAttacksListener() {
         const totalMs = arriveT - startT;
         const elapsed = Math.max(0, now - startT);
         const progress = Math.min(1, elapsed / totalMs);
-        // Use a.soldiers if available for authentic visuals
         const soldierData = a.soldiers || [];
         for (let i = 0; i < count; i++) {
           const jitter = (i - count/2) * 8;
@@ -4112,7 +4003,6 @@ function updateVillagers(dt) {
 }
 function clearVillagers() { villagerUnits = []; }
 
-/* ONLINE LIST */
 function hashCode(str) { let h = 0; for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i); return h; }
 function renderOnlineList() {
   const body = document.getElementById('olBody');
@@ -4142,7 +4032,6 @@ function renderOnlineList() {
   });
 }
 
-/* EVENTS */
 function publishEvent(type, text, targetHwid) {
   if (!firebase || !currentUser) return;
   try {
@@ -4218,7 +4107,6 @@ function setupAttackPopup() {
   };
 }
 
-/* UI */
 function updateUI() {
   const resGroup = document.getElementById('resGroup');
   const fmt = (n) => Math.floor(n).toLocaleString('en-US');
@@ -4340,7 +4228,27 @@ const premiumModal = document.getElementById('premiumModal');
 document.getElementById('premiumCancel').onclick = () => premiumModal.classList.remove('show');
 function closePremiumModal() { premiumModal.classList.remove('show'); }
 
-/* MINIMAP */
+/* ============ SETTINGS MODAL ============ */
+const settingsModal = document.getElementById('settingsModal');
+document.getElementById('btnSettings').onclick = () => {
+  settingsModal.classList.add('show');
+  applySettingsToUI();
+};
+document.getElementById('smClose').onclick = () => settingsModal.classList.remove('show');
+document.getElementById('smToggleSmoke').onclick = () => {
+  settings.showSmoke = !settings.showSmoke;
+  document.getElementById('smToggleSmoke').classList.toggle('on', settings.showSmoke);
+  saveSettings();
+  notify(`Smoke ${settings.showSmoke ? 'enabled' : 'disabled'}`, false, true);
+};
+document.getElementById('smToggleSmooth').onclick = () => {
+  settings.smooth = !settings.smooth;
+  document.getElementById('smToggleSmooth').classList.toggle('on', settings.smooth);
+  saveSettings();
+  notify(`Smooth ${settings.smooth ? 'enabled' : 'disabled'}`, false, true);
+};
+
+/* ============ MINIMAP ============ */
 const mmInner = document.getElementById('mmInner');
 const mmResize = document.getElementById('mmResize');
 const minimapEl = document.getElementById('minimap');
@@ -4430,7 +4338,6 @@ async function saveGame(silent) {
   try {
     document.getElementById('syncBadge').classList.add('saving');
     const { ref, get, update } = firebase;
-    // WICHTIG: update statt set, damit gems/cards nicht überschrieben werden
     const data = {
       money: Math.floor(state.money), gold: Math.floor(state.gold),
       food: Math.floor(state.food), wood: Math.floor(state.wood), stone: Math.floor(state.stone),
@@ -4447,7 +4354,6 @@ async function saveGame(silent) {
       buildingTroopSelections: state.buildingTroopSelections || {},
       buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp || 100, maxHp: b.maxHp || 100, stationedAmount: b._stationedAmount || 0 }))
     };
-    // Update einzelne Felder, um cards zu erhalten
     await update(ref(firebase.db, 'saves/' + ACTIVE_HWID), data);
     await update(ref(firebase.db, 'world/' + ACTIVE_HWID), {
       username: currentUser.username, baseX: state.baseX, baseY: state.baseY,
@@ -4485,11 +4391,45 @@ async function loadSave() {
       state.buildings.push(nb);
     });
     state.nextId = Math.max(1, ...state.buildings.map(b => b.id || 0)) + 1;
+    // Offline-Produktion berechnen
+    const now = Date.now();
+    const lastTime = data.lastTick || now;
+    const offlineSeconds = Math.min(86400, (now - lastTime) / 1000);
+    if (offlineSeconds > 5) {
+      // Gem-Mine offline
+      let gemsEarned = 0;
+      state.buildings.forEach(b => {
+        if (b.construction) return;
+        const def = BUILDINGS[b.type];
+        if (def.gemsPerHour) {
+          const rate = def.gemsPerHour * b.level;
+          gemsEarned += rate * (offlineSeconds / 3600);
+        }
+      });
+      if (gemsEarned > 0) {
+        state.gems = Math.floor((state.gems || 0) + Math.floor(gemsEarned));
+        notify(`💎 Offline: +${Math.floor(gemsEarned)} gems from Gem Mines!`, false, true);
+      }
+      // Ressourcen offline (reduziert)
+      const offlineMult = 0.5;
+      let offlineProd = { gold: 0, food: 0, wood: 0, stone: 0, money: 0 };
+      state.buildings.forEach(b => {
+        if (b.construction) return;
+        const def = BUILDINGS[b.type];
+        if (def.produces) {
+          for (const k in def.produces) offlineProd[k] = (offlineProd[k] || 0) + def.produces[k] * b.level;
+        }
+      });
+      const capped = Math.min(offlineSeconds, 3600 * 8);
+      for (const k in offlineProd) {
+        if (k === 'money') continue;
+        state[k] = (state[k] || 0) + Math.floor(offlineProd[k] * (capped / 60) * offlineMult);
+      }
+    }
     return true;
   } catch(e) { return false; }
 }
 
-/* ============ MULTIPLAYER WORLD ============ */
 function startWorldListener() {
   const { ref, onValue } = firebase;
   onValue(ref(firebase.db, 'world'), (snap) => {
@@ -4575,7 +4515,6 @@ async function sendChat() {
   } catch(e) {}
 }
 
-/* ============ START ============ */
 async function startGame() {
   if (gameStarted) return;
   gameStarted = true;
@@ -4585,7 +4524,6 @@ async function startGame() {
   resizeCanvases();
   requestAnimationFrame(mainRenderLoop);
   startFPSLoop();
-  // Sicherstellen dass last_hwid für spins gesetzt ist
   localStorage.setItem('br_last_hwid', ACTIVE_HWID);
 
   if (firebase) {
@@ -4666,6 +4604,21 @@ async function startGame() {
     }, 10000);
   }
 
+  // Gems pro Stunde im laufenden Spiel
+  setInterval(() => {
+    let gemsEarned = 0;
+    state.buildings.forEach(b => {
+      if (b.construction) return;
+      const def = BUILDINGS[b.type];
+      if (def.gemsPerHour) gemsEarned += def.gemsPerHour * b.level;
+    });
+    if (gemsEarned > 0) {
+      state.gems = (state.gems || 0) + gemsEarned;
+      updateUI();
+      if (gemsEarned >= 1) notify(`💎 +${gemsEarned} gems from Gem Mines!`, false, true);
+    }
+  }, 3600000);
+
   let last = performance.now();
   let prodAccum = 0, saveAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0, spawnAccum = 0;
   function loop(now) {
@@ -4740,11 +4693,8 @@ function cameraToMySoldiers() {
   applyTransform();
 }
 
-document.getElementById('btnZoomIn').onclick = () => { state.zoom = Math.min(2.6, state.zoom * 1.2); applyTransform(); };
-document.getElementById('btnZoomOut').onclick = () => { state.zoom = Math.max(0.25, state.zoom / 1.2); applyTransform(); };
 document.getElementById('btnCenter').onclick = centerCamera;
 document.getElementById('btnToSoldiers').onclick = cameraToMySoldiers;
-document.getElementById('btnSellMode').onclick = toggleSellMode;
 document.getElementById('btnAttackMode').onclick = toggleAttackMode;
 document.getElementById('btnOnlineList').onclick = () => {
   const list = document.getElementById('onlineList');
@@ -4769,7 +4719,6 @@ document.getElementById('btnChat').onclick = () => { const p = document.getEleme
 document.getElementById('chatClose').onclick = () => document.getElementById('chatPanel').classList.remove('show');
 document.getElementById('chatSend').onclick = sendChat;
 
-/* Panel-Toggles */
 function updatePanelDocking() {
   const collapsed = document.getElementById('rightPanel').classList.contains('collapsed');
   const detailPanel = document.getElementById('detailPanel');
