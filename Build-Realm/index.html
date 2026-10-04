@@ -249,7 +249,6 @@
   .dp-progress-fill { height: 100%; background: linear-gradient(90deg, #ffb300, #ffd54f); transition: width 0.4s linear; }
   .dp-progress-time { font-size: 11px; color: #8d6e63; margin-top: 5px; text-align: right; font-weight: 700; }
 
-  /* Troop / Card Selector */
   .troop-selector { margin-top: 10px; padding: 10px; border-radius: 10px; background: linear-gradient(135deg, #fff8e1, #fffde7); border: 1px solid #ffe082; }
   .troop-selector .ts-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8d6e00; font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
   .troop-selector .ts-title .live-tag { background: #e53935; color: #fff; padding: 1px 6px; border-radius: 6px; font-size: 9px; letter-spacing: 1px; animation: pulse 1.5s ease-in-out infinite; }
@@ -268,7 +267,6 @@
   .card-slot .cs-count { position: absolute; top: 3px; right: 4px; background: rgba(0,0,0,0.7); color: #fff; font-size: 9px; font-weight: 900; padding: 1px 5px; border-radius: 6px; }
   .card-slot .cs-stats { font-size: 9px; color: #6b7d99; font-weight: 700; margin-top: 2px; }
 
-  /* Slider in Detail-Panel */
   .troop-slider-wrap { margin-top: 10px; padding: 10px; border-radius: 10px; background: #eaf2ff; border: 1px solid #bcd0ec; }
   .troop-slider-wrap .ts-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: #2f6fd0; font-weight: 800; margin-bottom: 6px; display: flex; justify-content: space-between; }
   .troop-slider-wrap .ts-val { color: #1e355e; font-size: 13px; }
@@ -416,7 +414,6 @@
   .tm-box.defend .tm-confirm { background: linear-gradient(135deg, #c62828, #ef5350); border-color: #c62828; }
   .tm-cancel { background: #f2f6fc; border-color: #d3dded; color: #6b7d99; }
 
-  /* Card Info Popup (Klick auf Soldat) */
   #cardInfoPopup {
     position: fixed; z-index: 99997;
     background: #ffffff; border-radius: 16px;
@@ -603,7 +600,6 @@
   .rp-ok-btn { background: linear-gradient(135deg, #ffb300, #e65100); color: #fff; border: none; padding: 14px 32px; border-radius: 10px; font-size: 14px; font-weight: 900; letter-spacing: 1px; cursor: pointer; margin-top: 10px; box-shadow: 0 8px 25px rgba(255,179,0,0.4); }
   .rp-ok-btn:hover { background: linear-gradient(135deg, #ffc233, #e65100); transform: translateY(-2px); }
 
-  /* SETTINGS MODAL */
   #settingsModal { position: fixed !important; inset: 0 !important; z-index: 100000 !important; background: rgba(30,53,94,0.5); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 20px; }
   #settingsModal.show { display: flex; }
   .sm-box { background: #ffffff; border: 2px solid #bcd0ec; border-radius: 20px; padding: 28px 30px; width: min(440px, 92vw); box-shadow: 0 30px 90px rgba(40,70,120,0.35); }
@@ -924,7 +920,6 @@
     </div>
   </div>
 
-  <!-- SETTINGS MODAL -->
   <div id="settingsModal">
     <div class="sm-box">
       <div class="sm-title">
@@ -1056,7 +1051,6 @@
   </div>
 </div>
 
-<!-- CARD INFO POPUP (Click on Soldier) -->
 <div id="cardInfoPopup">
   <div class="cip-head">
     <div class="cip-name" id="cipName">—</div>
@@ -1111,11 +1105,11 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v32
-   Juwelen-Mine, Settings, Shortcuts, optimiertes UI
+   BUILD A REALM — v33
+   Fix: Datenverlust beim Neuladen, Offline-Produktion (Geld),
+   Goldmine Lv.4+ → 1% Chance auf 1 Gem pro Sekunde
    ========================================================= */
 
-/* ============ SETTINGS ============ */
 const settings = {
   showSmoke: true,
   smooth: true
@@ -1135,7 +1129,6 @@ function applySettingsToUI() {
   const smoothBtn = document.getElementById('smToggleSmooth');
   if (smokeBtn) smokeBtn.classList.toggle('on', settings.showSmoke);
   if (smoothBtn) smoothBtn.classList.toggle('on', settings.smooth);
-  // Smooth deaktiviert CSS-Transitions
   if (!settings.smooth) {
     document.documentElement.style.setProperty('--br-smooth', '0s');
   } else {
@@ -1377,14 +1370,14 @@ const ICONS = {
 const tips = [
   "Tip: Drag = Move · Wheel = Zoom",
   "Tip: E = Upgrade selected building",
-  "Tip: Spins button (purple) opens the card spin page",
+  "Tip: Gold Mines Lv.4+ have a 1% chance/sec to find a gem!",
   "Tip: Cards from spins can be equipped in Barracks/Garrison/Fortress",
   "Tip: Archers keep their distance and shoot",
   "Tip: Click a soldier to see its card info",
   "Tip: Gem Mine produces 10 gems/hour — even offline!",
   "Tip: Every 5 levels +1 build slot",
   "Tip: Walls block enemies",
-  "Tip: Towers shoot arrows at enemies in range"
+  "Tip: Offline production runs at 50% for 8h max"
 ];
 const statuses = [
   "Initializing engine…","Loading terrain…","Connecting to realm server…",
@@ -1790,7 +1783,7 @@ const BUILDINGS = {
   windmill: { name: "Windmill", icon: "windmill", category: "production", size: 2, cost: 950, maxLevel: 8, desc: "Grinds grain.", baseCost: 950, costMult: 2.05, produces: { food: 8, wood: 2 }, needs: { workers: 4 }, buildTime: 13, resourceCost: { wood: 90, stone: 40 } },
   workshop: { name: "Workshop", icon: "workshop", category: "production", size: 2, cost: 1100, maxLevel: 8, desc: "Crafts tools.", baseCost: 1100, costMult: 2.1, produces: { gold: 3, wood: 3 }, needs: { workers: 6 }, globalBonus: [0.03, 0.06, 0.10, 0.15, 0.21, 0.28, 0.36, 0.45], buildTime: 14, resourceCost: { wood: 100, stone: 80 } },
   market: { name: "Marketplace", icon: "market", category: "economy", size: 2, cost: 700, maxLevel: 10, desc: "Increases income.", baseCost: 700, costMult: 2.1, produces: { gold: 6 }, needs: { workers: 4 }, buildTime: 11, resourceCost: { wood: 60, stone: 40 } },
-  mine: { name: "Gold Mine", icon: "mine", category: "economy", size: 2, cost: 1200, maxLevel: 10, desc: "Extracts gold.", baseCost: 1200, costMult: 2.2, produces: { gold: 11 }, needs: { workers: 6 }, buildTime: 14, resourceCost: { wood: 80, stone: 100 } },
+  mine: { name: "Gold Mine", icon: "mine", category: "economy", size: 2, cost: 1200, maxLevel: 10, desc: "Extracts gold. At Lv.4+ has a 1% chance/sec to find a gem!", baseCost: 1200, costMult: 2.2, produces: { gold: 11 }, needs: { workers: 6 }, buildTime: 14, resourceCost: { wood: 80, stone: 100 } },
   gemMine: { name: "Gem Mine", icon: "gemMine", category: "economy", size: 2, cost: 1500, maxLevel: 8, desc: "Produces 10 gems per hour — also offline!", baseCost: 1500, costMult: 2.2, produces: {}, needs: { workers: 6 }, gemsPerHour: 10, buildTime: 16, resourceCost: { wood: 100, stone: 120 }, unlockLevel: 3 },
   bank: { name: "Bank", icon: "bank", category: "economy", size: 3, cost: 2500, maxLevel: 8, desc: "Generates passive income.", baseCost: 2500, costMult: 2.25, produces: { gold: 20 }, needs: { workers: 8 }, unlockLevel: 3, buildTime: 20, resourceCost: { wood: 150, stone: 200 } },
   university: { name: "University", icon: "university", category: "civic", size: 3, cost: 2800, maxLevel: 8, desc: "Trains specialists.", baseCost: 2800, costMult: 2.2, produces: { gold: 8 }, needs: { workers: 10 }, globalBonus: [0.05, 0.10, 0.16, 0.22, 0.29, 0.37, 0.46, 0.56], unlockLevel: 4, buildTime: 22, resourceCost: { wood: 200, stone: 220 } },
@@ -2217,6 +2210,25 @@ function productionTick(dt) {
   }
 }
 
+/* ============ GOLD MINE Lv.4+ → 1% chance/sec for 1 gem ============ */
+let mineGemAccumulator = 0;
+function goldMineGemTick(dt) {
+  mineGemAccumulator += dt;
+  // Wir werten jede Sekunde aus
+  while (mineGemAccumulator >= 1) {
+    mineGemAccumulator -= 1;
+    state.buildings.forEach(b => {
+      if (b.construction) return;
+      if (b.type !== 'mine') return;
+      if (b.level < 4) return;
+      if (Math.random() < 0.01) {
+        state.gems = (state.gems || 0) + 1;
+        showFloatText(b.x + BUILDINGS.mine.size * TILE / 2, b.y, '💎 +1', '#a87ee0');
+      }
+    });
+  }
+}
+
 function showFloatText(worldX, worldY, text, color) {
   const el = document.createElement('div');
   el.className = 'float-text';
@@ -2345,7 +2357,6 @@ mapEl.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('keydown', (e) => {
   if (e.key === 'q' || e.key === 'Q') { if (state.placing) { cancelPlacing(); notify("Placement cancelled"); } }
   if (e.key === 'e' || e.key === 'E') {
-    // Upgrade selected building
     if (state.selected && !state.selected.construction && state.selected.level < BUILDINGS[state.selected.type].maxLevel) {
       startUpgrade(state.selected);
     } else if (state.selected) {
@@ -2681,6 +2692,9 @@ function showDetailPanel(b) {
     if (def.soldierPerLevel) statsHTML += `<div class="dp-stat"><span class="k">Soldier Cap</span><span class="v good">+${def.soldierPerLevel[b.level-1]}</span></div>`;
     if (def.defenseBonus) statsHTML += `<div class="dp-stat"><span class="k">Defense Power</span><span class="v good">+${def.defenseBonus[b.level-1]}</span></div>`;
     if (def.gemsPerHour) statsHTML += `<div class="dp-stat"><span class="k">Gems/Hour</span><span class="v good">${def.gemsPerHour * b.level} 💎</span></div>`;
+    if (b.type === 'mine' && b.level >= 4) {
+      statsHTML += `<div class="dp-stat"><span class="k">Gem Chance</span><span class="v good">1%/sec 💎</span></div>`;
+    }
     const ts = getTowerStats(b.type, b.level);
     if (ts) {
       statsHTML += `<div class="dp-stat"><span class="k">Arrow Damage</span><span class="v good">${ts.damage}</span></div>`;
@@ -4228,7 +4242,6 @@ const premiumModal = document.getElementById('premiumModal');
 document.getElementById('premiumCancel').onclick = () => premiumModal.classList.remove('show');
 function closePremiumModal() { premiumModal.classList.remove('show'); }
 
-/* ============ SETTINGS MODAL ============ */
 const settingsModal = document.getElementById('settingsModal');
 document.getElementById('btnSettings').onclick = () => {
   settingsModal.classList.add('show');
@@ -4248,7 +4261,6 @@ document.getElementById('smToggleSmooth').onclick = () => {
   notify(`Smooth ${settings.smooth ? 'enabled' : 'disabled'}`, false, true);
 };
 
-/* ============ MINIMAP ============ */
 const mmInner = document.getElementById('mmInner');
 const mmResize = document.getElementById('mmResize');
 const minimapEl = document.getElementById('minimap');
@@ -4328,7 +4340,7 @@ mmInner.addEventListener('click', (e) => {
   applyTransform();
 });
 
-/* ============ SAVE / LOAD ============ */
+/* ============ SAVE / LOAD mit Fix für Datenverlust ============ */
 function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => saveGame(true), 1200);
@@ -4347,7 +4359,8 @@ async function saveGame(silent) {
       soldiers: state.soldiers, soldierCap: state.soldierCap,
       happiness: Math.round(state.happiness), level: state.level,
       xp: Math.floor(state.xp), xpNeeded: state.xpNeeded,
-      nextId: state.nextId, lastTick: Date.now(),
+      nextId: state.nextId,
+      lastTick: Date.now(),        // WICHTIG: Zeitstempel für Offline-Berechnung
       playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
       baseX: state.baseX, baseY: state.baseY,
       username: currentUser.username, hwid: ACTIVE_HWID,
@@ -4391,12 +4404,13 @@ async function loadSave() {
       state.buildings.push(nb);
     });
     state.nextId = Math.max(1, ...state.buildings.map(b => b.id || 0)) + 1;
-    // Offline-Produktion berechnen
+
+    // ============ OFFLINE-PRODUKTION ============
     const now = Date.now();
     const lastTime = data.lastTick || now;
-    const offlineSeconds = Math.min(86400, (now - lastTime) / 1000);
+    const offlineSeconds = Math.max(0, Math.min(86400, (now - lastTime) / 1000));
     if (offlineSeconds > 5) {
-      // Gem-Mine offline
+      // 1) Gem-Minen offline
       let gemsEarned = 0;
       state.buildings.forEach(b => {
         if (b.construction) return;
@@ -4406,28 +4420,61 @@ async function loadSave() {
           gemsEarned += rate * (offlineSeconds / 3600);
         }
       });
-      if (gemsEarned > 0) {
-        state.gems = Math.floor((state.gems || 0) + Math.floor(gemsEarned));
-        notify(`💎 Offline: +${Math.floor(gemsEarned)} gems from Gem Mines!`, false, true);
+      // 2) Goldminen Lv.4+ offline: 1% pro Sekunde
+      let mineGems = 0;
+      state.buildings.forEach(b => {
+        if (b.construction) return;
+        if (b.type !== 'mine') return;
+        if (b.level < 4) return;
+        const expected = offlineSeconds * 0.01;
+        // Zufallsbasiert (gerundet)
+        const rolls = Math.floor(offlineSeconds);
+        let hits = 0;
+        for (let i = 0; i < Math.min(rolls, 86400); i++) if (Math.random() < 0.01) hits++;
+        mineGems += hits;
+      });
+      const totalGems = Math.floor(gemsEarned + mineGems);
+      if (totalGems > 0) {
+        state.gems = Math.floor((state.gems || 0) + totalGems);
+        notify(`💎 Offline: +${totalGems} Gems (Gem-Mines + Gold-Mines)!`, false, true);
       }
-      // Ressourcen offline (reduziert)
+      // 3) Ressourcen + Geld offline
       const offlineMult = 0.5;
-      let offlineProd = { gold: 0, food: 0, wood: 0, stone: 0, money: 0 };
+      const capped = Math.min(offlineSeconds, 3600 * 8);
+      let offlineProd = { gold: 0, food: 0, wood: 0, stone: 0 };
+      let offlineMoney = 0;
+      let globalMult = 1;
+      state.buildings.forEach(b => {
+        if (b.construction) return;
+        const def = BUILDINGS[b.type];
+        if (def.globalBonus) globalMult += def.globalBonus[b.level-1] || 0;
+      });
       state.buildings.forEach(b => {
         if (b.construction) return;
         const def = BUILDINGS[b.type];
         if (def.produces) {
-          for (const k in def.produces) offlineProd[k] = (offlineProd[k] || 0) + def.produces[k] * b.level;
+          for (const k in def.produces) {
+            offlineProd[k] = (offlineProd[k] || 0) + def.produces[k] * b.level * globalMult;
+          }
+        }
+        if (b.type === 'farm' && b.level >= def.factoryLevel) {
+          offlineProd.food += 8 * b.level * globalMult;
+          offlineProd.gold += 4 * b.level * globalMult;
         }
       });
-      const capped = Math.min(offlineSeconds, 3600 * 8);
+      // Steuern / Geld offline
+      const taxPerSec = (state.population * 1.4 + state.buildings.length * 0.9) * (state.happiness / 100);
+      offlineMoney = taxPerSec * capped * offlineMult;
       for (const k in offlineProd) {
-        if (k === 'money') continue;
         state[k] = (state[k] || 0) + Math.floor(offlineProd[k] * (capped / 60) * offlineMult);
+      }
+      state.money += Math.floor(offlineMoney);
+      if (offlineMoney > 1 || offlineProd.gold + offlineProd.food + offlineProd.wood + offlineProd.stone > 1) {
+        notify(`💤 Offline-Produktion: +${Math.floor(offlineMoney)} 💰 & Ressourcen`, false, true);
       }
     }
     return true;
-  } catch(e) { return false; }
+  } catch(e) { console.error(e); return false; }
 }
 
 function startWorldListener() {
@@ -4604,7 +4651,7 @@ async function startGame() {
     }, 10000);
   }
 
-  // Gems pro Stunde im laufenden Spiel
+  // Gems pro Stunde im laufenden Spiel (Gem-Mines)
   setInterval(() => {
     let gemsEarned = 0;
     state.buildings.forEach(b => {
@@ -4615,12 +4662,12 @@ async function startGame() {
     if (gemsEarned > 0) {
       state.gems = (state.gems || 0) + gemsEarned;
       updateUI();
-      if (gemsEarned >= 1) notify(`💎 +${gemsEarned} gems from Gem Mines!`, false, true);
+      notify(`💎 +${gemsEarned} Gems aus Gem-Mines!`, false, true);
     }
   }, 3600000);
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0, spawnAccum = 0;
+  let prodAccum = 0, saveAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0, spawnAccum = 0, gemTickAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -4630,6 +4677,12 @@ async function startGame() {
     updateBuilders(dt);
     updateSmokeParticles(dt, now);
     constructionTick();
+    // Goldminen Lv.4+ Gem-Chance (1%/sec)
+    gemTickAccum += dt;
+    if (gemTickAccum >= 1) {
+      goldMineGemTick(gemTickAccum);
+      gemTickAccum = 0;
+    }
     spawnAccum += dt;
     if (spawnAccum >= 1) { soldierSpawnTick(); spawnAccum = 0; }
     prodAccum += dt;
