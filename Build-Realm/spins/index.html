@@ -13,7 +13,6 @@
     color: #e8ecf5;
   }
 
-  /* Sternen-Hintergrund */
   .stars {
     position: fixed; inset: 0; pointer-events: none; z-index: 0;
     overflow: hidden;
@@ -118,17 +117,19 @@
     max-width: 100%;
   }
 
-  /* Die Karten-Ausstellung */
+  /* Die Karten-Ausstellung — passt sich an Fenstergröße an */
   .card-showcase {
     position: relative;
-    width: 260px; height: 380px;
+    width: clamp(200px, 22vh, 280px);
+    height: clamp(280px, 30vh, 380px);
     display: flex; align-items: center; justify-content: center;
   }
 
   /* Karte */
   .spin-card {
     position: absolute;
-    width: 240px; height: 340px;
+    width: clamp(180px, 20vh, 260px);
+    height: clamp(260px, 28vh, 360px);
     border-radius: 18px;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -152,7 +153,8 @@
     box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(120,90,220,0.25);
   }
   .spin-card.idle .card-back-icon {
-    width: 100px; height: 100px;
+    width: clamp(70px, 8vh, 110px);
+    height: clamp(70px, 8vh, 110px);
     animation: idlePulse 2s ease-in-out infinite;
   }
   @keyframes idlePulse {
@@ -161,7 +163,8 @@
   }
   .spin-card.idle .card-back-text {
     margin-top: 20px;
-    font-size: 14px; letter-spacing: 4px;
+    font-size: clamp(11px, 1.4vh, 15px);
+    letter-spacing: 4px;
     color: #8ea3c8; font-weight: 800;
     text-transform: uppercase;
   }
@@ -208,7 +211,6 @@
     50% { box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 140px rgba(255,58,58,1); }
   }
 
-  /* Regenbogen-Ring für Legendary / Mythic */
   .rainbow-ring {
     position: absolute; inset: -6px;
     border-radius: 22px;
@@ -220,7 +222,6 @@
   }
   @keyframes spinRing { to { transform: rotate(360deg); } }
 
-  /* Karten-Inhalt */
   .card-content {
     position: relative; z-index: 2;
     display: flex; flex-direction: column;
@@ -229,7 +230,8 @@
     padding: 20px;
   }
   .card-unit-frame {
-    width: 140px; height: 140px;
+    width: clamp(80px, 12vh, 150px);
+    height: clamp(80px, 12vh, 150px);
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 14px;
     position: relative;
@@ -239,26 +241,30 @@
     filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5));
   }
   .card-name {
-    font-size: 18px; font-weight: 900;
+    font-size: clamp(13px, 2vh, 18px);
+    font-weight: 900;
     letter-spacing: 1.5px; text-transform: uppercase;
     text-align: center;
     margin-bottom: 6px;
   }
   .card-rarity {
-    font-size: 12px; font-weight: 800;
+    font-size: clamp(9px, 1.3vh, 12px);
+    font-weight: 800;
     letter-spacing: 3px; text-transform: uppercase;
     padding: 4px 12px; border-radius: 8px;
     margin-bottom: 12px;
   }
   .card-type {
-    font-size: 12px; font-weight: 700;
+    font-size: clamp(9px, 1.3vh, 12px);
+    font-weight: 700;
     color: rgba(255,255,255,0.7);
     letter-spacing: 1px; text-transform: uppercase;
     margin-bottom: 4px;
   }
   .card-stats {
     display: flex; gap: 12px;
-    font-size: 11.5px; font-weight: 700;
+    font-size: clamp(9px, 1.3vh, 12px);
+    font-weight: 700;
     color: rgba(255,255,255,0.85);
   }
   .card-stats .st {
@@ -272,6 +278,123 @@
   .card-rarity.epic { background: rgba(179,102,255,0.25); color: #d4a6ff; border: 1px solid #b366ff; }
   .card-rarity.legendary { background: rgba(255,215,0,0.25); color: #ffe066; border: 1px solid #ffd700; }
   .card-rarity.mythic { background: rgba(255,58,58,0.3); color: #ff9999; border: 1px solid #ff3a3a; }
+
+  /* ============ SLOT MACHINE ============ */
+  .slot-machine {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 20;
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(160deg, #0a0d1f 0%, #141828 60%, #0a0d1f 100%);
+    border: 2px solid rgba(168,126,224,0.5);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(120,90,220,0.4);
+  }
+  .slot-machine.show { display: flex; }
+
+  /* Vertikaler Reel */
+  .slot-reel {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex; flex-direction: column;
+    will-change: transform;
+  }
+  .slot-item {
+    width: 100%;
+    height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .slot-item-inner {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .slot-item-inner svg {
+    width: 80%; height: 80%;
+  }
+
+  /* Zeiger in der Mitte */
+  .slot-pointer {
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    transform: translateY(-50%);
+    height: 160px;
+    pointer-events: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px;
+    z-index: 5;
+  }
+  .slot-pointer::before,
+  .slot-pointer::after {
+    content: '';
+    width: 0; height: 0;
+    border-style: solid;
+  }
+  .slot-pointer::before {
+    border-width: 14px 16px 14px 0;
+    border-color: transparent #a87ee0 transparent transparent;
+    filter: drop-shadow(0 0 8px #a87ee0);
+  }
+  .slot-pointer::after {
+    border-width: 14px 0 14px 16px;
+    border-color: transparent transparent transparent #a87ee0;
+    filter: drop-shadow(0 0 8px #a87ee0);
+  }
+  /* Puls bei jedem Tick */
+  .slot-pointer.tick::before,
+  .slot-pointer.tick::after {
+    animation: pointerTick 0.15s ease-out;
+  }
+  @keyframes pointerTick {
+    0% { filter: drop-shadow(0 0 8px #a87ee0) brightness(1); }
+    50% { filter: drop-shadow(0 0 16px #d4a6ff) brightness(1.6); }
+    100% { filter: drop-shadow(0 0 8px #a87ee0) brightness(1); }
+  }
+
+  /* Zeiger-Linie horizontal */
+  .slot-center-line {
+    position: absolute;
+    top: 50%; left: 4px; right: 4px;
+    height: 2px;
+    transform: translateY(-50%);
+    background: linear-gradient(90deg, transparent, rgba(168,126,224,0.6), transparent);
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* Fade über/unter */
+  .slot-fade-top,
+  .slot-fade-bottom {
+    position: absolute; left: 0; right: 0;
+    height: 70px;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .slot-fade-top {
+    top: 0;
+    background: linear-gradient(180deg, rgba(10,13,31,0.95), rgba(10,13,31,0));
+  }
+  .slot-fade-bottom {
+    bottom: 0;
+    background: linear-gradient(0deg, rgba(10,13,31,0.95), rgba(10,13,31,0));
+  }
+
+  /* Ausblend-Animation wenn fertig */
+  .slot-machine.fadeout {
+    animation: slotFadeOut 0.4s ease-out forwards;
+  }
+  @keyframes slotFadeOut {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.08); }
+  }
 
   /* Spin-Button */
   .spin-btn-wrap {
@@ -307,7 +430,6 @@
   }
   .spin-cost svg { width: 14px; height: 14px; }
 
-  /* Free Spin Banner */
   .free-spin-banner {
     display: none; align-items: center; gap: 8px;
     padding: 10px 20px;
@@ -536,7 +658,6 @@
   }
   .result-btn.secondary:hover { background: rgba(255,255,255,0.15); }
 
-  /* Konfetti */
   .confetti-layer {
     position: fixed; inset: 0; pointer-events: none; z-index: 150;
     overflow: hidden;
@@ -552,7 +673,6 @@
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
   }
 
-  /* Screenshake für legendäre Pulls */
   body.shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
   @keyframes shake {
     10%, 90% { transform: translate3d(-2px, 0, 0); }
@@ -561,7 +681,6 @@
     40%, 60% { transform: translate3d(6px, 0, 0); }
   }
 
-  /* Login/HWID Indicator (klein oben) */
   .hwid-chip {
     display: none;
     align-items: center; gap: 6px;
@@ -574,7 +693,6 @@
   }
   .hwid-chip.show { display: inline-flex; }
 
-  /* Loading-Screen */
   #loadOverlay {
     position: fixed; inset: 0; z-index: 300;
     background: radial-gradient(ellipse at center, #1a1e3a 0%, #05060e 100%);
@@ -597,7 +715,6 @@
     text-transform: uppercase;
   }
 
-  /* No user Found */
   #noUserOverlay {
     position: fixed; inset: 0; z-index: 250;
     background: radial-gradient(ellipse at center, #1a1e3a 0%, #05060e 100%);
@@ -618,22 +735,26 @@
     max-width: 400px; line-height: 1.6;
   }
   #noUserOverlay .back-btn { padding: 12px 24px; font-size: 14px; }
+
+  @media (max-height: 700px) {
+    #collection { height: 180px; }
+    #mainArea { bottom: 180px; }
+    .slot-item { height: 130px; }
+    .slot-pointer { height: 130px; }
+  }
 </style>
 </head>
 <body>
 
-<!-- Background stars -->
 <div class="stars" id="stars"></div>
 <div class="bg-glow" style="width:400px;height:400px;top:15%;left:10%;"></div>
 <div class="bg-glow" style="width:500px;height:500px;bottom:20%;right:10%;animation-delay:3s;"></div>
 
-<!-- Loading -->
 <div id="loadOverlay">
   <div class="load-spinner"></div>
   <div class="load-text">Connecting to realm…</div>
 </div>
 
-<!-- No user -->
 <div id="noUserOverlay">
   <h2>No Realm Found</h2>
   <p>We couldn't find your realm. Please log in on the main game first, then come back to spin for cards.</p>
@@ -643,7 +764,6 @@
   </a>
 </div>
 
-<!-- Topbar -->
 <div id="topbar">
   <a href="../" class="back-btn" title="Back to main game">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -677,7 +797,6 @@
   </div>
 </div>
 
-<!-- Main stage -->
 <div id="mainArea">
   <div class="spin-stage">
     <div class="card-showcase" id="cardShowcase">
@@ -694,6 +813,15 @@
           <rect x="35" y="65" width="40" height="6" rx="2" fill="url(#cardBackGrad)" stroke="#2a1550" stroke-width="1"/>
         </svg>
         <div class="card-back-text">Ready to Spin</div>
+      </div>
+
+      <!-- Slot Machine Overlay -->
+      <div class="slot-machine" id="slotMachine">
+        <div class="slot-reel" id="slotReel"></div>
+        <div class="slot-fade-top"></div>
+        <div class="slot-fade-bottom"></div>
+        <div class="slot-center-line"></div>
+        <div class="slot-pointer" id="slotPointer"></div>
       </div>
     </div>
 
@@ -716,7 +844,6 @@
   </div>
 </div>
 
-<!-- Collection -->
 <div id="collection">
   <div class="coll-head">
     <div class="coll-title">
@@ -741,7 +868,6 @@
   </div>
 </div>
 
-<!-- Result Overlay -->
 <div id="resultOverlay">
   <div class="result-box">
     <div class="result-headline" id="resultHeadline">—</div>
@@ -766,7 +892,7 @@ const firebaseConfig = {
   projectId: "build-realm",
   storageBucket: "build-realm.firebasestorage.app",
   messagingSenderId: "178474064555",
-  appId: "1:178474064564:web:bc88c8cb41c5b3bbd5b5ee",
+  appId: "1:178474064555:web:bc88c8cb41c5b3bbd5b5ee",
   measurementId: "G-QX9MPZ75FH",
   databaseURL: "https://build-realm-default-rtdb.europe-west1.firebasedatabase.app/"
 };
@@ -780,12 +906,10 @@ window.dispatchEvent(new Event('spin-firebase-ready'));
 
 <script>
 /* =========================================================
-   SPIN THE REALM — v1
-   Card pulling system with rarities + effects
+   SPIN THE REALM — v2
+   Slot-Machine animation + save fix
    ========================================================= */
 
-/* ============ RARITIES ============ */
-// Reihenfolge wichtig für Filter/Sortierung
 const RARITIES = {
   common:    { id: 'common',    name: 'Common',    color: '#8a9380', glow: '#8a9380', order: 1, chance: 40.0 },
   uncommon:  { id: 'uncommon',  name: 'Uncommon',  color: '#4ec9a0', glow: '#4ec9a0', order: 2, chance: 30.0 },
@@ -795,13 +919,9 @@ const RARITIES = {
   mythic:    { id: 'mythic',    name: 'Mythic',    color: '#ff3a3a', glow: '#ff3a3a', order: 6, chance: 0.5 },
   spinAgain: { id: 'spinAgain', name: 'Free Spin', color: '#4caf50', glow: '#4caf50', order: 0, chance: 4.5 }
 };
-// Summe = 40+30+20+5+1+0.5+4.5 = 101% — wir nehmen letzten Rest als Fallback Common
 
-/* ============ SPIN CONFIG ============ */
-const SPIN_COST = 5; // Juwelen pro Spin
+const SPIN_COST = 5;
 
-/* ============ SOLDIER NAMES PRO RARITY ============ */
-// Jeder Eintrag: { name, type } wobei type = soldier/archer/spearman/tank/elite
 const CARD_POOL = {
   common: [
     { name: 'Footman',       type: 'soldier' },
@@ -857,23 +977,21 @@ const CARD_POOL = {
   ]
 };
 
-/* ============ STATE ============ */
 let hwid = null;
 let gems = 0;
-let cardsCollection = {}; // { cardId: { count, rarity, type, name } }
+let cardsCollection = {};
 let currentFilter = 'all';
 let spinning = false;
 let freeSpinAvailable = false;
+let pendingSave = false;
 
-/* ============ UNIQUE CARD ID ============ */
 function cardId(rarity, type, name) {
   return `${rarity}::${type}::${name}`.toLowerCase().replace(/[^a-z0-9:]/g, '_');
 }
 
-/* ============ SVG SPRITES für jede Unit — nach Seltenheit verschönert ============ */
+/* ============ SVG UNIT SPRITES ============ */
 function unitSVG(type, rarity) {
   const r = rarity || 'common';
-  // Farben nach rarity
   const palettes = {
     common:    { main: '#8a9380', dark: '#4a5040', accent: '#a8b0a0' },
     uncommon:  { main: '#4ec9a0', dark: '#1e6a50', accent: '#7fefc4' },
@@ -895,31 +1013,21 @@ function unitSVG(type, rarity) {
       </defs>
       ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-archer)"/>` : ''}
       <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
-      <!-- Legs -->
       <rect x="42" y="70" width="6" height="18" fill="${p.dark}"/>
       <rect x="52" y="70" width="6" height="18" fill="${p.dark}"/>
-      <!-- Body -->
       <path d="M35 40 Q50 34 65 40 L65 72 Q50 76 35 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
-      <!-- Belt -->
       <rect x="35" y="60" width="30" height="4" fill="${p.dark}" opacity="0.7"/>
-      <!-- Shoulders -->
       <ellipse cx="32" cy="45" rx="6" ry="5" fill="${p.dark}"/>
       <ellipse cx="68" cy="45" rx="6" ry="5" fill="${p.dark}"/>
-      <!-- Head -->
       <circle cx="50" cy="30" r="12" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
-      <!-- Hood -->
       <path d="M36 30 Q50 12 64 30 L64 26 Q50 8 36 26 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
-      <!-- Eyes -->
       <rect x="44" y="28" width="4" height="2" fill="#1a1a1a"/>
       <rect x="52" y="28" width="4" height="2" fill="#1a1a1a"/>
-      <!-- Bow -->
       <path d="M75 30 Q92 55 75 80" stroke="${p.accent}" stroke-width="3" fill="none"/>
       <line x1="75" y1="30" x2="75" y2="80" stroke="#e8e8e8" stroke-width="1"/>
       <line x1="75" y1="55" x2="60" y2="55" stroke="#8d6e63" stroke-width="2"/>
-      ${glow ? `<path d="M75 30 Q92 55 75 80" stroke="${p.accent}" stroke-width="6" fill="none" opacity="0.4" filter="blur(3px)"/>` : ''}
     </svg>`;
   }
-
   if (type === 'spearman') {
     return `<svg viewBox="0 0 100 100">
       <defs>
@@ -937,20 +1045,15 @@ function unitSVG(type, rarity) {
       <ellipse cx="32" cy="45" rx="6" ry="5" fill="${p.dark}"/>
       <ellipse cx="68" cy="45" rx="6" ry="5" fill="${p.dark}"/>
       <circle cx="50" cy="30" r="12" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
-      <!-- Helmet with plume -->
       <path d="M36 26 Q50 12 64 26 L64 22 Q50 6 36 22 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
       <rect x="48" y="10" width="4" height="10" fill="${p.dark}"/>
       <circle cx="50" cy="8" r="3" fill="${p.accent}"/>
       <rect x="44" y="28" width="4" height="2" fill="#1a1a1a"/>
       <rect x="52" y="28" width="4" height="2" fill="#1a1a1a"/>
-      <!-- Spear -->
       <rect x="72" y="10" width="4" height="82" fill="#8d6e63" stroke="${p.dark}" stroke-width="1"/>
       <path d="M74 2 L84 18 L74 22 L64 18 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
-      <line x1="74" y1="4" x2="74" y2="20" stroke="#fff" stroke-width="0.5" opacity="0.6"/>
-      ${glow ? `<path d="M74 2 L84 18 L74 22 L64 18 Z" fill="${p.accent}" opacity="0.5" filter="blur(3px)"/>` : ''}
     </svg>`;
   }
-
   if (type === 'tank') {
     return `<svg viewBox="0 0 100 100">
       <defs>
@@ -961,34 +1064,24 @@ function unitSVG(type, rarity) {
       </defs>
       ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-tank)"/>` : ''}
       <ellipse cx="50" cy="92" rx="30" ry="5" fill="rgba(0,0,0,0.4)"/>
-      <!-- Legs armored -->
       <rect x="38" y="68" width="10" height="22" fill="${p.dark}" rx="2"/>
       <rect x="52" y="68" width="10" height="22" fill="${p.dark}" rx="2"/>
-      <!-- Heavy body -->
       <path d="M28 36 Q50 30 72 36 L72 72 Q50 78 28 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2.5"/>
-      <!-- Chest plate -->
       <path d="M35 42 L65 42 L65 58 L35 58 Z" fill="${p.dark}" opacity="0.5"/>
-      <!-- Shoulders huge -->
       <ellipse cx="24" cy="42" rx="10" ry="8" fill="${p.dark}"/>
       <ellipse cx="76" cy="42" rx="10" ry="8" fill="${p.dark}"/>
       <ellipse cx="24" cy="42" rx="6" ry="5" fill="${p.accent}" opacity="0.6"/>
       <ellipse cx="76" cy="42" rx="6" ry="5" fill="${p.accent}" opacity="0.6"/>
-      <!-- Head with great helm -->
       <rect x="38" y="16" width="24" height="22" rx="4" fill="${p.main}" stroke="${p.dark}" stroke-width="2.5"/>
-      <!-- Visor slits -->
       <rect x="42" y="26" width="4" height="2" fill="#1a1a1a"/>
       <rect x="46" y="26" width="4" height="2" fill="#1a1a1a"/>
       <rect x="50" y="26" width="4" height="2" fill="#1a1a1a"/>
       <rect x="54" y="26" width="4" height="2" fill="#1a1a1a"/>
-      <!-- Crest -->
       <path d="M50 8 Q58 12 50 16 Q42 12 50 8 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
-      <!-- Mace in hand -->
       <rect x="80" y="55" width="3" height="30" fill="#5d4037"/>
       <circle cx="81.5" cy="52" r="7" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
-      ${glow ? `<circle cx="81.5" cy="52" r="12" fill="${p.accent}" opacity="0.4" filter="blur(4px)"/>` : ''}
     </svg>`;
   }
-
   if (type === 'elite') {
     return `<svg viewBox="0 0 100 100">
       <defs>
@@ -999,39 +1092,26 @@ function unitSVG(type, rarity) {
       </defs>
       ${glow ? `<circle cx="50" cy="55" r="48" fill="url(#glow-${r}-elite)"/>` : ''}
       <ellipse cx="50" cy="92" rx="28" ry="4" fill="rgba(0,0,0,0.5)"/>
-      <!-- Legs -->
       <rect x="42" y="68" width="6" height="20" fill="${p.dark}"/>
       <rect x="52" y="68" width="6" height="20" fill="${p.dark}"/>
-      <!-- Body -->
       <path d="M33 38 Q50 32 67 38 L67 74 Q50 78 33 74 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2.5"/>
-      <!-- Gold chest -->
       <path d="M38 48 L62 48 L58 62 L42 62 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
-      <!-- Shoulders -->
       <path d="M28 42 Q24 34 32 32 Q36 34 34 42 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
       <path d="M72 42 Q76 34 68 32 Q64 34 66 42 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
-      <!-- Head -->
       <circle cx="50" cy="28" r="11" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
-      <!-- Ornate helm -->
       <path d="M36 26 Q50 8 64 26 L64 20 Q50 2 36 20 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
       <circle cx="50" cy="16" r="3" fill="${p.main}" stroke="${p.dark}" stroke-width="1"/>
-      <!-- Feathers -->
       <path d="M50 12 Q56 4 62 10 Q56 8 50 12 Z" fill="${p.accent}"/>
       <path d="M50 12 Q44 4 38 10 Q44 8 50 12 Z" fill="${p.accent}"/>
-      <!-- Eyes glow -->
       <rect x="44" y="26" width="4" height="2" fill="#fff"/>
       <rect x="52" y="26" width="4" height="2" fill="#fff"/>
-      <!-- Sword -->
       <rect x="72" y="30" width="3" height="55" fill="#e8e8e8" stroke="${p.dark}" stroke-width="1"/>
       <rect x="68" y="44" width="11" height="3" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
       <path d="M73.5 22 L79 30 L73.5 34 L68 30 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
-      <!-- Shield -->
       <path d="M16 44 Q12 44 12 52 L12 70 Q16 76 22 74 L22 44 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="2"/>
       <circle cx="17" cy="55" r="4" fill="${p.main}" stroke="${p.dark}" stroke-width="1"/>
-      ${glow ? `<circle cx="17" cy="55" r="8" fill="${p.accent}" opacity="0.5" filter="blur(3px)"/>` : ''}
     </svg>`;
   }
-
-  // Default: soldier
   return `<svg viewBox="0 0 100 100">
     <defs>
       <radialGradient id="glow-${r}-sol" cx="50%" cy="50%" r="50%">
@@ -1041,89 +1121,69 @@ function unitSVG(type, rarity) {
     </defs>
     ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-sol)"/>` : ''}
     <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
-    <!-- Legs -->
     <rect x="42" y="68" width="6" height="20" fill="${p.dark}"/>
     <rect x="52" y="68" width="6" height="20" fill="${p.dark}"/>
-    <!-- Body -->
     <path d="M35 40 Q50 34 65 40 L65 72 Q50 76 35 72 Z" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
     <rect x="35" y="60" width="30" height="4" fill="${p.dark}" opacity="0.7"/>
-    <!-- Shoulders -->
     <ellipse cx="32" cy="45" rx="6" ry="5" fill="${p.dark}"/>
     <ellipse cx="68" cy="45" rx="6" ry="5" fill="${p.dark}"/>
-    <!-- Head -->
     <circle cx="50" cy="30" r="12" fill="${p.main}" stroke="${p.dark}" stroke-width="2"/>
-    <!-- Helmet -->
     <path d="M36 28 Q50 14 64 28 L64 24 Q50 10 36 24 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1.5"/>
     <rect x="48" y="16" width="4" height="6" fill="${p.dark}"/>
-    <!-- Eyes -->
     <rect x="44" y="28" width="4" height="2" fill="#1a1a1a"/>
     <rect x="52" y="28" width="4" height="2" fill="#1a1a1a"/>
-    <!-- Sword & Shield -->
     <rect x="72" y="38" width="3" height="40" fill="#e8e8e8" stroke="${p.dark}" stroke-width="1"/>
     <path d="M73.5 32 L79 42 L73.5 46 L68 42 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="1"/>
     <path d="M18 46 Q14 46 14 54 L14 68 Q18 74 22 72 L22 46 Z" fill="${p.accent}" stroke="${p.dark}" stroke-width="2"/>
     <circle cx="18" cy="54" r="3" fill="${p.main}" stroke="${p.dark}" stroke-width="0.8"/>
-    ${glow ? `<circle cx="50" cy="30" r="20" fill="${p.accent}" opacity="0.35" filter="blur(4px)"/>` : ''}
   </svg>`;
 }
 
-/* ============ FIREBASE READY + INIT ============ */
+/* ============ FIREBASE INIT ============ */
 function whenFirebaseReady(cb) {
   if (window.__SPIN_db) { cb(); return; }
   window.addEventListener('spin-firebase-ready', cb, { once: true });
 }
 
-whenFirebaseReady(() => {
+whenFirebaseReady(async () => {
   const db = window.__SPIN_db;
   const { ref, get } = window.__SPIN_fns;
 
-  // Suche User anhand verfügbarer saves
-  // Da wir im spins-Ordner sind und keinen Login haben, versuchen wir:
-  // 1. localStorage "br_last_hwid" (falls main game das setzt)
-  // 2. Sonst: alle saves durchsuchen und fragen welcher der aktuelle ist
-
   const storedHwid = localStorage.getItem('br_last_hwid');
+  let foundHwid = null;
 
-  (async () => {
-    let foundHwid = null;
+  if (storedHwid) {
+    try {
+      const snap = await get(ref(db, 'saves/' + storedHwid));
+      if (snap.exists()) foundHwid = storedHwid;
+    } catch(e) {}
+  }
 
-    if (storedHwid) {
+  if (!foundHwid) {
+    const lastHwid = localStorage.getItem('br_hwid');
+    if (lastHwid) {
       try {
-        const snap = await get(ref(db, 'saves/' + storedHwid));
-        if (snap.exists()) foundHwid = storedHwid;
+        const snap = await get(ref(db, 'saves/' + lastHwid));
+        if (snap.exists()) foundHwid = lastHwid;
       } catch(e) {}
     }
+  }
 
-    // Fallback: Wenn main game setzt — nutzen wir HWID
-    // Sonst probieren wir die letzte gespeicherte HWID aus localStorage
-    if (!foundHwid) {
-      // Versuchen wir die zuletzt gespeicherte HWID
-      const lastHwid = localStorage.getItem('br_hwid');
-      if (lastHwid) {
-        try {
-          const snap = await get(ref(db, 'saves/' + lastHwid));
-          if (snap.exists()) foundHwid = lastHwid;
-        } catch(e) {}
-      }
-    }
+  if (!foundHwid) {
+    document.getElementById('loadOverlay').classList.add('hidden');
+    document.getElementById('noUserOverlay').classList.add('show');
+    return;
+  }
 
-    if (!foundHwid) {
-      document.getElementById('loadOverlay').classList.add('hidden');
-      document.getElementById('noUserOverlay').classList.add('show');
-      return;
-    }
-
-    hwid = foundHwid;
-    await initUserData();
-  })();
+  hwid = foundHwid;
+  await initUserData();
 });
 
 async function initUserData() {
   const db = window.__SPIN_db;
-  const { ref, get } = window.__SPIN_fns;
+  const { ref, get, update } = window.__SPIN_fns;
 
   try {
-    // Lade User-Daten
     const snap = await get(ref(db, 'saves/' + hwid));
     if (!snap.exists()) {
       document.getElementById('loadOverlay').classList.add('hidden');
@@ -1134,11 +1194,9 @@ async function initUserData() {
     gems = data.gems != null ? Number(data.gems) : 0;
     cardsCollection = data.cards || {};
 
-    // Zeige HWID chip
     document.getElementById('hwidChipText').textContent = hwid.slice(0, 16) + '…';
     document.getElementById('hwidChip').classList.add('show');
 
-    // Falls user keine gems hat, initial 25 geben (nur beim allerersten Mal)
     if (data.gems == null && data.cards == null) {
       gems = 25;
       await update(ref(db, 'saves/' + hwid), { gems: 25, cards: {} });
@@ -1155,7 +1213,43 @@ async function initUserData() {
   }
 }
 
-/* ============ GEM DISPLAY ============ */
+/* ============ SAVE ============ */
+async function saveProgress() {
+  if (!hwid) return;
+  try {
+    await update(ref(window.__SPIN_db, 'saves/' + hwid), {
+      gems: gems,
+      cards: cardsCollection
+    });
+    pendingSave = false;
+  } catch(e) {
+    console.error('Save error:', e);
+    pendingSave = true;
+  }
+}
+
+// Speichern beim Verlassen
+window.addEventListener('beforeunload', () => {
+  if (hwid) {
+    try {
+      // Synchroner Fallback via localStorage Cache
+      localStorage.setItem('br_spin_cache_' + hwid, JSON.stringify({ gems, cards: cardsCollection }));
+    } catch(e) {}
+  }
+});
+
+// Cache wiederherstellen falls nötig
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (hwid) {
+      try {
+        const cached = localStorage.getItem('br_spin_cache_' + hwid);
+        if (cached) localStorage.removeItem('br_spin_cache_' + hwid);
+      } catch(e) {}
+    }
+  }, 3000);
+});
+
 function updateGemDisplay(bump) {
   const el = document.getElementById('gemCount');
   el.textContent = gems.toLocaleString('en-US');
@@ -1171,7 +1265,6 @@ function updateGemDisplay(bump) {
 function rollRarity() {
   const roll = Math.random() * 100;
   let cumulative = 0;
-  // Order: common (40), uncommon (30), rare (20), epic (5), legendary (1), mythic (0.5), spinAgain (4.5)
   const order = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'spinAgain'];
   for (const r of order) {
     cumulative += RARITIES[r].chance;
@@ -1187,6 +1280,141 @@ function pickCard(rarity) {
   return { rarity, type: picked.type, name: picked.name };
 }
 
+/* ============ SLOT MACHINE ============ */
+const SLOT_ITEM_HEIGHT = 160; // muss mit CSS übereinstimmen
+
+function buildSlotItems(targetCard, reelLength = 30) {
+  // Wir bauen eine Liste von zufälligen Karten + die Ziel-Karte an einer Position
+  const items = [];
+  const allCards = [];
+  // Alle möglichen Karten sammeln für zufällige Anzeige
+  for (const rar in CARD_POOL) {
+    CARD_POOL[rar].forEach(c => allCards.push({ rarity: rar, type: c.type, name: c.name }));
+  }
+
+  // Ziel-Position: in der Mitte der letzten ~5
+  const targetIndex = reelLength - 3;
+
+  for (let i = 0; i < reelLength; i++) {
+    if (i === targetIndex) {
+      items.push(targetCard);
+    } else {
+      // Zufällige Karte, aber nicht die Ziel-Karte
+      let rand;
+      let attempts = 0;
+      do {
+        rand = allCards[Math.floor(Math.random() * allCards.length)];
+        attempts++;
+      } while (rand.rarity === targetCard.rarity && rand.name === targetCard.name && attempts < 10);
+      items.push(rand);
+    }
+  }
+  return { items, targetIndex };
+}
+
+function renderSlotItems(items) {
+  const reel = document.getElementById('slotReel');
+  reel.innerHTML = items.map(card => {
+    const rar = RARITIES[card.rarity] || RARITIES.common;
+    return `<div class="slot-item"><div class="slot-item-inner">${unitSVG(card.type, card.rarity)}</div></div>`;
+  }).join('');
+}
+
+async function playSlotAnimation(targetCard) {
+  return new Promise((resolve) => {
+    const slot = document.getElementById('slotMachine');
+    const reel = document.getElementById('slotReel');
+    const pointer = document.getElementById('slotPointer');
+
+    // Baue Items
+    const reelLength = 28;
+    const { items, targetIndex } = buildSlotItems(targetCard, reelLength);
+    renderSlotItems(items);
+
+    // Reel-Position initial ganz oben
+    reel.style.transition = 'none';
+    reel.style.transform = 'translateY(0px)';
+    slot.classList.add('show');
+    slot.classList.remove('fadeout');
+
+    // Ziel-Offset: mittlerer Slot in der Card-Showcase
+    // Die Showcase hat eine Höhe von ~card height. Wir nehmen an, dass der sichtbare Bereich
+    // ca. 3 Items hoch ist. Der "Center"-Slot ist bei Index targetIndex.
+    const showcase = document.getElementById('cardShowcase');
+    const showcaseHeight = showcase.clientHeight;
+    // Aktuelle Item-Höhe (CSS responsive)
+    const itemEl = reel.querySelector('.slot-item');
+    const itemHeight = itemEl ? itemEl.offsetHeight : SLOT_ITEM_HEIGHT;
+
+    // Center = Höhe/2. Ziel-Item soll in der Mitte stehen.
+    // Also: reel muss so verschoben werden, dass targetIndex*itemHeight + itemHeight/2 = showcaseHeight/2
+    const targetOffset = targetIndex * itemHeight + itemHeight / 2 - showcaseHeight / 2;
+
+    // Total-Distanz für die Animation
+    const totalDistance = targetOffset;
+
+    // Dauer abhängig von Distanz
+    const duration = 2800 + Math.random() * 400;
+    const startTime = performance.now();
+
+    // Tick-Handler für Zeiger-Animation
+    let lastTick = -1;
+    function tickAt(index) {
+      if (index === lastTick) return;
+      lastTick = index;
+      pointer.classList.remove('tick');
+      void pointer.offsetWidth;
+      pointer.classList.add('tick');
+      // Kleines Sound-Feedback (Vibration auf Mobile)
+      if (navigator.vibrate && index % 2 === 0) {
+        try { navigator.vibrate(8); } catch(e) {}
+      }
+    }
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const t = Math.min(1, elapsed / duration);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      // Zusätzliche "Wobble"-Phase kurz vor Ende
+      let offset = totalDistance * eased;
+
+      // Kurzer Rückwärts-Wobble am Ende (overshoot)
+      if (t > 0.9) {
+        const overshoot = Math.sin((t - 0.9) * Math.PI * 10) * 8 * (1 - t);
+        offset += overshoot;
+      }
+
+      reel.style.transform = `translateY(${-offset}px)`;
+
+      // Zeiger-Tick basierend auf aktueller Position
+      const currentIndex = Math.floor(offset / itemHeight);
+      tickAt(currentIndex);
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Fertig — leichte Korrektur
+        reel.style.transform = `translateY(${-targetOffset}px)`;
+
+        // Kurzer "Hold" — Zeiger poppt noch einmal
+        pointer.classList.remove('tick');
+        void pointer.offsetWidth;
+        pointer.classList.add('tick');
+
+        // Fade-out
+        slot.classList.add('fadeout');
+        setTimeout(() => {
+          slot.classList.remove('show', 'fadeout');
+          resolve();
+        }, 400);
+      }
+    }
+    requestAnimationFrame(animate);
+  });
+}
+
 /* ============ SPIN ACTION ============ */
 async function doSpin() {
   if (spinning) return;
@@ -1198,70 +1426,65 @@ async function doSpin() {
   const btn = document.getElementById('spinBtn');
   btn.disabled = true;
 
+  const wasFree = freeSpinAvailable;
+
   // Kosten abziehen (außer free spin)
-  if (!freeSpinAvailable) {
+  if (!wasFree) {
     gems -= SPIN_COST;
     updateGemDisplay(true);
-    try {
-      await update(ref(window.__SPIN_db, 'saves/' + hwid), { gems: gems });
-    } catch(e) {}
   } else {
     freeSpinAvailable = false;
     document.getElementById('freeSpinBanner').classList.remove('show');
   }
 
-  // Karten-Animation: Karte wegflippen
-  const card = document.getElementById('mainCard');
-  card.classList.add('flipping');
-
-  // Roll die Rarity
+  // Roll die Rarity und Karte ZUERST (Ergebnis steht fest)
   const rarity = rollRarity();
 
-  // Nach 600ms: Ergebnis zeigen
-  setTimeout(async () => {
-    card.classList.remove('flipping');
-
-    if (rarity === 'spinAgain') {
-      // Free spin — kein Card-Ergebnis, aber Belohnung zeigen
-      freeSpinAvailable = true;
-      document.getElementById('freeSpinBanner').classList.add('show');
-      // Konfetti
-      spawnConfetti(20, '#4caf50');
-      notify('⚡ FREE SPIN! Spin again for free', false, true);
-      // Re-Enable button
-      spinning = false;
-      btn.disabled = false;
-      updateSpinButton();
-      return;
+  // Bei Free Spin: kein Slot, sondern direkt Banner
+  if (rarity === 'spinAgain') {
+    // Kosten zurückerstatten? Nein — Free Spin ist ein Bonus
+    // Aber wir geben den Einsatz zurück
+    if (!wasFree) {
+      gems += SPIN_COST;
+      updateGemDisplay(false);
     }
-
-    const pulled = pickCard(rarity);
-    if (!pulled) { spinning = false; btn.disabled = false; return; }
-
-    // Zeige Ergebnis im Overlay
-    showResult(pulled);
-
-    // Speichere in Firebase
-    const key = cardId(pulled.rarity, pulled.type, pulled.name);
-    if (!cardsCollection[key]) {
-      cardsCollection[key] = { rarity: pulled.rarity, type: pulled.type, name: pulled.name, count: 0 };
-    }
-    cardsCollection[key].count = (cardsCollection[key].count || 0) + 1;
-
-    try {
-      await update(ref(window.__SPIN_db, 'saves/' + hwid + '/cards/' + key), {
-        rarity: pulled.rarity, type: pulled.type, name: pulled.name, count: cardsCollection[key].count
-      });
-    } catch(e) { console.error(e); }
-
-    renderCollection();
-    updateCollectionCount();
-
-    // Re-enable
+    freeSpinAvailable = true;
+    document.getElementById('freeSpinBanner').classList.add('show');
+    spawnConfetti(20, '#4caf50');
+    notify('⚡ FREE SPIN! Spin again for free', false, true);
     spinning = false;
     btn.disabled = false;
     updateSpinButton();
-  }, 600);
+    // Speichern
+    saveProgress();
+    return;
+  }
+
+  const pulled = pickCard(rarity);
+  if (!pulled) { spinning = false; btn.disabled = false; return; }
+
+  // Slot-Machine-Animation abspielen
+  await playSlotAnimation(pulled);
+
+  // Zeige Ergebnis-Overlay
+  showResult(pulled);
+
+  // In Collection speichern
+  const key = cardId(pulled.rarity, pulled.type, pulled.name);
+  if (!cardsCollection[key]) {
+    cardsCollection[key] = { rarity: pulled.rarity, type: pulled.type, name: pulled.name, count: 0 };
+  }
+  cardsCollection[key].count = (cardsCollection[key].count || 0) + 1;
+
+  renderCollection();
+
+  // Speichern (sowohl gems als auch cards)
+  await saveProgress();
+
+  // Re-enable
+  spinning = false;
+  btn.disabled = false;
+  updateSpinButton();
 }
 
 function updateSpinButton() {
@@ -1290,17 +1513,13 @@ function showResult(pulled) {
   headline.textContent = `${rar.name} Pull!`;
   headline.className = 'result-headline ' + pulled.rarity;
 
-  // Karte rendern
   cardWrap.innerHTML = renderFullCard(pulled);
 
   overlay.classList.add('show');
 
-  // Effekte je nach rarity
   if (pulled.rarity === 'legendary' || pulled.rarity === 'mythic') {
-    // Screenshake
     document.body.classList.add('shake');
     setTimeout(() => document.body.classList.remove('shake'), 600);
-    // Viele Konfetti
     spawnConfetti(pulled.rarity === 'mythic' ? 150 : 100, rar.color);
   } else if (pulled.rarity === 'epic') {
     spawnConfetti(60, rar.color);
@@ -1349,7 +1568,7 @@ function renderMiniCard(card) {
   `;
 }
 
-/* ============ COLLECTION RENDER ============ */
+/* ============ COLLECTION ============ */
 function renderCollection() {
   const body = document.getElementById('collBody');
   const entries = Object.entries(cardsCollection);
@@ -1358,7 +1577,6 @@ function renderCollection() {
     updateCollectionCount();
     return;
   }
-  // Sortiere nach rarity order desc dann name
   entries.sort((a, b) => {
     const ra = RARITIES[a[1].rarity]?.order || 0;
     const rb = RARITIES[b[1].rarity]?.order || 0;
@@ -1376,13 +1594,11 @@ function renderCollection() {
   }
 
   body.innerHTML = filtered.map(([k, v]) => renderMiniCard(v)).join('');
-  // Click handlers → show detail
   body.querySelectorAll('.mini-card').forEach(el => {
     el.onclick = () => {
       const key = el.dataset.key;
       const card = cardsCollection[key];
       if (!card) return;
-      // Zeige Detail als Result-Overlay ohne Konfetti
       showCardDetail(card);
     };
   });
@@ -1406,9 +1622,7 @@ function updateCollectionCount() {
   document.getElementById('collCount').textContent = `${unique} unique · ${total} total`;
 }
 
-/* ============ CARD STATS ============ */
 function getCardStats(rarity, type) {
-  // Basis Stats pro Type
   const base = {
     soldier:  { hp: 100, damage: 8 },
     archer:   { hp: 70,  damage: 14 },
@@ -1417,7 +1631,6 @@ function getCardStats(rarity, type) {
     elite:    { hp: 220, damage: 18 }
   }[type] || { hp: 100, damage: 8 };
 
-  // Rarity multiplikator
   const mult = {
     common: 1.0, uncommon: 1.3, rare: 1.7,
     epic: 2.3, legendary: 3.2, mythic: 4.5
@@ -1480,7 +1693,7 @@ function notify(msg, bad, good) {
   }, 2500);
 }
 
-/* ============ STARS BG ============ */
+/* ============ STARS ============ */
 (function makeStars() {
   const wrap = document.getElementById('stars');
   for (let i = 0; i < 100; i++) {
@@ -1513,7 +1726,6 @@ document.getElementById('resultOverlay').addEventListener('click', (e) => {
   }
 });
 
-// Filter
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -1523,22 +1735,19 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   };
 });
 
-// Escape schließt Overlays
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     document.getElementById('resultOverlay').classList.remove('show');
   }
 });
 
-// Beim Laden: Button updaten sobald Daten da
 setTimeout(() => updateSpinButton(), 500);
 
-/* Helper */
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
 
-window.__SPIN = { doSpin, updateGemDisplay, renderCollection };
+window.__SPIN = { doSpin, updateGemDisplay, renderCollection, saveProgress };
 </script>
 </body>
 </html>
