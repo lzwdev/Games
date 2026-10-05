@@ -1105,15 +1105,14 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v33
-   Fix: Datenverlust beim Neuladen, Offline-Produktion (Geld),
-   Goldmine Lv.4+ → 1% Chance auf 1 Gem pro Sekunde
+   BUILD A REALM — v34
+   Fix: Datenverlust bei Reload/Verlassen
+   - localStorage Cache (synchroner Fallback)
+   - Autosave alle 5s + vor jedem Unload
+   - Snapshot bei jeder Aktion (Gebäude, Upgrade, etc.)
    ========================================================= */
 
-const settings = {
-  showSmoke: true,
-  smooth: true
-};
+const settings = { showSmoke: true, smooth: true };
 function loadSettings() {
   try {
     const s = localStorage.getItem('br_settings');
@@ -1136,6 +1135,59 @@ function applySettingsToUI() {
   }
 }
 loadSettings();
+
+/* ============ CACHE KEY ============ */
+function cacheKey() { return 'br_save_cache_' + ACTIVE_HWID; }
+
+/* ============ SAVE SNAPSHOT (synchron, immer verfügbar) ============ */
+function buildSaveData() {
+  return {
+    money: Math.floor(state.money), gold: Math.floor(state.gold),
+    food: Math.floor(state.food), wood: Math.floor(state.wood), stone: Math.floor(state.stone),
+    gems: Math.floor(state.gems || 0),
+    population: state.population, populationCap: state.populationCap,
+    workers: state.workers, workersNeeded: state.workersNeeded,
+    soldiers: state.soldiers, soldierCap: state.soldierCap,
+    happiness: Math.round(state.happiness), level: state.level,
+    xp: Math.floor(state.xp), xpNeeded: state.xpNeeded,
+    nextId: state.nextId,
+    lastTick: Date.now(),
+    playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
+    baseX: state.baseX, baseY: state.baseY,
+    username: currentUser ? currentUser.username : '',
+    hwid: ACTIVE_HWID,
+    buildingTroopSelections: state.buildingTroopSelections || {},
+    buildings: state.buildings.map(b => ({
+      id: b.id, type: b.type, x: b.x, y: b.y, level: b.level,
+      construction: b.construction || false,
+      constructionStart: b.constructionStart || 0,
+      constructionDuration: b.constructionDuration || 0,
+      hp: b.hp || 100, maxHp: b.maxHp || 100,
+      stationedAmount: b._stationedAmount || 0
+    }))
+  };
+}
+
+// Schreibt sofort in localStorage (synchron, funktioniert immer)
+function writeLocalCache() {
+  if (!ACTIVE_HWID || !currentUser) return;
+  try {
+    const data = buildSaveData();
+    localStorage.setItem('br_save_cache_' + ACTIVE_HWID, JSON.stringify(data));
+  } catch(e) { console.warn('local cache write failed', e); }
+}
+
+function readLocalCache(hwid) {
+  try {
+    const raw = localStorage.getItem('br_save_cache_' + hwid);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function clearLocalCache(hwid) {
+  try { localStorage.removeItem('br_save_cache_' + hwid); } catch(e) {}
+}
 
 /* ============ SOLDIER RARITIES & TYPES ============ */
 const RARITIES = {
@@ -2141,6 +2193,7 @@ function addXP(amount) {
     if (currentUser) publishEvent('info', `${currentUser.username} reached Level ${state.level}!`);
   }
   updateUI();
+  writeLocalCache();
 }
 
 function recalc() {
@@ -2214,7 +2267,6 @@ function productionTick(dt) {
 let mineGemAccumulator = 0;
 function goldMineGemTick(dt) {
   mineGemAccumulator += dt;
-  // Wir werten jede Sekunde aus
   while (mineGemAccumulator >= 1) {
     mineGemAccumulator -= 1;
     state.buildings.forEach(b => {
@@ -2224,6 +2276,7 @@ function goldMineGemTick(dt) {
       if (Math.random() < 0.01) {
         state.gems = (state.gems || 0) + 1;
         showFloatText(b.x + BUILDINGS.mine.size * TILE / 2, b.y, '💎 +1', '#a87ee0');
+        writeLocalCache();
       }
     });
   }
@@ -2542,6 +2595,8 @@ function placeBuilding(e) {
   if (state.placing === 'main') notify(`🏰 Main Building placed for FREE!`, false, true);
   else notify(`${def.name} under construction (${formatTime(bt)})`);
   cancelPlacing();
+  // SOFORT speichern (lokal + Firebase)
+  writeLocalCache();
   scheduleSave();
 }
 function createBuildingEl(b, isEnemy, ownerName) {
@@ -2661,7 +2716,7 @@ function constructionTick() {
       notify(`${BUILDINGS[b.type].name} completed!`, false, true);
     }
   }
-  if (changed) { recalc(); updateUI(); updateMinimapBuildings(); renderBuildingList(); scheduleSave(); }
+  if (changed) { recalc(); updateUI(); updateMinimapBuildings(); renderBuildingList(); writeLocalCache(); scheduleSave(); }
 }
 
 function selectBuilding(id) {
@@ -2767,6 +2822,7 @@ function showDetailPanel(b) {
       const slotsLeft = def.soldierPerLevel[b.level-1] || 0;
       b._stationedAmount = Math.min(card.count, slotsLeft);
       notify(`✔ Equipped ${card.name} (${card.rarity}) to ${def.name}`, false, true);
+      writeLocalCache();
       scheduleSave();
       showDetailPanel(b);
     };
@@ -2781,6 +2837,7 @@ function showDetailPanel(b) {
       if (valEl) valEl.textContent = `${v} / ${stationedSlider.max}`;
       const pct = (v / stationedSlider.max) * 100;
       stationedSlider.style.backgroundSize = pct + '% 100%';
+      writeLocalCache();
       scheduleSave();
     });
     const pct = (stationedSlider.value / stationedSlider.max) * 100;
@@ -2873,6 +2930,7 @@ function startUpgrade(b) {
   updateUI();
   updateMinimapBuildings();
   notify(`${def.name} upgrading to Lv.${b.level}`);
+  writeLocalCache();
   scheduleSave();
 }
 
@@ -2894,6 +2952,7 @@ function repairBuilding(b) {
   notify(`🔧 Repaired ${def.name}`, false, true);
   if (state.selected === b) showDetailPanel(b);
   updateUI();
+  writeLocalCache();
   scheduleSave();
 }
 
@@ -2922,6 +2981,7 @@ function sellBuilding(b) {
   renderBuildingList();
   hideDetailPanel();
   notify(`Sold! +${refund.toLocaleString('en-US')} money`, false, true);
+  writeLocalCache();
   scheduleSave();
 }
 
@@ -3190,6 +3250,7 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
     } catch(e) {}
   }
   updateUI();
+  writeLocalCache();
   if (state.selected) showDetailPanel(state.selected);
 }
 
@@ -3516,6 +3577,7 @@ function destroyBuilding(b, ownerName, ownerHwid, wasAttacker) {
   updateUI();
   updateMinimapBuildings();
   renderBuildingList();
+  writeLocalCache();
   scheduleSave();
 }
 
@@ -4340,33 +4402,19 @@ mmInner.addEventListener('click', (e) => {
   applyTransform();
 });
 
-/* ============ SAVE / LOAD mit Fix für Datenverlust ============ */
+/* ============ SAVE / LOAD mit localStorage-Fallback ============ */
 function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => saveGame(true), 1200);
+  saveTimeout = setTimeout(() => saveGame(true), 1500);
 }
 async function saveGame(silent) {
   if (!currentUser || !firebase) return;
+  // Erst lokal (synchron) speichern — funktioniert immer
+  writeLocalCache();
   try {
     document.getElementById('syncBadge').classList.add('saving');
-    const { ref, get, update } = firebase;
-    const data = {
-      money: Math.floor(state.money), gold: Math.floor(state.gold),
-      food: Math.floor(state.food), wood: Math.floor(state.wood), stone: Math.floor(state.stone),
-      gems: Math.floor(state.gems || 0),
-      population: state.population, populationCap: state.populationCap,
-      workers: state.workers, workersNeeded: state.workersNeeded,
-      soldiers: state.soldiers, soldierCap: state.soldierCap,
-      happiness: Math.round(state.happiness), level: state.level,
-      xp: Math.floor(state.xp), xpNeeded: state.xpNeeded,
-      nextId: state.nextId,
-      lastTick: Date.now(),        // WICHTIG: Zeitstempel für Offline-Berechnung
-      playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
-      baseX: state.baseX, baseY: state.baseY,
-      username: currentUser.username, hwid: ACTIVE_HWID,
-      buildingTroopSelections: state.buildingTroopSelections || {},
-      buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp || 100, maxHp: b.maxHp || 100, stationedAmount: b._stationedAmount || 0 }))
-    };
+    const { ref, update } = firebase;
+    const data = buildSaveData();
     await update(ref(firebase.db, 'saves/' + ACTIVE_HWID), data);
     await update(ref(firebase.db, 'world/' + ACTIVE_HWID), {
       username: currentUser.username, baseX: state.baseX, baseY: state.baseY,
@@ -4378,18 +4426,63 @@ async function saveGame(silent) {
     document.getElementById('syncBadge').classList.remove('saving');
   } catch (e) { console.error(e); }
 }
+
+// Synchronous unload save — localStorage only, das garantiert funktioniert
+window.addEventListener('beforeunload', () => {
+  if (currentUser && ACTIVE_HWID) {
+    writeLocalCache();
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (currentUser && ACTIVE_HWID) {
+    writeLocalCache();
+  }
+});
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && currentUser && ACTIVE_HWID) {
+    writeLocalCache();
+  }
+});
+
 async function loadSave() {
   if (!currentUser || !firebase) return false;
   try {
     const { ref, get, remove } = firebase;
-    const snap = await get(ref(firebase.db, 'saves/' + ACTIVE_HWID));
-    if (!snap.exists()) return false;
-    const data = snap.val();
+    let data = null;
+    // Versuche Firebase zuerst
+    try {
+      const snap = await get(ref(firebase.db, 'saves/' + ACTIVE_HWID));
+      if (snap.exists()) data = snap.val();
+    } catch(e) { console.warn('Firebase load failed, trying local cache', e); }
+
+    // Wenn Firebase leer / fehlgeschlagen → localStorage versuchen
+    if (!data) {
+      const cached = readLocalCache(ACTIVE_HWID);
+      if (cached) {
+        console.log('Loaded from localStorage cache');
+        data = cached;
+        // Auch zu Firebase pushen
+        try {
+          const { update } = firebase;
+          await update(ref(firebase.db, 'saves/' + ACTIVE_HWID), cached);
+        } catch(e) {}
+      }
+    }
+
     if (!data) return false;
+
     const sb = data.buildings || {};
     const list = Array.isArray(sb) ? sb : Object.values(sb || {});
     const valid = list.filter(b => b && b.type && typeof b.x === 'number');
-    if (valid.length === 0) { try { await remove(ref(firebase.db, 'saves/' + ACTIVE_HWID)); } catch(e) {} return false; }
+    if (valid.length === 0) {
+      // Keine Gebäude — prüfen ob lokal einer existiert
+      const cached = readLocalCache(ACTIVE_HWID);
+      if (cached && cached.buildings && Object.keys(cached.buildings).length > 0) {
+        return await loadSave();
+      }
+      return false;
+    }
+
     ['money','gold','food','wood','stone','gems','population','populationCap','workers','workersNeeded','soldiers','soldierCap','happiness','level','xp','xpNeeded','nextId','lastTick','baseX','baseY'].forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
     state.playtimeSeconds = Number(data.playtimeSeconds) || 0;
     state.cards = data.cards || {};
@@ -4410,7 +4503,6 @@ async function loadSave() {
     const lastTime = data.lastTick || now;
     const offlineSeconds = Math.max(0, Math.min(86400, (now - lastTime) / 1000));
     if (offlineSeconds > 5) {
-      // 1) Gem-Minen offline
       let gemsEarned = 0;
       state.buildings.forEach(b => {
         if (b.construction) return;
@@ -4420,14 +4512,11 @@ async function loadSave() {
           gemsEarned += rate * (offlineSeconds / 3600);
         }
       });
-      // 2) Goldminen Lv.4+ offline: 1% pro Sekunde
       let mineGems = 0;
       state.buildings.forEach(b => {
         if (b.construction) return;
         if (b.type !== 'mine') return;
         if (b.level < 4) return;
-        const expected = offlineSeconds * 0.01;
-        // Zufallsbasiert (gerundet)
         const rolls = Math.floor(offlineSeconds);
         let hits = 0;
         for (let i = 0; i < Math.min(rolls, 86400); i++) if (Math.random() < 0.01) hits++;
@@ -4438,7 +4527,6 @@ async function loadSave() {
         state.gems = Math.floor((state.gems || 0) + totalGems);
         notify(`💎 Offline: +${totalGems} Gems (Gem-Mines + Gold-Mines)!`, false, true);
       }
-      // 3) Ressourcen + Geld offline
       const offlineMult = 0.5;
       const capped = Math.min(offlineSeconds, 3600 * 8);
       let offlineProd = { gold: 0, food: 0, wood: 0, stone: 0 };
@@ -4462,7 +4550,6 @@ async function loadSave() {
           offlineProd.gold += 4 * b.level * globalMult;
         }
       });
-      // Steuern / Geld offline
       const taxPerSec = (state.population * 1.4 + state.buildings.length * 0.9) * (state.happiness / 100);
       offlineMoney = taxPerSec * capped * offlineMult;
       for (const k in offlineProd) {
@@ -4473,6 +4560,8 @@ async function loadSave() {
         notify(`💤 Offline-Produktion: +${Math.floor(offlineMoney)} 💰 & Ressourcen`, false, true);
       }
     }
+    // Nach dem Laden sofort lokal cachen
+    writeLocalCache();
     return true;
   } catch(e) { console.error(e); return false; }
 }
@@ -4606,6 +4695,7 @@ async function startGame() {
     state.buildings.push(house); createBuildingEl(house, false, currentUser.username);
     publishEvent('join', `${currentUser.username} joined!`);
     recalc();
+    writeLocalCache();
     await saveGame(true);
   } else {
     publishEvent('join', `${currentUser.username} joined!`);
@@ -4629,7 +4719,6 @@ async function startGame() {
       const { ref, onDisconnect, set } = firebase;
       await set(ref(firebase.db, 'presence/' + ACTIVE_HWID), { username: currentUser.username, online: true, lastSeen: Date.now() });
       onDisconnect(ref(firebase.db, 'presence/' + ACTIVE_HWID)).set({ username: currentUser.username, online: false, lastSeen: Date.now() });
-      onDisconnect(ref(firebase.db, 'world/' + ACTIVE_HWID)).set(null);
       onDisconnect(ref(firebase.db, 'units/' + ACTIVE_HWID)).set(null);
     } catch(e) {}
     startWorldListener();
@@ -4651,7 +4740,7 @@ async function startGame() {
     }, 10000);
   }
 
-  // Gems pro Stunde im laufenden Spiel (Gem-Mines)
+  // Gems pro Stunde im laufenden Spiel
   setInterval(() => {
     let gemsEarned = 0;
     state.buildings.forEach(b => {
@@ -4662,12 +4751,13 @@ async function startGame() {
     if (gemsEarned > 0) {
       state.gems = (state.gems || 0) + gemsEarned;
       updateUI();
+      writeLocalCache();
       notify(`💎 +${gemsEarned} Gems aus Gem-Mines!`, false, true);
     }
   }, 3600000);
 
   let last = performance.now();
-  let prodAccum = 0, saveAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0, spawnAccum = 0, gemTickAccum = 0;
+  let prodAccum = 0, saveAccum = 0, worldAccum = 0, uiAccum = 0, unitsAccum = 0, spawnAccum = 0, gemTickAccum = 0, localCacheAccum = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -4677,7 +4767,6 @@ async function startGame() {
     updateBuilders(dt);
     updateSmokeParticles(dt, now);
     constructionTick();
-    // Goldminen Lv.4+ Gem-Chance (1%/sec)
     gemTickAccum += dt;
     if (gemTickAccum >= 1) {
       goldMineGemTick(gemTickAccum);
@@ -4691,6 +4780,9 @@ async function startGame() {
     if (uiAccum >= 0.5) { updateUI(); uiAccum = 0; }
     unitsAccum += dt;
     if (unitsAccum >= 0.3) { broadcastMyUnits(); unitsAccum = 0; }
+    // localStorage cache alle 5s (schneller als Firebase, schützt vor Datenverlust)
+    localCacheAccum += dt;
+    if (localCacheAccum >= 5) { writeLocalCache(); localCacheAccum = 0; }
     saveAccum += dt;
     if (saveAccum >= 15) { saveGame(true); saveAccum = 0; }
     worldAccum += dt;
@@ -4760,6 +4852,8 @@ document.getElementById('btnLogout').onclick = () => {
     publishEvent('leave', `${currentUser.username} left.`);
     (async () => {
       try {
+        // Vor dem Logout speichern
+        writeLocalCache();
         if (firebase) { await saveGame(true); const { ref, set } = firebase; await set(ref(firebase.db, 'units/' + ACTIVE_HWID), null); await set(ref(firebase.db, 'presence/' + ACTIVE_HWID), null); }
         if (window.__BR_auth) await window.__BR_authFns.signOut(window.__BR_auth);
       } catch(e) {}
@@ -4814,31 +4908,6 @@ document.getElementById('btnStats').classList.add('active');
 document.getElementById('btnBuildings').classList.add('active');
 updatePanelDocking();
 
-window.addEventListener('beforeunload', () => {
-  if (currentUser && firebase) {
-    try {
-      const { ref, update } = firebase;
-      const data = {
-        money: Math.floor(state.money), gold: Math.floor(state.gold),
-        food: Math.floor(state.food), wood: Math.floor(state.wood), stone: Math.floor(state.stone),
-        gems: Math.floor(state.gems || 0),
-        population: state.population, populationCap: state.populationCap,
-        workers: state.workers, workersNeeded: state.workersNeeded,
-        soldiers: state.soldiers, soldierCap: state.soldierCap,
-        happiness: Math.round(state.happiness), level: state.level,
-        xp: Math.floor(state.xp), xpNeeded: state.xpNeeded,
-        nextId: state.nextId, lastTick: Date.now(),
-        playtimeSeconds: Math.floor(state.playtimeSeconds || 0),
-        baseX: state.baseX, baseY: state.baseY,
-        username: currentUser.username, hwid: ACTIVE_HWID,
-        buildingTroopSelections: state.buildingTroopSelections || {},
-        buildings: state.buildings.map(b => ({ id: b.id, type: b.type, x: b.x, y: b.y, level: b.level, construction: b.construction || false, constructionStart: b.constructionStart || 0, constructionDuration: b.constructionDuration || 0, hp: b.hp || 100, maxHp: b.maxHp || 100, stationedAmount: b._stationedAmount || 0 }))
-      };
-      update(ref(firebase.db, 'saves/' + ACTIVE_HWID), data);
-      update(ref(firebase.db, 'units/' + ACTIVE_HWID), null);
-    } catch(e) {}
-  }
-});
 window.addEventListener('resize', resizeCanvases);
 loginBtn.disabled = true;
 </script>
