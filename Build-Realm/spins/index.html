@@ -37,7 +37,6 @@
     50% { transform: translate(40px, -30px) scale(1.15); }
   }
 
-  /* ============ TOP BAR ============ */
   #topbar {
     position: fixed; top: 0; left: 0; right: 0; height: 62px;
     background: rgba(15,20,40,0.85);
@@ -103,7 +102,6 @@
     filter: drop-shadow(0 0 6px rgba(168,126,224,0.8));
   }
 
-  /* ============ MAIN LAYOUT ============ */
   #mainArea {
     position: fixed; top: 62px; left: 0; right: 0; bottom: 240px;
     display: flex; align-items: center; justify-content: center;
@@ -117,7 +115,6 @@
     max-width: 100%;
   }
 
-  /* Die Karten-Ausstellung — passt sich an Fenstergröße an */
   .card-showcase {
     position: relative;
     width: clamp(200px, 22vh, 280px);
@@ -125,7 +122,6 @@
     display: flex; align-items: center; justify-content: center;
   }
 
-  /* Karte */
   .spin-card {
     position: absolute;
     width: clamp(180px, 20vh, 260px);
@@ -146,7 +142,6 @@
     100% { transform: rotateY(0deg) scale(1); }
   }
 
-  /* Idle-Karte (vor dem Spin) */
   .spin-card.idle {
     background: linear-gradient(160deg, #2a2050 0%, #141828 60%, #0a0d1f 100%);
     border: 2px solid rgba(168,126,224,0.4);
@@ -169,7 +164,6 @@
     text-transform: uppercase;
   }
 
-  /* Seltenheit: Farbe + Effekte */
   .spin-card.common {
     background: linear-gradient(160deg, #4a5040 0%, #2a2e28 60%, #181a16 100%);
     border: 2px solid #8a9380;
@@ -279,7 +273,6 @@
   .card-rarity.legendary { background: rgba(255,215,0,0.25); color: #ffe066; border: 1px solid #ffd700; }
   .card-rarity.mythic { background: rgba(255,58,58,0.3); color: #ff9999; border: 1px solid #ff3a3a; }
 
-  /* ============ SLOT MACHINE ============ */
   .slot-machine {
     position: absolute;
     inset: 0;
@@ -294,7 +287,6 @@
   }
   .slot-machine.show { display: flex; }
 
-  /* Vertikaler Reel */
   .slot-reel {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -321,7 +313,6 @@
     width: 80%; height: 80%;
   }
 
-  /* Zeiger in der Mitte */
   .slot-pointer {
     position: absolute;
     top: 50%; left: 0; right: 0;
@@ -348,7 +339,6 @@
     border-color: transparent transparent transparent #a87ee0;
     filter: drop-shadow(0 0 8px #a87ee0);
   }
-  /* Puls bei jedem Tick */
   .slot-pointer.tick::before,
   .slot-pointer.tick::after {
     animation: pointerTick 0.15s ease-out;
@@ -359,7 +349,6 @@
     100% { filter: drop-shadow(0 0 8px #a87ee0) brightness(1); }
   }
 
-  /* Zeiger-Linie horizontal */
   .slot-center-line {
     position: absolute;
     top: 50%; left: 4px; right: 4px;
@@ -370,7 +359,6 @@
     z-index: 4;
   }
 
-  /* Fade über/unter */
   .slot-fade-top,
   .slot-fade-bottom {
     position: absolute; left: 0; right: 0;
@@ -387,7 +375,6 @@
     background: linear-gradient(0deg, rgba(10,13,31,0.95), rgba(10,13,31,0));
   }
 
-  /* Ausblend-Animation wenn fertig */
   .slot-machine.fadeout {
     animation: slotFadeOut 0.4s ease-out forwards;
   }
@@ -396,7 +383,6 @@
     100% { opacity: 0; transform: scale(1.08); }
   }
 
-  /* Spin-Button */
   .spin-btn-wrap {
     display: flex; flex-direction: column;
     align-items: center; gap: 10px;
@@ -448,7 +434,6 @@
     100% { transform: scale(1); opacity: 1; }
   }
 
-  /* ============ COLLECTION BOTTOM ============ */
   #collection {
     position: fixed; bottom: 0; left: 0; right: 0; height: 240px;
     background: rgba(10,14,30,0.92);
@@ -579,7 +564,6 @@
     display: flex; align-items: center; padding: 20px;
   }
 
-  /* ============ RESULT OVERLAY ============ */
   #resultOverlay {
     position: fixed; inset: 0; z-index: 200;
     background: rgba(0,0,0,0.85);
@@ -815,7 +799,6 @@
         <div class="card-back-text">Ready to Spin</div>
       </div>
 
-      <!-- Slot Machine Overlay -->
       <div class="slot-machine" id="slotMachine">
         <div class="slot-reel" id="slotReel"></div>
         <div class="slot-fade-top"></div>
@@ -906,8 +889,9 @@ window.dispatchEvent(new Event('spin-firebase-ready'));
 
 <script>
 /* =========================================================
-   SPIN THE REALM — v2
-   Slot-Machine animation + save fix
+   SPIN THE REALM — v3
+   Fix: Firebase fns via window.__SPIN_fns (update/ref korrekt)
+   + localStorage Cache als Fallback für Save
    ========================================================= */
 
 const RARITIES = {
@@ -983,13 +967,163 @@ let cardsCollection = {};
 let currentFilter = 'all';
 let spinning = false;
 let freeSpinAvailable = false;
-let pendingSave = false;
 
-function cardId(rarity, type, name) {
-  return `${rarity}::${type}::${name}`.toLowerCase().replace(/[^a-z0-9:]/g, '_');
+/* ============ HELPER: Firestore/Firebase Funktionen ============ */
+function fns() { return window.__SPIN_fns || {}; }
+function fnsReady() {
+  const f = window.__SPIN_fns;
+  return f && f.ref && f.update && f.get;
 }
 
-/* ============ SVG UNIT SPRITES ============ */
+function cacheKey() { return 'br_spin_cache_' + (hwid || 'unknown'); }
+
+// Synchroner localStorage Cache
+function writeSpinCache() {
+  if (!hwid) return;
+  try {
+    localStorage.setItem('br_spin_cache_' + hwid, JSON.stringify({ gems, cards: cardsCollection, ts: Date.now() }));
+  } catch(e) { console.warn('spin cache write failed', e); }
+}
+
+function readSpinCache(hwidToRead) {
+  try {
+    const raw = localStorage.getItem('br_spin_cache_' + hwidToRead);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+/* ============ FIREBASE INIT ============ */
+function whenFirebaseReady(cb) {
+  if (fnsReady()) { cb(); return; }
+  window.addEventListener('spin-firebase-ready', cb, { once: true });
+}
+
+whenFirebaseReady(async () => {
+  const f = fns();
+  const storedHwid = localStorage.getItem('br_last_hwid');
+  let foundHwid = null;
+
+  if (storedHwid) {
+    try {
+      const snap = await f.get(f.ref(window.__SPIN_db, 'saves/' + storedHwid));
+      if (snap.exists()) foundHwid = storedHwid;
+    } catch(e) {}
+  }
+
+  if (!foundHwid) {
+    const lastHwid = localStorage.getItem('br_hwid');
+    if (lastHwid) {
+      try {
+        const snap = await f.get(f.ref(window.__SPIN_db, 'saves/' + lastHwid));
+        if (snap.exists()) foundHwid = lastHwid;
+      } catch(e) {}
+    }
+  }
+
+  // Wenn wir eine Cache-Datei haben, aber kein Firebase-Save → nutze Cache-HWID
+  if (!foundHwid) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('br_spin_cache_')) {
+        const candidate = key.replace('br_spin_cache_', '');
+        if (candidate && candidate !== 'unknown') { foundHwid = candidate; break; }
+      }
+    }
+  }
+
+  if (!foundHwid) {
+    document.getElementById('loadOverlay').classList.add('hidden');
+    document.getElementById('noUserOverlay').classList.add('show');
+    return;
+  }
+
+  hwid = foundHwid;
+  await initUserData();
+});
+
+async function initUserData() {
+  const f = fns();
+  try {
+    let data = null;
+    // Firebase zuerst
+    try {
+      const snap = await f.get(f.ref(window.__SPIN_db, 'saves/' + hwid));
+      if (snap.exists()) data = snap.val();
+    } catch(e) { console.warn('Firebase load failed', e); }
+
+    // Fallback: localStorage Cache
+    if (!data) {
+      const cached = readSpinCache(hwid);
+      if (cached) {
+        console.log('Loaded spin data from localStorage cache');
+        data = { gems: cached.gems, cards: cached.cards };
+      }
+    }
+
+    if (!data) {
+      document.getElementById('loadOverlay').classList.add('hidden');
+      document.getElementById('noUserOverlay').classList.add('show');
+      return;
+    }
+
+    gems = data.gems != null ? Number(data.gems) : 0;
+    cardsCollection = data.cards || {};
+
+    document.getElementById('hwidChipText').textContent = hwid.slice(0, 16) + '…';
+    document.getElementById('hwidChip').classList.add('show');
+
+    if (data.gems == null && data.cards == null) {
+      gems = 25;
+      await update(ref(window.__SPIN_db, 'saves/' + hwid), { gems: 25, cards: {} });
+      cardsCollection = {};
+    }
+
+    writeSpinCache();
+    updateGemDisplay();
+    renderCollection();
+    document.getElementById('loadOverlay').classList.add('hidden');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('loadOverlay').classList.add('hidden');
+    document.getElementById('noUserOverlay').classList.add('show');
+  }
+}
+
+/* ============ SAVE ============ */
+async function saveProgress() {
+  if (!hwid) return;
+  // 1) Sofort lokal speichern (synchron, garantiert)
+  writeSpinCache();
+  // 2) Firebase speichern
+  if (!fnsReady()) {
+    console.warn('Firebase nicht bereit, nur lokal gespeichert');
+    return;
+  }
+  try {
+    const f = fns();
+    await f.update(f.ref(window.__SPIN_db, 'saves/' + hwid), {
+      gems: gems,
+      cards: cardsCollection
+    });
+  } catch(e) {
+    console.error('Save error (Firebase):', e);
+    // Lokal ist es trotzdem gespeichert
+  }
+}
+
+// Synchron beim Verlassen
+window.addEventListener('beforeunload', () => {
+  writeSpinCache();
+});
+window.addEventListener('pagehide', () => {
+  writeSpinCache();
+});
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') writeSpinCache();
+});
+
+/* ============ SVG SPRITES ============ */
 function unitSVG(type, rarity) {
   const r = rarity || 'common';
   const palettes = {
@@ -1005,12 +1139,7 @@ function unitSVG(type, rarity) {
 
   if (type === 'archer') {
     return `<svg viewBox="0 0 100 100">
-      <defs>
-        <radialGradient id="glow-${r}-archer" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
-          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
+      <defs><radialGradient id="glow-${r}-archer" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/><stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/></radialGradient></defs>
       ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-archer)"/>` : ''}
       <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
       <rect x="42" y="70" width="6" height="18" fill="${p.dark}"/>
@@ -1030,12 +1159,7 @@ function unitSVG(type, rarity) {
   }
   if (type === 'spearman') {
     return `<svg viewBox="0 0 100 100">
-      <defs>
-        <radialGradient id="glow-${r}-spear" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
-          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
+      <defs><radialGradient id="glow-${r}-spear" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/><stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/></radialGradient></defs>
       ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-spear)"/>` : ''}
       <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
       <rect x="42" y="70" width="6" height="18" fill="${p.dark}"/>
@@ -1056,12 +1180,7 @@ function unitSVG(type, rarity) {
   }
   if (type === 'tank') {
     return `<svg viewBox="0 0 100 100">
-      <defs>
-        <radialGradient id="glow-${r}-tank" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
-          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
+      <defs><radialGradient id="glow-${r}-tank" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/><stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/></radialGradient></defs>
       ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-tank)"/>` : ''}
       <ellipse cx="50" cy="92" rx="30" ry="5" fill="rgba(0,0,0,0.4)"/>
       <rect x="38" y="68" width="10" height="22" fill="${p.dark}" rx="2"/>
@@ -1084,12 +1203,7 @@ function unitSVG(type, rarity) {
   }
   if (type === 'elite') {
     return `<svg viewBox="0 0 100 100">
-      <defs>
-        <radialGradient id="glow-${r}-elite" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.7"/>
-          <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
+      <defs><radialGradient id="glow-${r}-elite" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${p.accent}" stop-opacity="0.7"/><stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/></radialGradient></defs>
       ${glow ? `<circle cx="50" cy="55" r="48" fill="url(#glow-${r}-elite)"/>` : ''}
       <ellipse cx="50" cy="92" rx="28" ry="4" fill="rgba(0,0,0,0.5)"/>
       <rect x="42" y="68" width="6" height="20" fill="${p.dark}"/>
@@ -1113,12 +1227,7 @@ function unitSVG(type, rarity) {
     </svg>`;
   }
   return `<svg viewBox="0 0 100 100">
-    <defs>
-      <radialGradient id="glow-${r}-sol" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/>
-        <stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/>
-      </radialGradient>
-    </defs>
+    <defs><radialGradient id="glow-${r}-sol" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${p.accent}" stop-opacity="0.6"/><stop offset="100%" stop-color="${p.accent}" stop-opacity="0"/></radialGradient></defs>
     ${glow ? `<circle cx="50" cy="55" r="45" fill="url(#glow-${r}-sol)"/>` : ''}
     <ellipse cx="50" cy="92" rx="26" ry="4" fill="rgba(0,0,0,0.4)"/>
     <rect x="42" y="68" width="6" height="20" fill="${p.dark}"/>
@@ -1139,117 +1248,7 @@ function unitSVG(type, rarity) {
   </svg>`;
 }
 
-/* ============ FIREBASE INIT ============ */
-function whenFirebaseReady(cb) {
-  if (window.__SPIN_db) { cb(); return; }
-  window.addEventListener('spin-firebase-ready', cb, { once: true });
-}
-
-whenFirebaseReady(async () => {
-  const db = window.__SPIN_db;
-  const { ref, get } = window.__SPIN_fns;
-
-  const storedHwid = localStorage.getItem('br_last_hwid');
-  let foundHwid = null;
-
-  if (storedHwid) {
-    try {
-      const snap = await get(ref(db, 'saves/' + storedHwid));
-      if (snap.exists()) foundHwid = storedHwid;
-    } catch(e) {}
-  }
-
-  if (!foundHwid) {
-    const lastHwid = localStorage.getItem('br_hwid');
-    if (lastHwid) {
-      try {
-        const snap = await get(ref(db, 'saves/' + lastHwid));
-        if (snap.exists()) foundHwid = lastHwid;
-      } catch(e) {}
-    }
-  }
-
-  if (!foundHwid) {
-    document.getElementById('loadOverlay').classList.add('hidden');
-    document.getElementById('noUserOverlay').classList.add('show');
-    return;
-  }
-
-  hwid = foundHwid;
-  await initUserData();
-});
-
-async function initUserData() {
-  const db = window.__SPIN_db;
-  const { ref, get, update } = window.__SPIN_fns;
-
-  try {
-    const snap = await get(ref(db, 'saves/' + hwid));
-    if (!snap.exists()) {
-      document.getElementById('loadOverlay').classList.add('hidden');
-      document.getElementById('noUserOverlay').classList.add('show');
-      return;
-    }
-    const data = snap.val();
-    gems = data.gems != null ? Number(data.gems) : 0;
-    cardsCollection = data.cards || {};
-
-    document.getElementById('hwidChipText').textContent = hwid.slice(0, 16) + '…';
-    document.getElementById('hwidChip').classList.add('show');
-
-    if (data.gems == null && data.cards == null) {
-      gems = 25;
-      await update(ref(db, 'saves/' + hwid), { gems: 25, cards: {} });
-      cardsCollection = {};
-    }
-
-    updateGemDisplay();
-    renderCollection();
-    document.getElementById('loadOverlay').classList.add('hidden');
-  } catch(e) {
-    console.error(e);
-    document.getElementById('loadOverlay').classList.add('hidden');
-    document.getElementById('noUserOverlay').classList.add('show');
-  }
-}
-
-/* ============ SAVE ============ */
-async function saveProgress() {
-  if (!hwid) return;
-  try {
-    await update(ref(window.__SPIN_db, 'saves/' + hwid), {
-      gems: gems,
-      cards: cardsCollection
-    });
-    pendingSave = false;
-  } catch(e) {
-    console.error('Save error:', e);
-    pendingSave = true;
-  }
-}
-
-// Speichern beim Verlassen
-window.addEventListener('beforeunload', () => {
-  if (hwid) {
-    try {
-      // Synchroner Fallback via localStorage Cache
-      localStorage.setItem('br_spin_cache_' + hwid, JSON.stringify({ gems, cards: cardsCollection }));
-    } catch(e) {}
-  }
-});
-
-// Cache wiederherstellen falls nötig
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    if (hwid) {
-      try {
-        const cached = localStorage.getItem('br_spin_cache_' + hwid);
-        if (cached) localStorage.removeItem('br_spin_cache_' + hwid);
-      } catch(e) {}
-    }
-  }, 3000);
-});
-
+/* ============ GEM DISPLAY ============ */
 function updateGemDisplay(bump) {
   const el = document.getElementById('gemCount');
   el.textContent = gems.toLocaleString('en-US');
@@ -1281,25 +1280,19 @@ function pickCard(rarity) {
 }
 
 /* ============ SLOT MACHINE ============ */
-const SLOT_ITEM_HEIGHT = 160; // muss mit CSS übereinstimmen
+const SLOT_ITEM_HEIGHT = 160;
 
 function buildSlotItems(targetCard, reelLength = 30) {
-  // Wir bauen eine Liste von zufälligen Karten + die Ziel-Karte an einer Position
   const items = [];
   const allCards = [];
-  // Alle möglichen Karten sammeln für zufällige Anzeige
   for (const rar in CARD_POOL) {
     CARD_POOL[rar].forEach(c => allCards.push({ rarity: rar, type: c.type, name: c.name }));
   }
-
-  // Ziel-Position: in der Mitte der letzten ~5
   const targetIndex = reelLength - 3;
-
   for (let i = 0; i < reelLength; i++) {
     if (i === targetIndex) {
       items.push(targetCard);
     } else {
-      // Zufällige Karte, aber nicht die Ziel-Karte
       let rand;
       let attempts = 0;
       do {
@@ -1326,38 +1319,25 @@ async function playSlotAnimation(targetCard) {
     const reel = document.getElementById('slotReel');
     const pointer = document.getElementById('slotPointer');
 
-    // Baue Items
     const reelLength = 28;
     const { items, targetIndex } = buildSlotItems(targetCard, reelLength);
     renderSlotItems(items);
 
-    // Reel-Position initial ganz oben
     reel.style.transition = 'none';
     reel.style.transform = 'translateY(0px)';
     slot.classList.add('show');
     slot.classList.remove('fadeout');
 
-    // Ziel-Offset: mittlerer Slot in der Card-Showcase
-    // Die Showcase hat eine Höhe von ~card height. Wir nehmen an, dass der sichtbare Bereich
-    // ca. 3 Items hoch ist. Der "Center"-Slot ist bei Index targetIndex.
     const showcase = document.getElementById('cardShowcase');
     const showcaseHeight = showcase.clientHeight;
-    // Aktuelle Item-Höhe (CSS responsive)
     const itemEl = reel.querySelector('.slot-item');
     const itemHeight = itemEl ? itemEl.offsetHeight : SLOT_ITEM_HEIGHT;
 
-    // Center = Höhe/2. Ziel-Item soll in der Mitte stehen.
-    // Also: reel muss so verschoben werden, dass targetIndex*itemHeight + itemHeight/2 = showcaseHeight/2
     const targetOffset = targetIndex * itemHeight + itemHeight / 2 - showcaseHeight / 2;
-
-    // Total-Distanz für die Animation
     const totalDistance = targetOffset;
-
-    // Dauer abhängig von Distanz
     const duration = 2800 + Math.random() * 400;
     const startTime = performance.now();
 
-    // Tick-Handler für Zeiger-Animation
     let lastTick = -1;
     function tickAt(index) {
       if (index === lastTick) return;
@@ -1365,7 +1345,6 @@ async function playSlotAnimation(targetCard) {
       pointer.classList.remove('tick');
       void pointer.offsetWidth;
       pointer.classList.add('tick');
-      // Kleines Sound-Feedback (Vibration auf Mobile)
       if (navigator.vibrate && index % 2 === 0) {
         try { navigator.vibrate(8); } catch(e) {}
       }
@@ -1374,36 +1353,22 @@ async function playSlotAnimation(targetCard) {
     function animate(currentTime) {
       const elapsed = currentTime - startTime;
       const t = Math.min(1, elapsed / duration);
-      // Ease-out cubic
       const eased = 1 - Math.pow(1 - t, 3);
-
-      // Zusätzliche "Wobble"-Phase kurz vor Ende
       let offset = totalDistance * eased;
-
-      // Kurzer Rückwärts-Wobble am Ende (overshoot)
       if (t > 0.9) {
         const overshoot = Math.sin((t - 0.9) * Math.PI * 10) * 8 * (1 - t);
         offset += overshoot;
       }
-
       reel.style.transform = `translateY(${-offset}px)`;
-
-      // Zeiger-Tick basierend auf aktueller Position
       const currentIndex = Math.floor(offset / itemHeight);
       tickAt(currentIndex);
-
       if (t < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Fertig — leichte Korrektur
         reel.style.transform = `translateY(${-targetOffset}px)`;
-
-        // Kurzer "Hold" — Zeiger poppt noch einmal
         pointer.classList.remove('tick');
         void pointer.offsetWidth;
         pointer.classList.add('tick');
-
-        // Fade-out
         slot.classList.add('fadeout');
         setTimeout(() => {
           slot.classList.remove('show', 'fadeout');
@@ -1428,7 +1393,6 @@ async function doSpin() {
 
   const wasFree = freeSpinAvailable;
 
-  // Kosten abziehen (außer free spin)
   if (!wasFree) {
     gems -= SPIN_COST;
     updateGemDisplay(true);
@@ -1437,13 +1401,12 @@ async function doSpin() {
     document.getElementById('freeSpinBanner').classList.remove('show');
   }
 
-  // Roll die Rarity und Karte ZUERST (Ergebnis steht fest)
+  // SOFORT lokal speichern (Kosten abgezogen)
+  writeSpinCache();
+
   const rarity = rollRarity();
 
-  // Bei Free Spin: kein Slot, sondern direkt Banner
   if (rarity === 'spinAgain') {
-    // Kosten zurückerstatten? Nein — Free Spin ist ein Bonus
-    // Aber wir geben den Einsatz zurück
     if (!wasFree) {
       gems += SPIN_COST;
       updateGemDisplay(false);
@@ -1455,21 +1418,16 @@ async function doSpin() {
     spinning = false;
     btn.disabled = false;
     updateSpinButton();
-    // Speichern
-    saveProgress();
+    await saveProgress();
     return;
   }
 
   const pulled = pickCard(rarity);
   if (!pulled) { spinning = false; btn.disabled = false; return; }
 
-  // Slot-Machine-Animation abspielen
   await playSlotAnimation(pulled);
-
-  // Zeige Ergebnis-Overlay
   showResult(pulled);
 
-  // In Collection speichern
   const key = cardId(pulled.rarity, pulled.type, pulled.name);
   if (!cardsCollection[key]) {
     cardsCollection[key] = { rarity: pulled.rarity, type: pulled.type, name: pulled.name, count: 0 };
@@ -1478,10 +1436,11 @@ async function doSpin() {
 
   renderCollection();
 
-  // Speichern (sowohl gems als auch cards)
+  // SOFORT lokal speichern (mit Karte)
+  writeSpinCache();
+  // Und zu Firebase pushen
   await saveProgress();
 
-  // Re-enable
   spinning = false;
   btn.disabled = false;
   updateSpinButton();
@@ -1503,18 +1462,19 @@ function updateSpinButton() {
   }
 }
 
+function cardId(rarity, type, name) {
+  return `${rarity}::${type}::${name}`.toLowerCase().replace(/[^a-z0-9:]/g, '_');
+}
+
 /* ============ RESULT OVERLAY ============ */
 function showResult(pulled) {
   const overlay = document.getElementById('resultOverlay');
   const headline = document.getElementById('resultHeadline');
   const cardWrap = document.getElementById('resultCardWrap');
-
   const rar = RARITIES[pulled.rarity];
   headline.textContent = `${rar.name} Pull!`;
   headline.className = 'result-headline ' + pulled.rarity;
-
   cardWrap.innerHTML = renderFullCard(pulled);
-
   overlay.classList.add('show');
 
   if (pulled.rarity === 'legendary' || pulled.rarity === 'mythic') {
@@ -1543,14 +1503,8 @@ function renderFullCard(pulled) {
         <div class="card-rarity ${pulled.rarity}">${rar.name}</div>
         <div class="card-type">${pulled.type}</div>
         <div class="card-stats">
-          <div class="st">
-            <svg viewBox="0 0 24 24" fill="#e53935"><path d="M12 21s-7-4-7-10V5l7-3 7 3v6c0 6-7 10-7 10z"/></svg>
-            ${stats.hp}
-          </div>
-          <div class="st">
-            <svg viewBox="0 0 24 24" fill="#ffb300"><path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6"/></svg>
-            ${stats.damage}
-          </div>
+          <div class="st"><svg viewBox="0 0 24 24" fill="#e53935"><path d="M12 21s-7-4-7-10V5l7-3 7 3v6c0 6-7 10-7 10z"/></svg>${stats.hp}</div>
+          <div class="st"><svg viewBox="0 0 24 24" fill="#ffb300"><path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6"/></svg>${stats.damage}</div>
         </div>
       </div>
     </div>
@@ -1747,7 +1701,7 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
 
-window.__SPIN = { doSpin, updateGemDisplay, renderCollection, saveProgress };
+window.__SPIN = { doSpin, updateGemDisplay, renderCollection, saveProgress, writeSpinCache };
 </script>
 </body>
 </html>
