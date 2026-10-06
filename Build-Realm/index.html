@@ -1185,23 +1185,19 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v38
-   - Money production fixed (money statt gold bei Gold Mine, Market, etc.)
-   - Soldier spawn bug fixed (getAvailableTroops nutzt _stationedAmount)
-   - Builder's Guild (Bauhof) neues civic Gebäude
-   - Bau startet erst nach Ankunft der Bauarbeiter
-   - Bauarbeiter angreifbar
-   - Live-Sync 100ms (units), 300ms (world) für bessere Battle-Sync
+   BUILD A REALM — v39
+   - Money production fixed
+   - Soldier spawn bug fixed
+   - Builder's Guild (Bauhof)
+   - Bau startet nach Ankunft der Bauarbeiter
+   - Live-Sync 100ms (units)
    - Text-Selection verhindert
-   - Opponent Left Popup mit Return/Target Auswahl
-   - Arbeiter an jedem Gebäude (Canvas)
+   - Opponent Left Popup
+   - KEINE Idle-Worker mehr (nur Bauarbeiter während Bau)
    ========================================================= */
 
-/* Prevent shift-selection & general text selection */
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Shift') {
-    e.preventDefault();
-  }
+  if (e.key === 'Shift') e.preventDefault();
 }, { passive: false });
 
 document.addEventListener('selectstart', (e) => {
@@ -1232,13 +1228,11 @@ function applySettingsToUI() {
 }
 loadSettings();
 
-/* ============ SHIFT-KEY STATE ============ */
 let shiftHeld = false;
 window.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftHeld = true; });
 window.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftHeld = false; });
 window.addEventListener('blur', () => { shiftHeld = false; });
 
-/* ============ LOCAL CACHE ============ */
 function buildSaveData() {
   return {
     money: Math.floor(state.money), gold: Math.floor(state.gold),
@@ -1282,7 +1276,6 @@ function readLocalCache(hwid) {
   } catch(e) { return null; }
 }
 
-/* ============ RARITIES ============ */
 const RARITIES = {
   common:    { id: 'common',    name: 'Common',    color: '#8a9380', order: 1, mult: 1.0 },
   uncommon:  { id: 'uncommon',  name: 'Uncommon',  color: '#4ec9a0', order: 2, mult: 1.3 },
@@ -1377,7 +1370,6 @@ function listOwnedCards() {
   return Object.entries(state.cards).map(([k, v]) => ({ key: k, ...v }));
 }
 
-/* ============ Karten-Verfügbarkeits-Logik ============ */
 function getCardAssignedCount(cardKey) {
   let assigned = 0;
   for (const b of state.buildings) {
@@ -1388,7 +1380,6 @@ function getCardAssignedCount(cardKey) {
   }
   return assigned;
 }
-
 function getBuildingForCard(cardKey, excludeBuildingId) {
   for (const b of state.buildings) {
     if (b.construction) continue;
@@ -1399,7 +1390,6 @@ function getBuildingForCard(cardKey, excludeBuildingId) {
 }
 
 /* ============ BUILDER SYSTEM ============ */
-// Bauarbeiter kommen aus Builder's Guilds (oder Main Building als Fallback)
 function getBuilderSources() {
   const sources = [];
   state.buildings.forEach(b => {
@@ -1417,8 +1407,6 @@ function getBuilderSources() {
   });
   return sources;
 }
-
-// Finde nächstgelegene Quelle zu gegebener Position
 function findNearestBuilderSource(tx, ty) {
   const sources = getBuilderSources();
   let best = null, bestDist = Infinity;
@@ -1429,8 +1417,6 @@ function findNearestBuilderSource(tx, ty) {
   }
   return best;
 }
-
-// Spawne Bauarbeiter die zum Bauort laufen
 function spawnBuildersFor(b) {
   const def = BUILDINGS[b.type];
   const bsize = def.size * TILE;
@@ -1443,7 +1429,6 @@ function spawnBuildersFor(b) {
   b.constructionWaitingForBuilders = true;
   b._buildersArrivedCount = 0;
 
-  // Wir spawnen von der nächstgelegenen Quelle aus die required Builder
   let remaining = builderCount;
   let attempts = 0;
   while (remaining > 0 && attempts < 5) {
@@ -1469,7 +1454,6 @@ function spawnBuildersFor(b) {
   }
 
   if (b._builders.length === 0) {
-    // Keine Bauarbeiter verfügbar → Fallback: sofort starten (falls Main existiert)
     const mainB = state.buildings.find(x => x.type === 'main');
     if (mainB) {
       for (let i = 0; i < builderCount; i++) {
@@ -1482,7 +1466,6 @@ function spawnBuildersFor(b) {
         });
       }
     } else {
-      // Kein Main? Starte sofort ohne Builder
       b.constructionWaitingForBuilders = false;
       return;
     }
@@ -1507,7 +1490,6 @@ function updateBuilders(dt) {
       }
       bel._animTime = (bel._animTime || 0) + dt * 1000;
     });
-    // Wenn alle angekommen → Bau starten
     if (allArrived && b.constructionWaitingForBuilders) {
       b.constructionWaitingForBuilders = false;
       b.constructionStart = Date.now();
@@ -1518,7 +1500,6 @@ function updateBuilders(dt) {
   });
 }
 
-/* ============ BUILDERS für laufende Bauarbeiten ============ */
 let smokeParticles = [];
 let nextSmokeSpawn = 0;
 function updateSmokeParticles(dt, now) {
@@ -1963,7 +1944,6 @@ function runLoadingScreen() {
   }, 90);
 }
 
-/* ============ GAME STATE ============ */
 const WORLD_SIZE = 60000;
 function getMaxBuilds() { return 3 + Math.floor((state.level - 1) / 5); }
 const state = {
@@ -2003,12 +1983,9 @@ const MAX_ATTACKERS_PER_WAVE = 300;
 
 let activeMarches = [];
 let pendingMarchReports = {};
-
-// Watchdog: prüft ob Ziel-Gegner noch online ist
-let currentAttackTargetCheck = null; // { targetHwid, marchId, popupShown }
+let currentAttackTargetCheck = null;
 
 function checkTargetOnline(targetHwid) {
-  // Schaue in otherPlayers nach online + lastSeen
   const p = otherPlayers[targetHwid];
   if (!p) return false;
   if (Date.now() - (p.lastSeen || 0) > 30000) return false;
@@ -2046,11 +2023,9 @@ function getTowerStats(type, level) {
   return { damage: Math.max(1, Math.round(baseDamage * dmgMult)), range: Math.round(baseRange * rangeMult), cooldown: Math.max(200, Math.round(baseCooldown * cdMult)) };
 }
 
-/* ============ BUILDER CAPACITY ============ */
 const BUILDING_BUILDER_CAPACITY = [3, 5, 8, 12, 17, 23, 30, 38];
 const MAIN_BUILDER_CAPACITY = [2, 3, 4, 5, 6, 8, 10, 12, 15, 18];
 
-/* ============ BUILDINGS ============ */
 const BUILDINGS = {
   main: { name: "Main Building", icon: "main", category: "core", size: 3, cost: 0, maxLevel: 10, desc: "Heart of your realm. Provides basic builders.", baseCost: 900, costMult: 2.4, produces: { money: 2 }, needs: { workers: 0 }, popBonus: [0,2,4,7,11,16,22,30,40,52], soldierBonus: [0,1,2,4,6,9,13,18,24,32], resourceCost: { wood: 0, stone: 0 }, buildTime: 5, isMain: true },
   house: { name: "House", icon: "house", category: "civic", size: 2, cost: 250, maxLevel: 10, desc: "Provides space for residents.", baseCost: 250, costMult: 1.95, produces: { money: 1 }, needs: { workers: 1 }, popPerLevel: [4, 9, 15, 24, 36, 52, 72, 96, 125, 160], buildTime: 8, resourceCost: { wood: 20, stone: 10 } },
@@ -2142,7 +2117,6 @@ function buildTerrain() {
   }
 }
 
-/* ============ BUILDING SVGs ============ */
 function buildingSVG(type, level, w, h) {
   const lvl = level;
   const defs = `<defs><linearGradient id="shadowGrad-${type}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(0,0,0,0.35)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></linearGradient></defs>`;
@@ -2967,7 +2941,6 @@ function constructionTick() {
     if (progress >= 1) {
       b.construction = false;
       b.constructionWaitingForBuilders = false;
-      // Bauarbeiter freigeben
       if (b._builders) {
         b._builders.forEach(bel => {
           if (bel.sourceId) {
@@ -3045,7 +3018,6 @@ function showDetailPanel(b) {
       const currentCardKey = state.buildingTroopSelections[b.id];
       const currentCard = currentCardKey ? state.cards[currentCardKey] : null;
       const slotsLeft = def.soldierPerLevel[b.level-1] || 0;
-      // FIX: initialisiere _stationedAmount korrekt
       if (currentCard && b._stationedAmount === undefined) {
         b._stationedAmount = Math.min(currentCard.count, slotsLeft);
       }
@@ -3417,7 +3389,6 @@ function getAvailableTroops() {
     const card = state.cards[cardKey];
     if (!card) return;
     const slots = def.soldierPerLevel[b.level-1] || 0;
-    // FIX: nutze _stationedAmount direkt, fallback auf min(count, slots)
     let stationed = b._stationedAmount;
     if (stationed === undefined || stationed === null) {
       stationed = Math.min(card.count, slots);
@@ -3460,7 +3431,6 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
 
   const now = Date.now();
   let totalSpawned = 0;
-  const marches = [];
   const spawnedUnits = [];
   for (const sp of spawns) {
     const grp = sp.grp;
@@ -3525,11 +3495,8 @@ function performAttackWithCount(b, ownerName, ownerHwid, count) {
   };
   setTimeout(() => { delete pendingMarchReports[marchId]; }, 120000);
 
-  // Check: ist der Gegner überhaupt online?
   if (ownerHwid && !checkTargetOnline(ownerHwid)) {
-    // Gegner offline → Soldaten kommen zurück
     setTimeout(() => {
-      // Soldaten zurück zum Main bringen
       const myMain = state.buildings.find(x => x.type === 'main');
       spawnedUnits.forEach(u => {
         u.targetBuilding = null;
@@ -4121,55 +4088,14 @@ function renderUnits(now) {
     for (const vd of data.villagers || []) { if (!inView(vd.x, vd.y)) continue; const p = toScreen(vd.x, vd.y); drawVillager(unitCtx, p.x, p.y, z, now); }
   }
 
-  // Permanente Arbeiter an jedem Gebäude (wenn nicht im Bau)
+  // Nur Bauarbeiter während Bauphasen — KEINE Idle-Worker
   state.buildings.forEach(b => {
-    if (b.construction) {
-      // Bauarbeiter
-      if (b._builders) {
-        b._builders.forEach(bel => {
-          if (!inView(bel.x, bel.y)) return;
-          const p = toScreen(bel.x, bel.y);
-          drawWorker(unitCtx, p.x, p.y, z, bel._animTime || 0, !bel.arrived);
-        });
-      }
-      return;
-    }
-    // Idle-Worker an jedem Gebäude (max 2)
-    if (!b._workers) {
-      const count = b.type === 'main' ? 3 : (BUILDINGS[b.type].size === 3 ? 2 : 1);
-      b._workers = [];
-      const def = BUILDINGS[b.type];
-      const size = def.size * TILE;
-      for (let i = 0; i < count; i++) {
-        b._workers.push({
-          _animTime: Math.random() * 1000,
-          homeX: b.x + Math.random() * size,
-          homeY: b.y + size + Math.random() * 6,
-          tx: b.x + Math.random() * size,
-          ty: b.y + size + Math.random() * 6,
-          x: b.x + size / 2, y: b.y + size,
-          idle: Math.random() * 3
-        });
-      }
-    }
-    b._workers.forEach(w => {
-      w._animTime = (w._animTime || 0) + 16;
-      const dx = w.tx - w.x, dy = w.ty - w.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist > 4) {
-        w.x += (dx / dist) * 0.5;
-        w.y += (dy / dist) * 0.5;
-      } else {
-        w.idle -= 0.016;
-        if (w.idle <= 0) {
-          w.idle = 1.5 + Math.random() * 3;
-          w.tx = w.homeX + (Math.random() - 0.5) * 30;
-          w.ty = w.homeY + (Math.random() - 0.5) * 10;
-        }
-      }
-      if (!inView(w.x, w.y)) return;
-      const p = toScreen(w.x, w.y);
-      drawWorker(unitCtx, p.x, p.y, z * 0.85, w._animTime, dist > 4);
+    if (!b.construction) return;
+    if (!b._builders) return;
+    b._builders.forEach(bel => {
+      if (!inView(bel.x, bel.y)) return;
+      const p = toScreen(bel.x, bel.y);
+      drawWorker(unitCtx, p.x, p.y, z, bel._animTime || 0, !bel.arrived);
     });
   });
 }
@@ -4756,7 +4682,6 @@ mmInner.addEventListener('click', (e) => {
   applyTransform();
 });
 
-/* ============ SAVE / LOAD ============ */
 function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => saveGame(true), 1500);
@@ -4925,17 +4850,14 @@ function startWorldListener() {
     document.getElementById('onlineCount').textContent = `${Object.keys(otherPlayers).length + 1} online`;
     renderOnlineList();
 
-    // Prüfe ob aktuelles Attack-Target noch online ist
     if (currentAttackTargetCheck && !currentAttackTargetCheck.popupShown) {
       const th = currentAttackTargetCheck.targetHwid;
       if (!checkTargetOnline(th)) {
         currentAttackTargetCheck.popupShown = true;
-        // Soldaten vor Ort die gegen dieses Ziel kämpfen zurückrufen
         const otherOnline = Object.keys(otherPlayers).filter(h => h !== th && checkTargetOnline(h)).length;
         showOpponentLeftPopup(
           th,
           () => {
-            // Return soldiers
             const myMain = state.buildings.find(x => x.type === 'main');
             soldierUnits.forEach(u => {
               if (u.side !== 'friendly') return;
@@ -4950,7 +4872,6 @@ function startWorldListener() {
             notify(`Soldiers recalled`, false, true);
           },
           () => {
-            // Retarget: zeige online list
             currentAttackTargetCheck = null;
             document.getElementById('onlineList').classList.add('show');
             renderOnlineList();
@@ -5155,7 +5076,6 @@ async function startGame() {
     uiAccum += dt;
     if (uiAccum >= 0.5) { updateUI(); uiAccum = 0; }
     unitsAccum += dt;
-    // 100ms sync für Soldaten (Live)
     if (unitsAccum >= 0.1) { broadcastMyUnits(); unitsAccum = 0; }
     localCacheAccum += dt;
     if (localCacheAccum >= 5) { writeLocalCache(); localCacheAccum = 0; }
