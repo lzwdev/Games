@@ -13,7 +13,6 @@
     overflow-x: hidden;
   }
 
-  /* ============ BACKGROUND ============ */
   .bg-deco {
     position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
     background: radial-gradient(circle, rgba(120,160,220,0.18), transparent 70%);
@@ -24,7 +23,6 @@
     50% { transform: translate(30px,-40px) scale(1.1); }
   }
 
-  /* ============ HEADER ============ */
   header {
     position: relative; z-index: 2;
     background: rgba(255,255,255,0.94);
@@ -34,6 +32,7 @@
     padding: 0 24px;
     height: 62px;
     display: flex; align-items: center; gap: 18px;
+    position: sticky; top: 0;
   }
   .logo {
     display: flex; align-items: center; gap: 10px;
@@ -74,7 +73,6 @@
   .status-pill.error .dot { background: #e53935; box-shadow: 0 0 6px #e53935; }
   @keyframes blink { 0%,100%{opacity:0.4} 50%{opacity:1} }
 
-  /* ============ HERO ============ */
   .hero {
     position: relative; z-index: 2;
     text-align: center; padding: 42px 20px 26px;
@@ -103,7 +101,37 @@
     animation: fadeInUp 0.6s ease 0.1s both;
   }
 
-  /* ============ TOOLBAR ============ */
+  /* ============ MY RANK CARD ============ */
+  .my-rank-card {
+    position: relative; z-index: 2;
+    max-width: 1100px; margin: 0 auto 20px;
+    padding: 0 20px;
+    display: none;
+    animation: fadeInUp 0.5s ease both;
+  }
+  .my-rank-card.show { display: block; }
+  .my-rank-inner {
+    background: linear-gradient(135deg, #eaf2ff, #dbeafe);
+    border: 2px solid #2f6fd0;
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 6px 20px rgba(47,111,208,0.2);
+  }
+  .my-rank-inner .my-rank-label {
+    font-size: 10.5px; font-weight: 900; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #2f6fd0;
+  }
+  .my-rank-inner .my-rank-value {
+    font-size: 22px; font-weight: 900; color: #1e355e;
+  }
+  .my-rank-inner .my-rank-name {
+    font-size: 14px; font-weight: 800; color: #1e355e;
+  }
+  .my-rank-inner .my-rank-sub {
+    font-size: 11.5px; color: #6b7d99; font-weight: 600;
+  }
+
   .toolbar {
     position: relative; z-index: 2;
     max-width: 1100px; margin: 0 auto 20px;
@@ -144,7 +172,20 @@
   .filter-btn.active { background: #2f6fd0; border-color: #2f6fd0; color: #fff; }
   .filter-btn svg { width: 15px; height: 15px; }
 
-  /* ============ PODIUM ============ */
+  .refresh-btn {
+    padding: 11px 16px;
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border: 1.5px solid #a5d6a7; border-radius: 11px;
+    font-size: 13px; font-weight: 700; color: #2e7d32;
+    cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 7px;
+    box-shadow: 0 3px 12px rgba(40,70,120,0.05);
+  }
+  .refresh-btn:hover { background: linear-gradient(135deg, #c8e6c9, #a5d6a7); }
+  .refresh-btn svg { width: 15px; height: 15px; transition: transform 0.4s; }
+  .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   .podium-wrap {
     position: relative; z-index: 2;
     max-width: 1100px; margin: 0 auto 34px;
@@ -170,11 +211,8 @@
   .podium-card.place-1 { padding-top: 14px; padding-bottom: 24px; border-color: #ffd66b; box-shadow: 0 10px 30px rgba(220,170,50,0.20); }
   .podium-card.place-2 { border-color: #c5d2e6; }
   .podium-card.place-3 { border-color: #e0b98c; }
+  .podium-card.is-me { outline: 3px solid #2f6fd0; outline-offset: 2px; }
 
-  .podium-medal {
-    font-size: 30px; margin-bottom: 8px;
-    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
-  }
   .podium-rank-badge {
     position: absolute; top: 12px; left: 12px;
     padding: 3px 10px; border-radius: 20px;
@@ -193,9 +231,6 @@
     box-shadow: 0 4px 14px rgba(40,70,120,0.18);
   }
   .place-1 .podium-avatar { width: 84px; height: 84px; font-size: 32px; box-shadow: 0 6px 20px rgba(220,170,50,0.45); }
-  .place-2 .podium-avatar { background: linear-gradient(135deg, #90a4ae, #cfd8dc); }
-  .place-3 .podium-avatar { background: linear-gradient(135deg, #d7a86e, #f0c080); }
-  .place-1 .podium-avatar { background: linear-gradient(135deg, #ffb300, #ffd54f); }
 
   .podium-name {
     font-size: 15px; font-weight: 800; color: #1e355e;
@@ -215,7 +250,6 @@
   }
   .podium-score svg { width: 13px; height: 13px; }
 
-  /* ============ LIST ============ */
   .list-wrap {
     position: relative; z-index: 2;
     max-width: 1100px; margin: 0 auto 60px;
@@ -223,7 +257,7 @@
     animation: fadeInUp 0.6s ease 0.3s both;
   }
   .list-header {
-    display: grid; grid-template-columns: 60px 1fr 110px 110px 130px;
+    display: grid; grid-template-columns: 60px 1fr 90px 90px 90px 110px 120px;
     padding: 12px 18px; gap: 10px;
     font-size: 11px; font-weight: 800; letter-spacing: 1.2px;
     text-transform: uppercase; color: #8fa3c8;
@@ -232,7 +266,7 @@
   .list-body { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 
   .lb-row {
-    display: grid; grid-template-columns: 60px 1fr 110px 110px 130px;
+    display: grid; grid-template-columns: 60px 1fr 90px 90px 90px 110px 120px;
     padding: 14px 18px; gap: 10px;
     background: #fff;
     border: 1px solid #e0e8f4; border-radius: 12px;
@@ -248,6 +282,7 @@
   .lb-row.rank-1 { border-left: 4px solid #ffd66b; }
   .lb-row.rank-2 { border-left: 4px solid #c5d2e6; }
   .lb-row.rank-3 { border-left: 4px solid #e0b98c; }
+  .lb-row.is-me { background: linear-gradient(135deg, #eaf2ff, #f7faff); border-color: #2f6fd0; box-shadow: 0 4px 14px rgba(47,111,208,0.15); }
 
   .lb-rank {
     font-size: 15px; font-weight: 900; color: #8fa3c8;
@@ -280,9 +315,11 @@
   .online-dot {
     width: 7px; height: 7px; border-radius: 50%; background: #4caf50;
     box-shadow: 0 0 5px #4caf50;
+    display: inline-block; flex-shrink: 0;
   }
   .offline-dot {
     width: 7px; height: 7px; border-radius: 50%; background: #cfd8dc;
+    display: inline-block; flex-shrink: 0;
   }
 
   .lb-cell {
@@ -293,6 +330,8 @@
   .lb-cell svg { width: 14px; height: 14px; flex-shrink: 0; }
   .lb-cell.level { color: #2f6fd0; }
   .lb-cell.score { color: #c99a00; font-weight: 900; }
+  .lb-cell.gem { color: #7c4dbb; }
+  .lb-cell.soldier { color: #c62828; }
 
   .empty-state {
     text-align: center; padding: 60px 20px;
@@ -314,7 +353,6 @@
     100% { background-position: -200% 0; }
   }
 
-  /* ============ MODAL ============ */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 1000;
     background: rgba(30,53,94,0.42);
@@ -330,7 +368,7 @@
     background: #fff;
     border: 1px solid #d3dded;
     border-radius: 20px;
-    width: min(480px, 100%);
+    width: min(520px, 100%);
     max-height: 90vh; overflow-y: auto;
     box-shadow: 0 30px 80px rgba(30,53,94,0.35);
     animation: popIn 0.3s cubic-bezier(0.2,0.9,0.3,1.2);
@@ -436,8 +474,9 @@
   .stat-line .v { color: #1e355e; font-weight: 800; }
   .stat-line .v.good { color: #2e7d32; }
   .stat-line .v.muted { color: #8fa3c8; font-weight: 600; }
+  .stat-line .v.gem { color: #7c4dbb; }
+  .stat-line .v.soldier { color: #c62828; }
 
-  /* ============ FOOTER ============ */
   footer {
     position: relative; z-index: 2;
     text-align: center; padding: 30px 20px;
@@ -445,7 +484,6 @@
   }
   footer .heart { color: #e57373; }
 
-  /* ============ RESPONSIVE ============ */
   @media (max-width: 780px) {
     header { padding: 0 12px; gap: 10px; }
     .header-nav { display: none; }
@@ -464,7 +502,6 @@
     .stat-grid { grid-template-columns: 1fr; }
   }
 
-  /* ============ AVATAR COLORS ============ */
   .av-1 { background: linear-gradient(135deg, #2f6fd0, #5b9bf5); }
   .av-2 { background: linear-gradient(135deg, #e53935, #ef5350); }
   .av-3 { background: linear-gradient(135deg, #43a047, #66bb6a); }
@@ -492,13 +529,13 @@
   </div>
 
   <nav class="header-nav">
-    <a class="nav-link" href="index.html">
+    <a class="nav-link" href="../">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12l9-9 9 9M5 10v10h14V10"/>
       </svg>
       Spiel
     </a>
-    <a class="nav-link active" href="leaderboard.html">
+    <a class="nav-link active" href="#">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/>
         <path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2"/>
@@ -526,6 +563,21 @@
   <p>Die mächtigsten Reiche im ganzen Realm</p>
 </section>
 
+<!-- MY RANK CARD -->
+<div class="my-rank-card" id="myRankCard">
+  <div class="my-rank-inner">
+    <div style="flex-shrink:0;">
+      <div class="my-rank-label">Dein Rang</div>
+      <div class="my-rank-value" id="myRankValue">—</div>
+    </div>
+    <div style="flex:1; min-width:0;">
+      <div class="my-rank-name" id="myRankName">—</div>
+      <div class="my-rank-sub" id="myRankSub">—</div>
+    </div>
+    <button class="btn" id="myRankJump" style="background:#2f6fd0; border-color:#2f6fd0; color:#fff; padding:10px 18px; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; border:none;">Zu mir springen</button>
+  </div>
+</div>
+
 <div class="toolbar">
   <div class="search-box">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -537,31 +589,53 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
     </svg>
-    Nach Level
+    Level
+  </button>
+  <button class="filter-btn" data-sort="score">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+    </svg>
+    Punkte
   </button>
   <button class="filter-btn" data-sort="buildings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="4" y="10" width="16" height="11"/><polygon points="2,10 12,3 22,10"/>
     </svg>
-    Nach Gebäuden
+    Gebäude
   </button>
   <button class="filter-btn" data-sort="money">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a2 2 0 0 1 0 4H9"/>
     </svg>
-    Nach Geld
+    Geld
+  </button>
+  <button class="filter-btn" data-sort="soldiers">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z"/>
+    </svg>
+    Soldaten
+  </button>
+  <button class="filter-btn" data-sort="gems">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z"/>
+    </svg>
+    Gems
   </button>
   <button class="filter-btn" data-sort="playtime">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
     </svg>
-    Nach Spielzeit
+    Spielzeit
+  </button>
+  <button class="refresh-btn" id="refreshBtn" title="Neu laden">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+    </svg>
+    Aktualisieren
   </button>
 </div>
 
-<div class="podium-wrap" id="podiumWrap">
-  <!-- Wird dynamisch befüllt -->
-</div>
+<div class="podium-wrap" id="podiumWrap"></div>
 
 <div class="list-wrap">
   <div class="list-header">
@@ -569,6 +643,8 @@
     <div>Spieler</div>
     <div>Level</div>
     <div>Gebäude</div>
+    <div>Soldaten</div>
+    <div>Gems</div>
     <div>Punkte</div>
   </div>
   <div class="list-body" id="listBody">
@@ -584,14 +660,10 @@
   Build a Realm · Rangliste · Made with <span class="heart">♥</span>
 </footer>
 
-<!-- ============ MODAL ============ -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal" id="modalBox">
-    <!-- Wird dynamisch befüllt -->
-  </div>
+  <div class="modal" id="modalBox"></div>
 </div>
 
-<!-- ============ FIREBASE SDK ============ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, get, onValue }
@@ -617,15 +689,18 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   LEADERBOARD
+   LEADERBOARD v2
+   + Gems · Soldiers · Cards · XP
+   + Auto-refresh · Own-rank highlight · More sort options
    ========================================================= */
 
 let firebase = null;
 let allPlayers = [];
 let filteredPlayers = [];
 let currentSort = 'level';
+let refreshInterval = null;
+let myHwid = null;
 
-/* ---------- Avatar-Farben ---------- */
 const AVATAR_CLASSES = ['av-1','av-2','av-3','av-4','av-5','av-6','av-7','av-8','av-9','av-10'];
 function avatarClass(name) {
   let hash = 0;
@@ -640,21 +715,22 @@ function initials(name) {
   return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
 }
 
-/* ---------- Score-Berechnung (Gesamtpunkte) ---------- */
 function calculateScore(p) {
   if (!p) return 0;
+  const cards = p.cardsCount || 0;
   return (
     (p.level || 0) * 1000 +
-    (p.buildings ? p.buildings.length : 0) * 150 +
+    (p.buildingsCount || 0) * 150 +
     Math.floor((p.money || 0) / 100) +
     Math.floor((p.gold || 0) / 50) +
     (p.population || 0) * 20 +
     (p.soldiers || 0) * 30 +
+    (p.gems || 0) * 10 +
+    cards * 250 +
     (p.playtimeSeconds ? Math.floor(p.playtimeSeconds / 60) : 0)
   );
 }
 
-/* ---------- Zeit formatieren ---------- */
 function timeAgo(ts) {
   if (!ts) return 'Unbekannt';
   const diff = Math.max(0, Date.now() - ts);
@@ -690,7 +766,6 @@ function formatPlaytime(seconds) {
   return `${m} Min.`;
 }
 
-/* ---------- Firebase laden ---------- */
 function whenFirebaseReady(cb) {
   if (window.__LB_db) { cb(); return; }
   window.addEventListener('firebase-ready', cb, { once: true });
@@ -698,50 +773,65 @@ function whenFirebaseReady(cb) {
 
 whenFirebaseReady(() => {
   firebase = { db: window.__LB_db, ...window.__LB_fns };
+  myHwid = localStorage.getItem('br_last_hwid') || null;
   setStatus('loading', 'Lade Rangliste…');
   loadLeaderboard();
+  // Auto-refresh alle 15 Sekunden
+  refreshInterval = setInterval(loadLeaderboard, 15000);
 });
 
 async function loadLeaderboard() {
   try {
     const { ref, get } = firebase;
 
-    // Alle Saves laden
-    const savesSnap = await get(ref(firebase.db, 'saves'));
-    const usersSnap = await get(ref(firebase.db, 'users_by_hwid'));
-    const presenceSnap = await get(ref(firebase.db, 'presence'));
+    const [savesSnap, usersSnap, presenceSnap, worldSnap] = await Promise.all([
+      get(ref(firebase.db, 'saves')),
+      get(ref(firebase.db, 'users_by_hwid')),
+      get(ref(firebase.db, 'presence')),
+      get(ref(firebase.db, 'world'))
+    ]);
 
     const saves = savesSnap.exists() ? savesSnap.val() : {};
     const users = usersSnap.exists() ? usersSnap.val() : {};
     const presence = presenceSnap.exists() ? presenceSnap.val() : {};
+    const world = worldSnap.exists() ? worldSnap.val() : {};
 
-    // In Array umwandeln
     const list = [];
     const now = Date.now();
-    const ONLINE_THRESHOLD = 5 * 60 * 1000; // 5 Minuten
+    const ONLINE_THRESHOLD = 5 * 60 * 1000;
 
-    Object.keys(saves).forEach(hwid => {
+    // Alle HWIDs zusammenführen
+    const allHwids = new Set([...Object.keys(saves), ...Object.keys(world), ...Object.keys(users)]);
+    allHwids.forEach(hwid => {
       const save = saves[hwid] || {};
       const user = users[hwid] || {};
       const pres = presence[hwid] || {};
+      const w = world[hwid] || {};
 
-      // Nur Spieler mit tatsächlichem Spielstand
       const buildingsObj = save.buildings || {};
       const buildingsArr = Array.isArray(buildingsObj) ? buildingsObj : Object.values(buildingsObj || {});
-      if (buildingsArr.length === 0 && !save.level) return;
+      const cardsObj = save.cards || {};
+      const cardsCount = Object.keys(cardsObj).reduce((sum, k) => sum + (cardsObj[k].count || 0), 0);
+      const uniqueCards = Object.keys(cardsObj).length;
+
+      // Skip leere Accounts
+      if (buildingsArr.length === 0 && !save.level && !save.username) return;
 
       const playtime = save.playtimeSeconds || 0;
-
-      // Online-Status
       const lastSeenPresence = pres.lastSeen || 0;
-      const isOnline = pres.online === true && (now - lastSeenPresence) < ONLINE_THRESHOLD;
+      const lastSeenWorld = w.lastSeen || 0;
+      const isOnline = (pres.online === true && (now - lastSeenPresence) < ONLINE_THRESHOLD)
+                    || (now - lastSeenWorld) < ONLINE_THRESHOLD;
 
       list.push({
         hwid: hwid,
-        username: save.username || user.username || 'Unbekannt',
+        username: save.username || user.username || w.username || 'Unbekannt',
         level: save.level || 1,
+        xp: save.xp || 0,
+        xpNeeded: save.xpNeeded || 100,
         money: save.money || 0,
         gold: save.gold || 0,
+        gems: save.gems || 0,
         food: save.food || 0,
         wood: save.wood || 0,
         stone: save.stone || 0,
@@ -753,25 +843,27 @@ async function loadLeaderboard() {
         happiness: save.happiness || 0,
         buildings: buildingsArr,
         buildingsCount: buildingsArr.length,
+        cardsCount,
+        uniqueCards,
         createdAt: user.createdAt || save.createdAt || 0,
-        lastSeen: Math.max(save.lastSeen || 0, user.lastSeen || 0, lastSeenPresence || 0),
+        lastSeen: Math.max(save.lastSeen || 0, user.lastSeen || 0, lastSeenPresence, lastSeenWorld),
         isOnline: isOnline,
         playtimeSeconds: playtime
       });
     });
 
-    // Score berechnen
     list.forEach(p => { p.score = calculateScore(p); });
     allPlayers = list;
 
     if (allPlayers.length === 0) {
-      setStatus('', `${allPlayers.length} Spieler`);
+      setStatus('', '0 Spieler');
       renderEmpty();
       return;
     }
 
-    setStatus('', `${allPlayers.length} Spieler`);
+    setStatus('', `${allPlayers.length} Spieler · ${allPlayers.filter(p => p.isOnline).length} online`);
     applySort();
+    updateMyRankCard();
   } catch (e) {
     console.error('Leaderboard load failed', e);
     setStatus('error', 'Fehler beim Laden');
@@ -796,26 +888,26 @@ function setStatus(type, text) {
   txt.textContent = text;
 }
 
-/* ---------- Sortieren ---------- */
 function applySort() {
   const sorters = {
     level: (a,b) => (b.level - a.level) || (b.score - a.score),
+    score: (a,b) => (b.score - a.score),
     buildings: (a,b) => (b.buildingsCount - a.buildingsCount) || (b.score - a.score),
     money: (a,b) => (b.money - a.money) || (b.score - a.score),
+    soldiers: (a,b) => (b.soldiers - a.soldiers) || (b.score - a.score),
+    gems: (a,b) => (b.gems - a.gems) || (b.score - a.score),
     playtime: (a,b) => (b.playtimeSeconds - a.playtimeSeconds) || (b.score - a.score)
   };
   filteredPlayers = [...allPlayers].sort(sorters[currentSort] || sorters.level);
   render();
 }
 
-/* ---------- Render ---------- */
 function render() {
   const search = (document.getElementById('searchInput').value || '').trim().toLowerCase();
   let display = filteredPlayers;
   if (search) {
     display = filteredPlayers.filter(p => p.username.toLowerCase().includes(search));
   }
-
   renderPodium(display);
   renderList(display);
 }
@@ -829,18 +921,17 @@ function renderPodium(players) {
     return;
   }
 
-  // Anordnung: 2. Platz (links), 1. Platz (mitte), 3. Platz (rechts)
   const order = top3.length >= 3 ? [top3[1], top3[0], top3[2]] :
                 top3.length === 2 ? [top3[1], top3[0]] :
                 [top3[0]];
   const rankOf = (p) => top3.indexOf(p) + 1;
-  const medals = ['🥇', '🥈', '🥉'];
 
   wrap.innerHTML = order.map(p => {
     const rank = rankOf(p);
+    const isMe = myHwid && p.hwid === myHwid;
     return `
-      <div class="podium-card place-${rank}" data-hwid="${escapeHtml(p.hwid)}">
-        <div class="podium-rank-badge">#${rank}</div>
+      <div class="podium-card place-${rank} ${isMe ? 'is-me' : ''}" data-hwid="${escapeHtml(p.hwid)}">
+        <div class="podium-rank-badge">#${rank}${isMe ? ' · DU' : ''}</div>
         <div class="podium-avatar ${avatarClass(p.username)}">${escapeHtml(initials(p.username))}</div>
         <div class="podium-name">${escapeHtml(p.username)}</div>
         <div class="podium-level">Level ${p.level} · ${p.buildingsCount} Gebäude</div>
@@ -854,7 +945,6 @@ function renderPodium(players) {
     `;
   }).join('');
 
-  // Klick-Handler
   wrap.querySelectorAll('.podium-card').forEach(el => {
     el.onclick = () => showPlayerDetail(el.dataset.hwid);
   });
@@ -871,13 +961,14 @@ function renderList(players) {
   body.innerHTML = players.map((p, i) => {
     const rank = i + 1;
     const rankClass = rank <= 3 ? `rank-${rank}` : '';
+    const isMe = myHwid && p.hwid === myHwid;
     return `
-      <div class="lb-row ${rankClass}" data-hwid="${escapeHtml(p.hwid)}">
-        <div class="lb-rank">#${rank}</div>
+      <div class="lb-row ${rankClass} ${isMe ? 'is-me' : ''}" data-hwid="${escapeHtml(p.hwid)}" data-rank="${rank}">
+        <div class="lb-rank">#${rank}${isMe ? ' ★' : ''}</div>
         <div class="lb-user">
           <div class="lb-avatar ${avatarClass(p.username)}">${escapeHtml(initials(p.username))}</div>
           <div style="min-width:0;">
-            <div class="lb-name">${escapeHtml(p.username)}</div>
+            <div class="lb-name">${escapeHtml(p.username)}${isMe ? ' <span style="color:#2f6fd0;font-size:11px;">(Du)</span>' : ''}</div>
             <div class="lb-sub">
               <span class="${p.isOnline ? 'online-dot' : 'offline-dot'}"></span>
               ${p.isOnline ? 'Online' : timeAgo(p.lastSeen)}
@@ -896,6 +987,18 @@ function renderList(players) {
           </svg>
           <span class="val">${p.buildingsCount}</span>
         </div>
+        <div class="lb-cell soldier hide-mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z"/>
+          </svg>
+          <span class="val">${p.soldiers}</span>
+        </div>
+        <div class="lb-cell gem hide-mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z"/>
+          </svg>
+          <span class="val">${p.gems}</span>
+        </div>
         <div class="lb-cell score">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
@@ -911,6 +1014,27 @@ function renderList(players) {
   });
 }
 
+function updateMyRankCard() {
+  const card = document.getElementById('myRankCard');
+  if (!myHwid) { card.classList.remove('show'); return; }
+  const idx = filteredPlayers.findIndex(p => p.hwid === myHwid);
+  if (idx < 0) { card.classList.remove('show'); return; }
+  const me = filteredPlayers[idx];
+  card.classList.add('show');
+  document.getElementById('myRankValue').textContent = `#${idx + 1}`;
+  document.getElementById('myRankName').textContent = me.username;
+  document.getElementById('myRankSub').textContent = `Level ${me.level} · ${me.buildingsCount} Gebäude · ${me.score.toLocaleString('de-DE')} Punkte`;
+  document.getElementById('myRankJump').onclick = () => {
+    const row = document.querySelector(`.lb-row[data-hwid="${CSS.escape(myHwid)}"]`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.style.transition = 'box-shadow 0.3s';
+      row.style.boxShadow = '0 0 0 4px rgba(47,111,208,0.5)';
+      setTimeout(() => { row.style.boxShadow = ''; }, 1500);
+    }
+  };
+}
+
 function renderEmpty() {
   document.getElementById('podiumWrap').innerHTML = '';
   document.getElementById('listBody').innerHTML = `
@@ -919,13 +1043,12 @@ function renderEmpty() {
         <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/>
         <path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2"/>
       </svg>
-      <h3>Noch keine Spieler</h3>
-      <p>Es wurden noch keine Reiche in der Datenbank gefunden.</p>
+      <h3>Keine Spieler gefunden</h3>
+      <p>Keine Reiche entsprechen deinen Suchkriterien.</p>
     </div>
   `;
 }
 
-/* ---------- Detail-Modal ---------- */
 function showPlayerDetail(hwid) {
   const p = allPlayers.find(x => x.hwid === hwid);
   if (!p) return;
@@ -933,6 +1056,7 @@ function showPlayerDetail(hwid) {
   const rank = filteredPlayers.findIndex(x => x.hwid === hwid) + 1;
   const rankBadge = rank > 0 ? `#${rank}` : '—';
   const rankClass = rank <= 3 ? `top${rank}` : '';
+  const isMe = myHwid && p.hwid === myHwid;
 
   const modal = document.getElementById('modalBox');
   modal.innerHTML = `
@@ -944,7 +1068,7 @@ function showPlayerDetail(hwid) {
       </button>
       <div class="modal-avatar ${avatarClass(p.username)}">${escapeHtml(initials(p.username))}</div>
       <div class="modal-info">
-        <div class="modal-name">${escapeHtml(p.username)}</div>
+        <div class="modal-name">${escapeHtml(p.username)}${isMe ? ' <span style="color:#2f6fd0;font-size:13px;">(Du)</span>' : ''}</div>
         <div class="modal-rank-line">
           <span class="modal-rank-badge ${rankClass}">Rang ${rankBadge}</span>
           <span class="${p.isOnline ? 'online-dot' : 'offline-dot'}"></span>
@@ -960,9 +1084,9 @@ function showPlayerDetail(hwid) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
             </svg>
-            Level
+            Level ${p.level}
           </div>
-          <div class="stat-value">${p.level}</div>
+          <div class="stat-value">${Math.floor(p.xp)} <span class="unit">/ ${p.xpNeeded} XP</span></div>
         </div>
         <div class="stat-box gold">
           <div class="stat-label">
@@ -1006,6 +1130,54 @@ function showPlayerDetail(hwid) {
         </div>
       </div>
 
+      <div class="stat-section-title">Ressourcen</div>
+      <div class="stat-list">
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a2 2 0 0 1 0 4H9"/>
+            </svg>
+            💰 Geld
+          </span>
+          <span class="v">${Math.floor(p.money).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="18" rx="8" ry="3"/><ellipse cx="12" cy="14" rx="8" ry="3"/><ellipse cx="12" cy="10" rx="8" ry="3"/>
+            </svg>
+            🥇 Gold
+          </span>
+          <span class="v">${Math.floor(p.gold).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3 L18 3 L22 9 L12 22 L2 9 Z"/>
+            </svg>
+            💎 Gems
+          </span>
+          <span class="v gem">${Math.floor(p.gems).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22 V8"/>
+            </svg>
+            🌾 Essen
+          </span>
+          <span class="v">${Math.floor(p.food).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">🪵 Holz</span>
+          <span class="v">${Math.floor(p.wood).toLocaleString('de-DE')}</span>
+        </div>
+        <div class="stat-line">
+          <span class="k">🪨 Stein</span>
+          <span class="v">${Math.floor(p.stone).toLocaleString('de-DE')}</span>
+        </div>
+      </div>
+
       <div class="stat-section-title">Reich-Statistiken</div>
       <div class="stat-list">
         <div class="stat-line">
@@ -1018,22 +1190,12 @@ function showPlayerDetail(hwid) {
           <span class="v">${p.buildingsCount}</span>
         </div>
         <div class="stat-line">
-          <span class="k">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h4.5a2 2 0 0 1 0 4H9"/>
-            </svg>
-            Geld
-          </span>
-          <span class="v">${Math.floor(p.money).toLocaleString('de-DE')}</span>
+          <span class="k">🎴 Karten (einzigartig)</span>
+          <span class="v">${p.uniqueCards}</span>
         </div>
         <div class="stat-line">
-          <span class="k">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="18" rx="8" ry="3"/><ellipse cx="12" cy="14" rx="8" ry="3"/><ellipse cx="12" cy="10" rx="8" ry="3"/>
-            </svg>
-            Gold
-          </span>
-          <span class="v">${Math.floor(p.gold).toLocaleString('de-DE')}</span>
+          <span class="k">🎴 Karten (gesamt)</span>
+          <span class="v">${p.cardsCount}</span>
         </div>
         <div class="stat-line">
           <span class="k">
@@ -1051,7 +1213,7 @@ function showPlayerDetail(hwid) {
             </svg>
             Soldaten
           </span>
-          <span class="v">${p.soldiers} / ${p.soldierCap}</span>
+          <span class="v soldier">${p.soldiers} / ${p.soldierCap}</span>
         </div>
         <div class="stat-line">
           <span class="k">
@@ -1082,7 +1244,6 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
 });
 
-/* ---------- UI Events ---------- */
 document.getElementById('searchInput').addEventListener('input', () => render());
 
 document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1091,10 +1252,19 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.classList.add('active');
     currentSort = btn.dataset.sort;
     applySort();
+    updateMyRankCard();
   };
 });
 
-/* ---------- Helpers ---------- */
+document.getElementById('refreshBtn').onclick = () => {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  setStatus('loading', 'Aktualisiere…');
+  loadLeaderboard().finally(() => {
+    setTimeout(() => btn.classList.remove('spinning'), 500);
+  });
+};
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
