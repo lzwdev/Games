@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2f6fd0">
 <title>Build a Realm — Online</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -12,6 +15,7 @@
     background: #eef2f8; color: #1a2233;
     -webkit-user-select: none;
     user-select: none;
+    overscroll-behavior: none;
   }
   ::selection { background: transparent; }
   ::-moz-selection { background: transparent; }
@@ -118,7 +122,7 @@
 
   #game { position: fixed; inset: 0; display: none; }
   #game.visible { display: block; }
-  #map { position: absolute; inset: 0; overflow: hidden; cursor: grab; background: #cfe3b8; }
+  #map { position: absolute; inset: 0; overflow: hidden; cursor: grab; background: #cfe3b8; touch-action: none; }
   #map.dragging { cursor: grabbing; }
   #map.placing { cursor: crosshair; }
   #map.selling { cursor: not-allowed; }
@@ -584,7 +588,6 @@
   .ap-defend-btn { width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #e53935, #b71c1c); color: #fff; border: none; border-radius: 12px; font-size: 17px; font-weight: 900; letter-spacing: 2px; cursor: pointer; box-shadow: 0 8px 25px rgba(198,40,40,0.5); display: flex; align-items: center; justify-content: center; gap: 10px; }
   .ap-defend-btn:hover { background: linear-gradient(135deg, #ef5350, #c62828); transform: translateY(-2px); }
 
-  /* OPPONENT LEFT POPUP */
   #opponentLeftPopup {
     position: fixed !important; inset: 0 !important; z-index: 100000 !important;
     background: rgba(40,40,80,0.7); backdrop-filter: blur(10px);
@@ -683,6 +686,257 @@
     #minimap { right: 262px; width: 150px; height: 150px; }
     #statsPanel, #detailPanel, #eventFeed, #onlineList { display: none !important; }
     #chatPanel { width: 260px; }
+  }
+
+  /* =========================================================
+     MOBILE SUPPORT
+     ========================================================= */
+  #mobileMenuBtn,
+  #mobileMenuOverlay {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    #statsPanel, #syncBadge, #perfBadge { display: none !important; }
+    #eventFeed, #onlineList { display: none !important; }
+
+    #rightPanel {
+      width: 100vw !important;
+      max-width: 100vw;
+      z-index: 200 !important;
+      top: 54px;
+    }
+    #rightPanel.collapsed { transform: translateX(100%); }
+
+    #detailPanel {
+      position: fixed !important;
+      top: 54px !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      max-height: calc(100vh - 54px) !important;
+      border-radius: 0 !important;
+      z-index: 250 !important;
+    }
+
+    #minimap {
+      width: 130px !important;
+      height: 130px !important;
+      bottom: 76px !important;
+      right: 8px !important;
+      z-index: 44;
+    }
+    #minimap .mm-coords { font-size: 8px; padding: 1px 4px; }
+    #minimap .mm-resize { display: none; }
+
+    #topbar {
+      height: 54px;
+      padding: 0 8px;
+      gap: 6px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    #topbar::-webkit-scrollbar { display: none; }
+    .logo-small span:not(.txt-accent) { display: none; }
+    .logo-small { font-size: 13px; }
+    .user-chip span { max-width: 60px; overflow: hidden; text-overflow: ellipsis; }
+    .gem-chip { padding: 5px 8px; }
+    .online-counter { display: none; }
+    .res-group {
+      gap: 4px;
+      flex: 1;
+      overflow-x: auto;
+    }
+    .res { padding: 4px 8px; font-size: 11px; }
+    .res svg { width: 12px; height: 12px; }
+
+    #bottombar {
+      right: 0 !important;
+      height: 60px;
+      padding: 0 6px;
+      gap: 4px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    #bottombar::-webkit-scrollbar { display: none; }
+    #bottombar .hint { display: none; }
+    #bottombar .spacer { display: none; }
+    #bottombar .btn {
+      padding: 8px 10px;
+      font-size: 11px;
+      flex-shrink: 0;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #bottombar .btn svg { width: 16px; height: 16px; }
+    #bottombar .btn span:not(.soldier-count) {
+      display: block;
+      font-size: 9px;
+      margin-top: 2px;
+    }
+
+    #mobileMenuBtn {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      bottom: calc(70px + env(safe-area-inset-bottom, 0));
+      right: 12px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2f6fd0, #4a8ae0);
+      color: #fff;
+      border: none;
+      box-shadow: 0 6px 20px rgba(47,111,208,0.5);
+      z-index: 100;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    #mobileMenuBtn:active { transform: scale(0.92); }
+    #mobileMenuBtn svg { width: 24px; height: 24px; }
+
+    #mobileMenuOverlay {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(30,53,94,0.5);
+      backdrop-filter: blur(6px);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    #mobileMenuOverlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #mobileMenuOverlay .mm-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-radius: 22px 22px 0 0;
+      padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0));
+      box-shadow: 0 -20px 60px rgba(40,70,120,0.3);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.2,0.9,0.3,1.2);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    #mobileMenuOverlay.show .mm-panel {
+      transform: translateY(0);
+    }
+    #mobileMenuOverlay .mm-title {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #2f6fd0;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #mobileMenuOverlay .mm-close {
+      background: #f2f6fc;
+      border: 1px solid #d3dded;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      color: #6b7d99;
+      cursor: pointer;
+    }
+    #mobileMenuOverlay .mm-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    #mobileMenuOverlay .mm-item {
+      background: #f7faff;
+      border: 1.5px solid #e0e8f4;
+      border-radius: 12px;
+      padding: 14px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 10.5px;
+      color: #26344e;
+      text-decoration: none;
+      position: relative;
+    }
+    #mobileMenuOverlay .mm-item:active {
+      transform: scale(0.95);
+      background: #e6efff;
+      border-color: #2f6fd0;
+    }
+    #mobileMenuOverlay .mm-item svg {
+      width: 22px; height: 22px;
+      color: #2f6fd0;
+    }
+    #mobileMenuOverlay .mm-item.active {
+      background: #dbeafe;
+      border-color: #2f6fd0;
+    }
+    #mobileMenuOverlay .mm-item .soldier-count {
+      position: absolute;
+      top: 6px; right: 6px;
+      background: #2f6fd0;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      min-width: 16px; height: 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+    #mobileMenuOverlay .mm-item .soldier-count[data-count="0"] { display: none; }
+
+    #bottombar #btnStats,
+    #bottombar #btnEvents,
+    #bottombar #btnSettings,
+    #bottombar #btnLogout,
+    #bottombar #btnBuildings,
+    #bottombar #btnOnlineList {
+      display: none;
+    }
+  }
+
+  @media (max-width: 400px) {
+    #bottombar .btn { padding: 6px 8px; font-size: 10px; }
+    #bottombar .btn svg { width: 14px; height: 14px; }
+    #minimap { width: 110px !important; height: 110px !important; }
+  }
+
+  @media (max-width: 900px) and (orientation: landscape) {
+    #bottombar { height: 52px; }
+    #bottombar .btn { flex-direction: row; padding: 6px 8px; }
+    #bottombar .btn span { display: none; }
+    #mobileMenuBtn {
+      bottom: 62px;
+      width: 46px;
+      height: 46px;
+    }
+    #rightPanel { top: 54px; }
+    #minimap {
+      width: 100px !important;
+      height: 100px !important;
+      bottom: 62px !important;
+    }
   }
 </style>
 </head>
@@ -1000,6 +1254,84 @@
       </div>
     </div>
   </div>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button id="mobileMenuBtn" title="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
+  <!-- MOBILE MENU OVERLAY -->
+  <div id="mobileMenuOverlay">
+    <div class="mm-panel">
+      <div class="mm-title">
+        <span>⚙ Menü</span>
+        <button class="mm-close" id="mmClose">×</button>
+      </div>
+      <div class="mm-grid">
+        <button class="mm-item" id="mmCenter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          <span>Mine</span>
+        </button>
+        <button class="mm-item" id="mmSoldiers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L14 5 L17 4 L18 7 L21 8 L19 11 L21 13 L18 14 L17 17 L14 16 L12 19 L10 16 L7 17 L6 14 L3 13 L5 11 L3 8 L6 7 L7 4 L10 5 Z" fill="currentColor" opacity="0.25"/></svg>
+          <span>Soldaten</span>
+          <span class="soldier-count" id="mmSoldierCount" data-count="0">0</span>
+        </button>
+        <button class="mm-item" id="mmAttack">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 L3 6 V3 h3 l11.5 11.5 M13 19 l6-6 M16 16 l4 4"/></svg>
+          <span>Attack</span>
+        </button>
+        <button class="mm-item" id="mmBuild">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span>Bauen</span>
+        </button>
+        <button class="mm-item" id="mmPlayers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span>Spieler</span>
+        </button>
+        <button class="mm-item" id="mmEvents">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>Events</span>
+        </button>
+        <button class="mm-item" id="mmStats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 14l3-4 4 3 5-7"/></svg>
+          <span>Status</span>
+        </button>
+        <button class="mm-item" id="mmSettings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </button>
+        <a class="mm-item" href="spins/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3 L12 6 M12 18 L12 21 M3 12 L6 12 M18 12 L21 12 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M5.6 18.4 L7.8 16.2 M16.2 7.8 L18.4 5.6"/></svg>
+          <span>Spins</span>
+        </a>
+        <a class="mm-item" href="Leaderboard/index.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/><path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2"/></svg>
+          <span>Rank</span>
+        </a>
+        <button class="mm-item" id="mmChat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Chat</span>
+        </button>
+        <button class="mm-item" id="mmZoomIn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/><path d="M11 8v6M8 11h6"/></svg>
+          <span>Zoom +</span>
+        </button>
+        <button class="mm-item" id="mmZoomOut">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/><path d="M8 11h6"/></svg>
+          <span>Zoom −</span>
+        </button>
+        <button class="mm-item" id="mmLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="troopModal">
@@ -1185,15 +1517,7 @@ window.dispatchEvent(new Event('firebase-ready'));
 
 <script>
 /* =========================================================
-   BUILD A REALM — v39
-   - Money production fixed
-   - Soldier spawn bug fixed
-   - Builder's Guild (Bauhof)
-   - Bau startet nach Ankunft der Bauarbeiter
-   - Live-Sync 100ms (units)
-   - Text-Selection verhindert
-   - Opponent Left Popup
-   - KEINE Idle-Worker mehr (nur Bauarbeiter während Bau)
+   BUILD A REALM — v39 (with Mobile Support)
    ========================================================= */
 
 window.addEventListener('keydown', (e) => {
@@ -4088,7 +4412,6 @@ function renderUnits(now) {
     for (const vd of data.villagers || []) { if (!inView(vd.x, vd.y)) continue; const p = toScreen(vd.x, vd.y); drawVillager(unitCtx, p.x, p.y, z, now); }
   }
 
-  // Nur Bauarbeiter während Bauphasen — KEINE Idle-Worker
   state.buildings.forEach(b => {
     if (!b.construction) return;
     if (!b._builders) return;
@@ -5202,6 +5525,317 @@ document.getElementById('btnEvents').classList.add('active');
 document.getElementById('btnStats').classList.add('active');
 document.getElementById('btnBuildings').classList.add('active');
 updatePanelDocking();
+
+/* =========================================================
+   MOBILE SUPPORT — Touch Controls & Menu
+   ========================================================= */
+
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+const mmClose = document.getElementById('mmClose');
+
+function openMobileMenu() {
+  mobileMenuOverlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  mobileMenuOverlay.classList.remove('show');
+  document.body.style.overflow = '';
+}
+if (mobileMenuBtn) mobileMenuBtn.onclick = openMobileMenu;
+if (mmClose) mmClose.onclick = closeMobileMenu;
+if (mobileMenuOverlay) {
+  mobileMenuOverlay.addEventListener('click', (e) => {
+    if (e.target === mobileMenuOverlay) closeMobileMenu();
+  });
+}
+
+document.getElementById('mmCenter').onclick = () => { closeMobileMenu(); centerCamera(); };
+document.getElementById('mmSoldiers').onclick = () => { closeMobileMenu(); cameraToMySoldiers(); };
+document.getElementById('mmAttack').onclick = () => { closeMobileMenu(); toggleAttackMode(); };
+document.getElementById('mmBuild').onclick = () => {
+  closeMobileMenu();
+  const panel = document.getElementById('rightPanel');
+  const bar = document.getElementById('bottombar');
+  panel.classList.remove('collapsed');
+  bar.classList.remove('wide');
+  document.getElementById('btnBuildings').classList.add('active');
+  updatePanelDocking();
+};
+document.getElementById('mmPlayers').onclick = () => {
+  closeMobileMenu();
+  const list = document.getElementById('onlineList');
+  list.classList.add('show');
+  list.classList.remove('docked-right');
+  renderOnlineList();
+};
+document.getElementById('mmEvents').onclick = () => {
+  closeMobileMenu();
+  const feed = document.getElementById('eventFeed');
+  feed.classList.remove('hidden');
+  feed.style.display = 'flex';
+};
+document.getElementById('mmStats').onclick = () => {
+  closeMobileMenu();
+  const stats = document.getElementById('statsPanel');
+  stats.classList.remove('hidden');
+  stats.style.display = 'block';
+};
+document.getElementById('mmSettings').onclick = () => {
+  closeMobileMenu();
+  document.getElementById('settingsModal').classList.add('show');
+  applySettingsToUI();
+};
+document.getElementById('mmChat').onclick = () => {
+  closeMobileMenu();
+  const p = document.getElementById('chatPanel');
+  p.classList.add('show');
+  setTimeout(() => document.getElementById('chatInput').focus(), 200);
+};
+document.getElementById('mmZoomIn').onclick = () => {
+  closeMobileMenu();
+  zoomAtCenter(1.25);
+};
+document.getElementById('mmZoomOut').onclick = () => {
+  closeMobileMenu();
+  zoomAtCenter(0.8);
+};
+document.getElementById('mmLogout').onclick = () => {
+  closeMobileMenu();
+  document.getElementById('btnLogout').click();
+};
+
+const mmSoldierCount = document.getElementById('mmSoldierCount');
+function syncMobileSoldierCount() {
+  const badge = document.getElementById('soldierCountBadge');
+  if (badge && mmSoldierCount) {
+    mmSoldierCount.textContent = badge.textContent;
+    mmSoldierCount.setAttribute('data-count', badge.getAttribute('data-count') || '0');
+  }
+}
+setInterval(syncMobileSoldierCount, 500);
+
+function zoomAtCenter(factor) {
+  const rect = mapEl.getBoundingClientRect();
+  const mx = rect.width / 2;
+  const my = rect.height / 2;
+  const oldZoom = state.zoom;
+  state.zoom = Math.max(0.25, Math.min(2.6, state.zoom * factor));
+  state.camX = mx - (mx - state.camX) * (state.zoom / oldZoom);
+  state.camY = my - (my - state.camY) * (state.zoom / oldZoom);
+  applyTransform();
+}
+
+(function setupTouchControls() {
+  let touchMode = null;
+  let panStart = { x: 0, y: 0 };
+  let camStart = { x: 0, y: 0 };
+  let pinchStartDist = 0;
+  let pinchStartZoom = 1;
+  let pinchMidX = 0, pinchMidY = 0;
+  let tapStartTime = 0;
+  let tapStartPos = { x: 0, y: 0 };
+  let tapMoved = false;
+
+  function touchDistance(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.hypot(dx, dy);
+  }
+  function touchMid(t1, t2) {
+    return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+  }
+
+  mapEl.addEventListener('touchstart', (e) => {
+    if (mobileMenuOverlay.classList.contains('show')) return;
+    if (document.getElementById('settingsModal').classList.contains('show')) return;
+
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      touchMode = 'pan';
+      panStart.x = t.clientX;
+      panStart.y = t.clientY;
+      camStart.x = state.camX;
+      camStart.y = state.camY;
+      tapStartTime = Date.now();
+      tapStartPos.x = t.clientX;
+      tapStartPos.y = t.clientY;
+      tapMoved = false;
+    } else if (e.touches.length === 2) {
+      touchMode = 'pinch';
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      pinchStartDist = touchDistance(t1, t2);
+      pinchStartZoom = state.zoom;
+      const mid = touchMid(t1, t2);
+      pinchMidX = mid.x;
+      pinchMidY = mid.y;
+      tapMoved = true;
+    }
+  }, { passive: false });
+
+  mapEl.addEventListener('touchmove', (e) => {
+    if (mobileMenuOverlay.classList.contains('show')) return;
+    e.preventDefault();
+
+    if (touchMode === 'pan' && e.touches.length === 1) {
+      const t = e.touches[0];
+      const dx = t.clientX - panStart.x;
+      const dy = t.clientY - panStart.y;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) tapMoved = true;
+      state.camX = camStart.x + dx;
+      state.camY = camStart.y + dy;
+      applyTransform();
+    } else if (touchMode === 'pinch' && e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = touchDistance(t1, t2);
+      const mid = touchMid(t1, t2);
+      if (pinchStartDist > 0) {
+        const ratio = dist / pinchStartDist;
+        const newZoom = Math.max(0.25, Math.min(2.6, pinchStartZoom * ratio));
+        const oldZoom = state.zoom;
+        state.zoom = newZoom;
+
+        const rect = mapEl.getBoundingClientRect();
+        const mx = pinchMidX - rect.left;
+        const my = pinchMidY - rect.top;
+        state.camX = mx - (mx - state.camX) * (state.zoom / oldZoom);
+        state.camY = my - (my - state.camY) * (state.zoom / oldZoom);
+
+        const midDx = mid.x - pinchMidX;
+        const midDy = mid.y - pinchMidY;
+        state.camX += midDx;
+        state.camY += midDy;
+        pinchMidX = mid.x;
+        pinchMidY = mid.y;
+
+        applyTransform();
+      }
+    }
+  }, { passive: false });
+
+  mapEl.addEventListener('touchend', (e) => {
+    if (touchMode === 'pan' && !tapMoved && e.touches.length === 0) {
+      const dt = Date.now() - tapStartTime;
+      if (dt < 300) {
+        const cx = tapStartPos.x;
+        const cy = tapStartPos.y;
+        const w = screenToWorld(cx, cy);
+
+        if (state.placing) {
+          placeBuilding({ clientX: cx, clientY: cy });
+        }
+        else if (attackMode) {
+          tryAttack({ clientX: cx, clientY: cy });
+        }
+        else if (state.sellMode) {
+          let hit = null;
+          for (const b of state.buildings) {
+            if (b.type === 'main') continue;
+            const bs = BUILDINGS[b.type].size * TILE;
+            if (w.x >= b.x && w.x <= b.x + bs && w.y >= b.y && w.y <= b.y + bs) { hit = b; break; }
+          }
+          if (hit) {
+            const refund = getSellValue(hit);
+            if (confirm(`Sell "${BUILDINGS[hit.type].name}" (Level ${hit.level})?\n\nRefund: ${refund.toLocaleString('en-US')} money`)) sellBuilding(hit);
+          }
+        }
+        else {
+          const hit = findSoldierAt(w.x, w.y);
+          if (hit) {
+            showCardInfoPopup(hit, cx, cy);
+            return;
+          }
+          let hitB = null;
+          for (const b of state.buildings) {
+            const bs = BUILDINGS[b.type].size * TILE;
+            if (w.x >= b.x && w.x <= b.x + bs && w.y >= b.y && w.y <= b.y + bs) { hitB = b; break; }
+          }
+          if (!hitB) {
+            for (const hwid in otherPlayerEls) {
+              const entry = otherPlayerEls[hwid];
+              if (!entry || !entry.buildings) continue;
+              for (const id in entry.buildings) {
+                const ob = entry.buildings[id];
+                const bs = BUILDINGS[ob.type].size * TILE;
+                if (w.x >= ob.x && w.x <= ob.x + bs && w.y >= ob.y && w.y <= ob.y + bs) {
+                  notify(`This belongs to ${otherPlayers[hwid]?.username || 'Enemy'}`, true);
+                  hitB = 'enemy';
+                  break;
+                }
+              }
+              if (hitB === 'enemy') break;
+            }
+          }
+          if (hitB && hitB !== 'enemy') {
+            selectBuilding(hitB.id);
+          } else if (!hitB) {
+            hideDetailPanel();
+            hideCardInfoPopup();
+          }
+        }
+      }
+    }
+    if (e.touches.length === 0) {
+      touchMode = null;
+      tapMoved = false;
+    } else if (e.touches.length === 1) {
+      const t = e.touches[0];
+      touchMode = 'pan';
+      panStart.x = t.clientX;
+      panStart.y = t.clientY;
+      camStart.x = state.camX;
+      camStart.y = state.camY;
+      tapMoved = true;
+    }
+  }, { passive: false });
+
+  mapEl.addEventListener('touchcancel', () => {
+    touchMode = null;
+    tapMoved = false;
+  });
+
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  mapEl.addEventListener('contextmenu', (e) => e.preventDefault());
+})();
+
+(function setupTouchGhost() {
+  mapEl.addEventListener('touchmove', (e) => {
+    if (!state.placing) return;
+    const t = e.touches[0];
+    if (t) updateGhost({ clientX: t.clientX, clientY: t.clientY });
+  }, { passive: true });
+})();
+
+function isMobile() {
+  return window.matchMedia('(max-width: 900px)').matches;
+}
+window.addEventListener('resize', () => {
+  if (!isMobile() && mobileMenuOverlay.classList.contains('show')) {
+    closeMobileMenu();
+  }
+  resizeCanvases();
+});
+
+function adjustModalsForMobile() {
+  if (!isMobile()) return;
+  const tmBox = document.getElementById('tmBox');
+  if (tmBox) tmBox.style.maxWidth = 'calc(100vw - 24px)';
+}
+window.addEventListener('resize', adjustModalsForMobile);
+adjustModalsForMobile();
+
+document.querySelectorAll('#bottombar .btn').forEach(btn => {
+  btn.addEventListener('touchstart', () => { btn.style.transform = 'scale(0.94)'; }, { passive: true });
+  btn.addEventListener('touchend', () => { btn.style.transform = ''; }, { passive: true });
+});
 
 window.addEventListener('resize', resizeCanvases);
 loginBtn.disabled = true;
