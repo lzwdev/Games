@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — Build a Realm</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; min-height: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #eef2f8 0%, #dbe6f5 100%);
+    color: #1a2233;
+  }
+  .bg-circle {
+    position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle, rgba(120,160,220,0.18), transparent 70%);
+    animation: floatCircle 10s ease-in-out infinite;
+  }
+  @keyframes floatCircle {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(30px,-40px) scale(1.1); }
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid #d3dded;
+    box-shadow: 0 2px 14px rgba(40,70,120,0.08);
+    padding: 0 24px; height: 62px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 900; color: #1e355e; white-space: nowrap; }
+  .logo svg { width: 28px; height: 28px; }
+  .logo .txt-accent {
+    background: linear-gradient(90deg,#2f6fd0,#5b9bf5);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .logo-badge {
+    background: linear-gradient(135deg, #8e24aa, #ab47bc);
+    color: #fff; padding: 3px 10px; border-radius: 8px;
+    font-size: 10px; font-weight: 900; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 12px; background: #f2f6fc;
+    border: 1px solid #e0e8f4; border-radius: 20px;
+    font-size: 11.5px; font-weight: 700; color: #6b7d99;
+  }
+  .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+  .status-pill.loading .dot { background: #ffb300; animation: blink 0.8s infinite; }
+  .status-pill.error .dot { background: #e53935; }
+  @keyframes blink { 0%,100%{opacity:0.4} 50%{opacity:1} }
+  .nav-link {
+    padding: 7px 14px; border-radius: 9px;
+    font-size: 13px; font-weight: 700; color: #6b7d99;
+    text-decoration: none; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f2f6fc; border: 1px solid #e0e8f4;
+  }
+  .nav-link:hover { background: #eef4fd; color: #2f6fd0; border-color: #a8c8f0; }
+  .nav-link svg { width: 15px; height: 15px; }
+
+  /* ============ LAYOUT ============ */
+  .dashboard {
+    position: relative; z-index: 1;
+    max-width: 1500px; margin: 24px auto;
+    padding: 0 20px 60px;
+  }
+
+  /* ============ FILTER BAR ============ */
+  .filter-bar {
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(14px);
+    border: 1px solid #d3dded;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 20px rgba(40,70,120,0.08);
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
+  .filter-group label {
+    font-size: 10px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; color: #8fa3c8;
+  }
+  .filter-group select, .filter-group input {
+    padding: 9px 14px;
+    background: #f7faff;
+    border: 1.5px solid #d3dded; border-radius: 9px;
+    color: #1e355e; font-size: 13px; font-weight: 700;
+    font-family: inherit; outline: none;
+    transition: all 0.15s;
+    min-width: 130px;
+  }
+  .filter-group select:focus, .filter-group input:focus {
+    border-color: #2f6fd0; background: #fff;
+    box-shadow: 0 0 0 3px rgba(47,111,208,0.15);
+  }
+  .refresh-btn {
+    margin-left: auto;
+    padding: 11px 20px;
+    background: linear-gradient(135deg, #2f6fd0, #4a8ae0);
+    border: none; border-radius: 10px;
+    color: #fff; font-size: 13px; font-weight: 800;
+    cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit;
+    box-shadow: 0 6px 18px rgba(47,111,208,0.3);
+    align-self: flex-end;
+  }
+  .refresh-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(47,111,208,0.4); }
+  .refresh-btn:disabled { opacity: 0.6; cursor: wait; }
+  .refresh-btn svg { width: 15px; height: 15px; }
+  .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============ KPI CARDS ============ */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: #fff;
+    border: 1px solid #e0e8f4;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 14px rgba(40,70,120,0.06);
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(40,70,120,0.12);
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #2f6fd0, #6aa9f5);
+  }
+  .kpi-card.gem::before { background: linear-gradient(90deg, #a87ee0, #d4a6ff); }
+  .kpi-card.gold::before { background: linear-gradient(90deg, #ffb300, #ffd54f); }
+  .kpi-card.green::before { background: linear-gradient(90deg, #43a047, #66bb6a); }
+  .kpi-card.red::before { background: linear-gradient(90deg, #e53935, #ef5350); }
+  .kpi-label {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #8fa3c8;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .kpi-label svg { width: 14px; height: 14px; }
+  .kpi-value {
+    font-size: 28px; font-weight: 900; color: #1e355e;
+    line-height: 1.05; margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-value.gem { color: #7c4dbb; }
+  .kpi-value.gold { color: #a07000; }
+  .kpi-value.green { color: #2e7d32; }
+  .kpi-value.red { color: #c62828; }
+  .kpi-sub {
+    font-size: 11.5px; color: #8fa3c8; font-weight: 600;
+  }
+  .kpi-sub b { color: #2f6fd0; font-weight: 800; }
+  .kpi-sub.good b { color: #2e7d32; }
+  .kpi-sub.bad b { color: #c62828; }
+
+  /* ============ CHART CARDS ============ */
+  .chart-card {
+    background: #fff;
+    border: 1px solid #e0e8f4;
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 14px rgba(40,70,120,0.06);
+  }
+  .chart-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 10px;
+  }
+  .chart-title {
+    font-size: 15px; font-weight: 900; color: #1e355e;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .chart-title svg { width: 20px; height: 20px; color: #2f6fd0; }
+  .chart-sub { font-size: 12px; color: #8fa3c8; font-weight: 600; margin-top: 2px; }
+  .chart-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chart-btn {
+    padding: 6px 14px;
+    background: #f2f6fc;
+    border: 1.5px solid #e0e8f4;
+    border-radius: 8px;
+    font-size: 11.5px; font-weight: 800;
+    color: #6b7d99; cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .chart-btn:hover { background: #eef4fd; border-color: #a8c8f0; color: #2f6fd0; }
+  .chart-btn.active {
+    background: #2f6fd0; border-color: #2f6fd0; color: #fff;
+    box-shadow: 0 4px 12px rgba(47,111,208,0.3);
+  }
+
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+  }
+  .canvas-wrap.tall { height: 420px; }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  .chart-tooltip {
+    position: fixed;
+    background: rgba(30,53,94,0.96);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    min-width: 120px;
+    backdrop-filter: blur(8px);
+  }
+  .chart-tooltip .tt-title { font-weight: 900; font-size: 13px; margin-bottom: 4px; color: #6aa9f5; }
+  .chart-tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; margin-top: 3px; }
+  .chart-tooltip .tt-row .k { color: #a8c0e0; }
+  .chart-tooltip .tt-row .v { font-weight: 800; color: #fff; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ============ TABLE ============ */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #e0e8f4;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    min-width: 800px;
+  }
+  thead {
+    background: linear-gradient(135deg, #eaf2ff, #f7faff);
+    position: sticky; top: 0;
+  }
+  th {
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 10.5px; font-weight: 900;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: #2f6fd0;
+    border-bottom: 2px solid #d3dded;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { background: #e0e8f4; }
+  th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; font-size: 10px; }
+  th.sorted .sort-icon { opacity: 1; color: #2f6fd0; }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #eef2f8;
+    color: #26344e;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody tr { transition: background 0.12s; }
+  tbody tr:hover { background: #f7faff; }
+  tbody tr:last-child td { border-bottom: none; }
+  .cell-rank { font-weight: 900; color: #8fa3c8; }
+  .cell-name { font-weight: 800; color: #1e355e; }
+  .cell-gem { color: #7c4dbb; font-weight: 800; }
+  .cell-good { color: #2e7d32; font-weight: 800; }
+  .cell-bad { color: #c62828; font-weight: 800; }
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .status-dot.online { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+  .status-dot.offline { background: #cfd8dc; }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: #8fa3c8; font-size: 13px;
+  }
+  .empty-state h3 { font-size: 15px; color: #6b7d99; margin-bottom: 6px; font-weight: 800; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 10.5px; font-weight: 800;
+  }
+  .pill.blue { background: #e6efff; color: #2f6fd0; }
+  .pill.green { background: #e8f5e9; color: #2e7d32; }
+  .pill.gold { background: #fff8e1; color: #a07000; }
+  .pill.gem { background: #f5e6ff; color: #7c4dbb; }
+  .pill.red { background: #ffebee; color: #c62828; }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #c3d4ec; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #a8c0e0; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  @media (max-width: 700px) {
+    .kpi-value { font-size: 22px; }
+    header { padding: 0 12px; }
+    .nav-link span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-circle" style="width:500px;height:500px;top:-100px;left:-100px;"></div>
+<div class="bg-circle" style="width:400px;height:400px;bottom:-80px;right:-80px;animation-delay:3s;"></div>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M4 19 L6 9 L10 13 L12 6 L14 13 L18 9 L20 19 Z" fill="#2f6fd0" stroke="#1e355e" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="4" y="19" width="16" height="2.5" rx="1" fill="#2f6fd0" stroke="#1e355e" stroke-width="1"/>
+    </svg>
+    <span>BUILD A <span class="txt-accent">REALM</span></span>
+    <span class="logo-badge">Analytics</span>
+  </div>
+  <div class="header-right">
+    <div class="status-pill loading" id="statusPill">
+      <div class="dot"></div>
+      <span id="statusText">Verbinde…</span>
+    </div>
+    <a class="nav-link" href="index.html" title="Zum Spiel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l9-9 9 9M5 10v10h14V10"/>
+      </svg>
+      <span>Spiel</span>
+    </a>
+    <a class="nav-link" href="ADMINPANELV2.html" title="Admin Panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+      </svg>
+      <span>Admin</span>
+    </a>
+    <a class="nav-link" href="Leaderboard/index.html" title="Rangliste">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 21h8M12 17v4M6 4h12v6a6 6 0 0 1-12 0V4z"/>
+      </svg>
+      <span>Rank</span>
+    </a>
+  </div>
+</header>
+
+<div class="dashboard">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>Zeitraum der Charts</label>
+      <select id="timeRange">
+        <option value="hour">Letzte Stunde</option>
+        <option value="day" selected>Letzte 24 Stunden</option>
+        <option value="week">Letzte 7 Tage</option>
+        <option value="month">Letzte 30 Tage</option>
+        <option value="year">Letztes Jahr</option>
+        <option value="all">Gesamte Zeit</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Granularität</label>
+      <select id="granularity">
+        <option value="auto" selected>Automatisch</option>
+        <option value="minute">Pro Minute</option>
+        <option value="hour">Pro Stunde</option>
+        <option value="day">Pro Tag</option>
+        <option value="week">Pro Woche</option>
+        <option value="month">Pro Monat</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Spieler filtern</label>
+      <input type="text" id="playerFilter" placeholder="Name suchen…" autocomplete="off">
+    </div>
+    <div class="filter-group">
+      <label>Nur Online</label>
+      <select id="onlineFilter">
+        <option value="all" selected>Alle Spieler</option>
+        <option value="online">Nur Online</option>
+        <option value="offline">Nur Offline</option>
+      </select>
+    </div>
+    <button class="refresh-btn" id="refreshBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>
+      </svg>
+      Neu laden
+    </button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpiGrid">
+    <!-- wird dynamisch befüllt -->
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18M7 14l3-4 4 3 5-7"/>
+            </svg>
+            Spieler-Aktivität
+          </div>
+          <div class="chart-sub" id="activitySub">Online-Spieler pro Zeitintervall</div>
+        </div>
+        <div class="chart-controls">
+          <button class="chart-btn active" data-activity="online">Online</button>
+          <button class="chart-btn" data-activity="joins">Joins</button>
+          <button class="chart-btn" data-activity="active">Aktiv</button>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="activityChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+            </svg>
+            Playtime-Verteilung
+          </div>
+          <div class="chart-sub" id="playtimeSub">Spielzeit pro Spieler</div>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="playtimeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="10" width="16" height="11"/><polygon points="2,10 12,3 22,10"/>
+            </svg>
+            Gebäude & Level
+          </div>
+          <div class="chart-sub">Verteilung der Gebäude nach Kategorie</div>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="buildingsChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+            </svg>
+            Level-Verteilung
+          </div>
+          <div class="chart-sub">Wie viele Spieler auf welchem Level</div>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="levelChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART ROW 3 -->
+  <div class="chart-card">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 L14.9 8.6 L22 9.3 L16.5 14 L18.2 21 L12 17.3 L5.8 21 L7.5 14 L2 9.3 L9.1 8.6 Z"/>
+          </svg>
+          Ressourcen-Trends
+        </div>
+        <div class="chart-sub">Gesamtressourcen aller Spieler über Zeit</div>
+      </div>
+      <div class="chart-controls">
+        <button class="chart-btn active" data-resource="money">Money</button>
+        <button class="chart-btn" data-resource="gold">Gold</button>
+        <button class="chart-btn" data-resource="food">Food</button>
+        <button class="chart-btn" data-resource="wood">Wood</button>
+        <button class="chart-btn" data-resource="stone">Stone</button>
+        <button class="chart-btn" data-resource="gems">Gems</button>
+      </div>
+    </div>
+    <div class="canvas-wrap tall">
+      <canvas id="resourceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- TOP PLAYERS TABLE -->
+  <div class="chart-card">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Spieler-Übersicht
+        </div>
+        <div class="chart-sub" id="playerCount">Alle Spieler mit Statistiken</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="playerTable">
+        <thead>
+          <tr>
+            <th data-sort="rank"># <span class="sort-icon">▼</span></th>
+            <th data-sort="username">Spieler <span class="sort-icon">▼</span></th>
+            <th data-sort="status">Status <span class="sort-icon">▼</span></th>
+            <th data-sort="level">Level <span class="sort-icon">▼</span></th>
+            <th data-sort="buildings">Gebäude <span class="sort-icon">▼</span></th>
+            <th data-sort="money">Money <span class="sort-icon">▼</span></th>
+            <th data-sort="gems">Gems <span class="sort-icon">▼</span></th>
+            <th data-sort="soldiers">Soldaten <span class="sort-icon">▼</span></th>
+            <th data-sort="population">Bevölk. <span class="sort-icon">▼</span></th>
+            <th data-sort="playtime">Playtime <span class="sort-icon">▼</span></th>
+            <th data-sort="lastSeen">Zuletzt online <span class="sort-icon">▼</span></th>
+          </tr>
+        </thead>
+        <tbody id="playerTableBody">
+          <tr><td colspan="11" style="text-align:center;padding:40px;color:#8fa3c8;">Lade Spielerdaten…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="chart-tooltip" id="chartTooltip"></div>
+
+<!-- ============ FIREBASE ============ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, get, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCy7BHQ04daaUViCJZ6q4MQjPgI_lztLnk",
+  authDomain: "build-realm.firebaseapp.com",
+  projectId: "build-realm",
+  storageBucket: "build-realm.firebasestorage.app",
+  messagingSenderId: "178474064555",
+  appId: "1:178474064555:web:bc88c8cb41c5b3bbd5b5ee",
+  measurementId: "G-QX9MPZ75FH",
+  databaseURL: "https://build-realm-default-rtdb.europe-west1.firebasedatabase.app/"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window.__AN_db = db;
+window.__AN_fns = { ref, get, onValue };
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+/* =========================================================
+   ANALYTICS DASHBOARD
+   ========================================================= */
+let firebase = null;
+let rawData = { users: {}, saves: {}, bans: {}, presence: {}, world: {}, events: {} };
+let allPlayers = [];
+let chartInstances = {};
+let currentTimeRange = 'day';
+let currentGranularity = 'auto';
+let activityMode = 'online';
+let resourceMode = 'money';
+let tableSort = { key: 'rank', dir: 'asc' };
+
+/* ---------------- HELPERS ---------------- */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+function fmtNum(n) { return Math.floor(n || 0).toLocaleString('de-DE'); }
+function fmtPlaytime(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return `${d}T ${h}Std`;
+  if (h > 0) return `${h}Std ${m}Min`;
+  return `${m}Min`;
+}
+function fmtPlaytimeLong(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const parts = [];
+  if (d > 0) parts.push(d + ' Tage');
+  if (h > 0) parts.push(h + ' Std');
+  if (m > 0) parts.push(m + ' Min');
+  if (parts.length === 0) parts.push(s + ' Sek');
+  return parts.join(' ');
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
+    d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+function timeAgo(ts) {
+  if (!ts) return 'Unbekannt';
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return 'gerade eben';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `vor ${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `vor ${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `vor ${d}T`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `vor ${mo}M`;
+  return `vor ${Math.floor(mo/12)}J`;
+}
+
+/* ---------------- FIREBASE LOAD ---------------- */
+function whenFirebaseReady(cb) {
+  if (window.__AN_db) { cb(); return; }
+  window.addEventListener('firebase-ready', cb, { once: true });
+}
+whenFirebaseReady(() => {
+  firebase = { db: window.__AN_db, ...window.__AN_fns };
+  setStatus('loading', 'Lade Daten…');
+  loadAllData();
+});
+
+async function loadAllData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true; btn.classList.add('spinning');
+  setStatus('loading', 'Lade Daten…');
+  try {
+    const { ref, get } = firebase;
+    const [usersSnap, savesSnap, bansSnap, presenceSnap, worldSnap, eventsSnap] = await Promise.all([
+      get(ref(firebase.db, 'users_by_hwid')),
+      get(ref(firebase.db, 'saves')),
+      get(ref(firebase.db, 'bans')),
+      get(ref(firebase.db, 'presence')),
+      get(ref(firebase.db, 'world')),
+      get(ref(firebase.db, 'events'))
+    ]);
+    rawData.users = usersSnap.exists() ? usersSnap.val() : {};
+    rawData.saves = savesSnap.exists() ? savesSnap.val() : {};
+    rawData.bans = bansSnap.exists() ? bansSnap.val() : {};
+    rawData.presence = presenceSnap.exists() ? presenceSnap.val() : {};
+    rawData.world = worldSnap.exists() ? worldSnap.val() : {};
+    rawData.events = eventsSnap.exists() ? eventsSnap.val() : {};
+
+    buildPlayers();
+    setStatus('', `${allPlayers.length} Spieler geladen`);
+    renderAll();
+  } catch (e) {
+    console.error(e);
+    setStatus('error', 'Fehler: ' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.classList.remove('spinning');
+  }
+}
+
+function setStatus(type, text) {
+  const pill = document.getElementById('statusPill');
+  const txt = document.getElementById('statusText');
+  pill.classList.remove('loading', 'error');
+  if (type === 'loading') pill.classList.add('loading');
+  else if (type === 'error') pill.classList.add('error');
+  txt.textContent = text;
+}
+
+function buildPlayers() {
+  const { users, saves, bans, presence, world } = rawData;
+  const now = Date.now();
+  const ONLINE_THRESHOLD = 5 * 60 * 1000;
+  const allHwids = new Set([...Object.keys(users), ...Object.keys(saves), ...Object.keys(world)]);
+  allPlayers = [];
+
+  allHwids.forEach(hwid => {
+    const u = users[hwid] || {};
+    const s = saves[hwid] || {};
+    const ban = bans[hwid] || {};
+    const pres = presence[hwid] || {};
+    const w = world[hwid] || {};
+
+    const buildingsObj = s.buildings || {};
+    const buildingsArr = Array.isArray(buildingsObj) ? buildingsObj : Object.values(buildingsObj || {});
+    if (buildingsArr.length === 0 && !s.level && !u.username) return;
+
+    const lastSeen = Math.max(s.lastSeen || 0, u.lastSeen || 0, pres.lastSeen || 0, w.lastSeen || 0);
+    const isOnline = pres.online === true && (now - (pres.lastSeen || 0)) < ONLINE_THRESHOLD;
+
+    // Building category counts
+    const buildingCats = {};
+    buildingsArr.forEach(b => {
+      if (!b || !b.type) return;
+      // Classify by name heuristics (since main game doesn't send category)
+      const t = b.type;
+      let cat = 'other';
+      if (['main','house','tavern','well','university','library','theater','temple','church','cathedral','monument','buildersguild'].includes(t)) cat = 'civic';
+      else if (['farm','bakery','lumber','quarry','blacksmith','windmill','workshop','fishing','stable','factory'].includes(t)) cat = 'production';
+      else if (['market','mine','gemMine','bank','shipyard','harbor','harbor2'].includes(t)) cat = 'economy';
+      else if (['barracks','tower','watchtower','wall','arena','fortress','armory','garrison'].includes(t)) cat = 'military';
+      buildingCats[cat] = (buildingCats[cat] || 0) + 1;
+    });
+
+    const totalBuildings = buildingsArr.length;
+    const avgLevel = totalBuildings > 0
+      ? buildingsArr.reduce((a,b) => a + (b.level || 1), 0) / totalBuildings
+      : 0;
+    const maxLevel = totalBuildings > 0 ? Math.max(...buildingsArr.map(b => b.level || 1)) : 0;
+
+    allPlayers.push({
+      hwid,
+      username: u.username || s.username || w.username || 'Unbekannt',
+      createdAt: u.createdAt || s.createdAt || 0,
+      lastSeen,
+      isOnline,
+      level: s.level || 1,
+      money: s.money || 0,
+      gold: s.gold || 0,
+      food: s.food || 0,
+      wood: s.wood || 0,
+      stone: s.stone || 0,
+      gems: s.gems || 0,
+      population: s.population || 0,
+      populationCap: s.populationCap || 0,
+      workers: s.workers || 0,
+      workersNeeded: s.workersNeeded || 0,
+      soldiers: s.soldiers || 0,
+      soldierCap: s.soldierCap || 0,
+      happiness: s.happiness || 0,
+      defensePower: s.defensePower || 0,
+      playtimeSeconds: s.playtimeSeconds || 0,
+      baseX: s.baseX || 0,
+      baseY: s.baseY || 0,
+      buildings: buildingsArr,
+      buildingsCount: totalBuildings,
+      buildingCats,
+      avgBuildingLevel: avgLevel,
+      maxBuildingLevel: maxLevel,
+      banned: ban.bannedUntil && Date.now() < ban.bannedUntil,
+      bannedUntil: ban.bannedUntil || 0,
+      deleted: ban.deleted === true,
+      resetPending: ban.resetFlag && ban.resetFlag.acknowledged !== true,
+      banner: ban.banner || '',
+      reason: ban.reason || ''
+    });
+  });
+}
+
+/* ---------------- RENDER ALL ---------------- */
+function renderAll() {
+  renderKPIs();
+  renderActivityChart();
+  renderPlaytimeChart();
+  renderBuildingsChart();
+  renderLevelChart();
+  renderResourceChart();
+  renderPlayerTable();
+}
+
+/* ---------------- KPIs ---------------- */
+function renderKPIs() {
+  const now = Date.now();
+  const total = allPlayers.length;
+  const online = allPlayers.filter(p => p.isOnline).length;
+  const totalPlaytime = allPlayers.reduce((a,p) => a + p.playtimeSeconds, 0);
+  const avgPlaytime = total > 0 ? totalPlaytime / total : 0;
+  const totalMoney = allPlayers.reduce((a,p) => a + p.money, 0);
+  const totalGems = allPlayers.reduce((a,p) => a + p.gems, 0);
+  const totalBuildings = allPlayers.reduce((a,p) => a + p.buildingsCount, 0);
+  const totalSoldiers = allPlayers.reduce((a,p) => a + p.soldiers, 0);
+  const maxPlaytime = allPlayers.reduce((a,p) => Math.max(a, p.playtimeSeconds), 0);
+  const topPlayer = allPlayers.reduce((a,p) => p.playtimeSeconds > (a?.playtimeSeconds || -1) ? p : a, null);
+  const banned = allPlayers.filter(p => p.banned).length;
+  const deleted = allPlayers.filter(p => p.deleted).length;
+
+  // Peak online — computed from presence events (lastSeen timestamps)
+  const peak = computePeakOnline();
+
+  const cards = [
+    {
+      label: 'Spieler Gesamt',
+      icon: '👥',
+      value: fmtNum(total),
+      sub: `<b>${online}</b> online · ${total - online} offline`,
+      subClass: 'good'
+    },
+    {
+      label: 'Gesamt-Playtime',
+      icon: '⏱',
+      value: fmtPlaytime(totalPlaytime),
+      sub: `Ø <b>${fmtPlaytime(avgPlaytime)}</b> pro Spieler`,
+      subClass: ''
+    },
+    {
+      label: 'Peak Online',
+      icon: '📈',
+      value: fmtNum(peak.count),
+      sub: peak.time ? `${fmtDate(peak.time)}` : '—',
+      subClass: 'good',
+      klass: 'green'
+    },
+    {
+      label: 'Längste Playtime',
+      icon: '🏆',
+      value: fmtPlaytime(maxPlaytime),
+      sub: topPlayer ? escapeHtml(topPlayer.username) : '—',
+      subClass: 'good',
+      klass: 'gold'
+    },
+    {
+      label: 'Gebäude Gesamt',
+      icon: '🏛',
+      value: fmtNum(totalBuildings),
+      sub: `Ø <b>${total > 0 ? (totalBuildings/total).toFixed(1) : 0}</b> pro Spieler`,
+      subClass: '',
+      klass: 'green'
+    },
+    {
+      label: 'Soldaten Gesamt',
+      icon: '⚔',
+      value: fmtNum(totalSoldiers),
+      sub: `Ø <b>${total > 0 ? (totalSoldiers/total).toFixed(1) : 0}</b> pro Spieler`,
+      subClass: '',
+      klass: ''
+    },
+    {
+      label: 'Money Gesamt',
+      icon: '💰',
+      value: fmtNum(totalMoney),
+      sub: `Ø <b>${total > 0 ? fmtNum(totalMoney/total) : 0}</b> pro Spieler`,
+      subClass: '',
+      klass: 'gold'
+    },
+    {
+      label: 'Gems Gesamt',
+      icon: '💎',
+      value: fmtNum(totalGems),
+      sub: `Ø <b>${total > 0 ? fmtNum(totalGems/total) : 0}</b> pro Spieler`,
+      subClass: '',
+      klass: 'gem'
+    },
+    {
+      label: 'Gebannte Spieler',
+      icon: '🚫',
+      value: fmtNum(banned),
+      sub: `${deleted} gelöscht`,
+      subClass: banned > 0 ? 'bad' : '',
+      klass: banned > 0 ? 'red' : ''
+    },
+    {
+      label: 'Ø Level',
+      icon: '⭐',
+      value: total > 0 ? (allPlayers.reduce((a,p) => a + p.level, 0) / total).toFixed(1) : '0',
+      sub: `Max: <b>${allPlayers.reduce((a,p) => Math.max(a, p.level), 0)}</b>`,
+      subClass: 'good',
+      klass: 'green'
+    }
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+    <div class="kpi-card ${c.klass || ''}">
+      <div class="kpi-label"><span style="font-size:14px;">${c.icon}</span>${c.label}</div>
+      <div class="kpi-value ${c.klass || ''}">${c.value}</div>
+      <div class="kpi-sub ${c.subClass || ''}">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+function computePeakOnline() {
+  // Approximate: for each player we have `lastSeen` — but only last. We also have `createdAt`.
+  // Best approximation: bin players by their join time, and count sessions ending.
+  // Since we lack full session history, use createdAt + lastSeen overlap heuristic:
+  // A player was "online" in any window that intersects [createdAt, lastSeen].
+  // For simplicity, take 30-min bins across the last year and count overlapping intervals.
+  const now = Date.now();
+  const yearMs = 365 * 24 * 3600 * 1000;
+  const binMs = 30 * 60 * 1000;
+  const binCount = Math.ceil(yearMs / binMs);
+  const bins = new Array(binCount).fill(0);
+  let earliest = now;
+
+  allPlayers.forEach(p => {
+    if (!p.createdAt || !p.lastSeen) return;
+    const start = p.createdAt;
+    const end = Math.max(p.lastSeen, start + 60000); // at least 1 min session
+    earliest = Math.min(earliest, start);
+    const sIdx = Math.max(0, Math.floor((start - (now - yearMs)) / binMs));
+    const eIdx = Math.min(binCount - 1, Math.floor((end - (now - yearMs)) / binMs));
+    for (let i = sIdx; i <= eIdx && i < binCount; i++) bins[i]++;
+  });
+
+  let peak = 0, peakIdx = 0;
+  bins.forEach((c, i) => { if (c > peak) { peak = c; peakIdx = i; } });
+  return {
+    count: peak,
+    time: now - yearMs + peakIdx * binMs
+  };
+}
+
+/* ---------------- UTILITIES FOR CHARTS ---------------- */
+function getRangeMs() {
+  switch (currentTimeRange) {
+    case 'hour': return 3600 * 1000;
+    case 'day': return 24 * 3600 * 1000;
+    case 'week': return 7 * 24 * 3600 * 1000;
+    case 'month': return 30 * 24 * 3600 * 1000;
+    case 'year': return 365 * 24 * 3600 * 1000;
+    case 'all': {
+      // Compute from earliest createdAt
+      const earliest = allPlayers.reduce((a, p) => Math.min(a, p.createdAt || Date.now()), Date.now());
+      return Math.max(3600 * 1000, Date.now() - earliest);
+    }
+    default: return 24 * 3600 * 1000;
+  }
+}
+
+function getGranularityMs() {
+  if (currentGranularity !== 'auto') {
+    switch (currentGranularity) {
+      case 'minute': return 60 * 1000;
+      case 'hour': return 3600 * 1000;
+      case 'day': return 24 * 3600 * 1000;
+      case 'week': return 7 * 24 * 3600 * 1000;
+      case 'month': return 30 * 24 * 3600 * 1000;
+    }
+  }
+  const range = getRangeMs();
+  if (range <= 2 * 3600 * 1000) return 60 * 1000;            // ≤2h → per minute
+  if (range <= 3 * 24 * 3600 * 1000) return 3600 * 1000;      // ≤3d → per hour
+  if (range <= 60 * 24 * 3600 * 1000) return 24 * 3600 * 1000; // ≤60d → per day
+  if (range <= 365 * 24 * 3600 * 1000) return 7 * 24 * 3600 * 1000; // ≤1y → per week
+  return 30 * 24 * 3600 * 1000;                                // else per month
+}
+
+function formatBinLabel(ts) {
+  const d = new Date(ts);
+  const g = getGranularityMs();
+  if (g <= 60 * 1000) return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  if (g <= 3600 * 1000) return d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit' }) + 'h';
+  if (g <= 24 * 3600 * 1000) return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  if (g <= 7 * 24 * 3600 * 1000) return 'KW ' + getWeek(d) + ' ' + d.getFullYear();
+  return d.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
+}
+function getWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+/* ---------------- HIGH-DPI CANVAS ---------------- */
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+/* ---------------- ACTIVITY CHART ---------------- */
+function renderActivityChart() {
+  const canvas = document.getElementById('activityChart');
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+
+  const now = Date.now();
+  const range = getRangeMs();
+  const g = getGranularityMs();
+  const start = now - range;
+  const binCount = Math.max(1, Math.ceil(range / g));
+
+  // Build bins
+  const bins = [];
+  for (let i = 0; i < binCount; i++) {
+    bins.push({ t: start + i * g, count: 0, joins: 0, active: 0 });
+  }
+
+  // Fill based on mode
+  if (activityMode === 'online') {
+    // Overlap heuristic using createdAt → lastSeen (for each player, add +1 to every bin in range)
+    allPlayers.forEach(p => {
+      if (!p.createdAt || !p.lastSeen) return;
+      const sIdx = Math.max(0, Math.floor((p.createdAt - start) / g));
+      const eIdx = Math.min(binCount - 1, Math.floor((p.lastSeen - start) / g));
+      for (let i = sIdx; i <= eIdx; i++) bins[i].count++;
+    });
+  } else if (activityMode === 'joins') {
+    allPlayers.forEach(p => {
+      if (!p.createdAt) return;
+      const idx = Math.floor((p.createdAt - start) / g);
+      if (idx >= 0 && idx < binCount) bins[idx].joins++;
+    });
+  } else { // active — players who were online during this bin
+    allPlayers.forEach(p => {
+      if (!p.createdAt || !p.lastSeen) return;
+      const sIdx = Math.max(0, Math.floor((p.createdAt - start) / g));
+      const eIdx = Math.min(binCount - 1, Math.floor((p.lastSeen - start) / g));
+      for (let i = sIdx; i <= eIdx; i++) bins[i].active++;
+    });
+  }
+
+  const key = activityMode === 'joins' ? 'joins' : 'count';
+  const values = bins.map(b => b[key]);
+  const maxVal = Math.max(1, ...values);
+  const labels = bins.map(b => formatBinLabel(b.t));
+
+  drawLineChart(ctx, w, h, labels, values, {
+    color: activityMode === 'joins' ? '#43a047' : activityMode === 'active' ? '#a87ee0' : '#2f6fd0',
+    fillGradient: true,
+    yMax: maxVal,
+    bins,
+    tooltipTitle: activityMode === 'joins' ? 'Joins' : activityMode === 'active' ? 'Aktiv' : 'Online',
+    yLabel: activityMode === 'joins' ? 'Joins' : 'Spieler'
+  });
+
+  document.getElementById('activitySub').textContent =
+    activityMode === 'joins' ? 'Neue Spieler pro Zeitintervall' :
+    activityMode === 'active' ? 'Spieler, die im Intervall aktiv waren' :
+    'Online-Spieler pro Zeitintervall';
+}
+
+/* ---------------- PLAYTIME CHART ---------------- */
+function renderPlaytimeChart() {
+  const canvas = document.getElementById('playtimeChart');
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+
+  // Histogram of playtime across buckets
+  const buckets = [
+    { label: '< 10m', min: 0, max: 600 },
+    { label: '10-30m', min: 600, max: 1800 },
+    { label: '30m-1h', min: 1800, max: 3600 },
+    { label: '1-3h', min: 3600, max: 3 * 3600 },
+    { label: '3-10h', min: 3 * 3600, max: 10 * 3600 },
+    { label: '10-24h', min: 10 * 3600, max: 24 * 3600 },
+    { label: '1-3T', min: 86400, max: 3 * 86400 },
+    { label: '3-7T', min: 3 * 86400, max: 7 * 86400 },
+    { label: '> 1W', min: 7 * 86400, max: Infinity }
+  ];
+  const counts = buckets.map(b => allPlayers.filter(p => p.playtimeSeconds >= b.min && p.playtimeSeconds < b.max).length);
+  const maxVal = Math.max(1, ...counts);
+  drawBarChart(ctx, w, h, buckets.map(b => b.label), counts, {
+    color: '#2f6fd0',
+    yMax: maxVal,
+    horizontal: false,
+    tooltipTitle: 'Spieler',
+    yLabel: 'Anzahl Spieler',
+    valueFormat: v => `${v} Spieler`
+  });
+
+  const avg = allPlayers.length > 0 ? allPlayers.reduce((a,p) => a + p.playtimeSeconds, 0) / allPlayers.length : 0;
+  document.getElementById('playtimeSub').textContent = `Ø ${fmtPlaytimeLong(avg)} pro Spieler`;
+}
+
+/* ---------------- BUILDINGS CHART ---------------- */
+function renderBuildingsChart() {
+  const canvas = document.getElementById('buildingsChart');
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+
+  const cats = { civic: 0, production: 0, economy: 0, military: 0, other: 0 };
+  allPlayers.forEach(p => {
+    for (const k in p.buildingCats) cats[k] = (cats[k] || 0) + p.buildingCats[k];
+  });
+  const labels = ['Civic', 'Production', 'Economy', 'Military', 'Other'];
+  const values = [cats.civic, cats.production, cats.economy, cats.military, cats.other];
+  const colors = ['#2f6fd0', '#43a047', '#ffb300', '#e53935', '#8fa3c8'];
+
+  drawPieChart(ctx, w, h, labels, values, colors, {
+    tooltipTitle: 'Gebäude-Kategorie',
+    valueFormat: v => `${v} Gebäude`
+  });
+}
+
+/* ---------------- LEVEL CHART ---------------- */
+function renderLevelChart() {
+  const canvas = document.getElementById('levelChart');
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+
+  const maxLevel = Math.max(1, ...allPlayers.map(p => p.level));
+  const buckets = [];
+  const step = Math.max(1, Math.ceil(maxLevel / 12));
+  for (let i = 1; i <= maxLevel; i += step) {
+    buckets.push({ label: step > 1 ? `${i}-${Math.min(i+step-1, maxLevel)}` : `${i}`, min: i, max: Math.min(i+step-1, maxLevel) });
+  }
+  const counts = buckets.map(b => allPlayers.filter(p => p.level >= b.min && p.level <= b.max).length);
+  const maxVal = Math.max(1, ...counts);
+  drawBarChart(ctx, w, h, buckets.map(b => b.label), counts, {
+    color: '#a87ee0',
+    yMax: maxVal,
+    tooltipTitle: 'Spieler',
+    yLabel: 'Anzahl Spieler',
+    valueFormat: v => `${v} Spieler`
+  });
+}
+
+/* ---------------- RESOURCE CHART ---------------- */
+function renderResourceChart() {
+  const canvas = document.getElementById('resourceChart');
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+
+  // Since we don't have historical resource data per player, we simulate a cumulative
+  // view based on current total + join timestamps:
+  // Each player contributes their current amount from their createdAt onward.
+  const now = Date.now();
+  const range = getRangeMs();
+  const g = getGranularityMs();
+  const start = now - range;
+  const binCount = Math.max(1, Math.ceil(range / g));
+
+  const bins = [];
+  for (let i = 0; i < binCount; i++) bins.push({ t: start + i * g, val: 0 });
+
+  allPlayers.forEach(p => {
+    if (!p.createdAt) return;
+    const amount = p[resourceMode] || 0;
+    const idx = Math.floor((p.createdAt - start) / g);
+    if (idx >= 0 && idx < binCount) {
+      // cumulative from join onward
+      for (let i = idx; i < binCount; i++) bins[i].val += amount;
+    }
+  });
+
+  const values = bins.map(b => b.val);
+  const maxVal = Math.max(1, ...values);
+  const labels = bins.map(b => formatBinLabel(b.t));
+  const colors = {
+    money: '#ffb300', gold: '#ffd54f', food: '#66bb6a', wood: '#8d6e63', stone: '#90a4ae', gems: '#a87ee0'
+  };
+  drawLineChart(ctx, w, h, labels, values, {
+    color: colors[resourceMode] || '#2f6fd0',
+    fillGradient: true,
+    yMax: maxVal,
+    bins,
+    tooltipTitle: resourceMode.charAt(0).toUpperCase() + resourceMode.slice(1),
+    yLabel: 'Gesamt (kumuliert)',
+    valueFormat: v => fmtNum(v)
+  });
+}
+
+/* ---------------- PLAYER TABLE ---------------- */
+function renderPlayerTable() {
+  const filter = (document.getElementById('playerFilter').value || '').toLowerCase();
+  const onlineFilter = document.getElementById('onlineFilter').value;
+  let list = allPlayers;
+  if (filter) list = list.filter(p => p.username.toLowerCase().includes(filter));
+  if (onlineFilter === 'online') list = list.filter(p => p.isOnline);
+  if (onlineFilter === 'offline') list = list.filter(p => !p.isOnline);
+
+  list = [...list].sort((a, b) => {
+    let va, vb;
+    switch (tableSort.key) {
+      case 'username': va = a.username.toLowerCase(); vb = b.username.toLowerCase(); break;
+      case 'status': va = a.isOnline ? 0 : 1; vb = b.isOnline ? 0 : 1; break;
+      case 'level': va = a.level; vb = b.level; break;
+      case 'buildings': va = a.buildingsCount; vb = b.buildingsCount; break;
+      case 'money': va = a.money; vb = b.money; break;
+      case 'gems': va = a.gems; vb = b.gems; break;
+      case 'soldiers': va = a.soldiers; vb = b.soldiers; break;
+      case 'population': va = a.population; vb = b.population; break;
+      case 'playtime': va = a.playtimeSeconds; vb = b.playtimeSeconds; break;
+      case 'lastSeen': va = a.lastSeen; vb = b.lastSeen; break;
+      default: va = 0; vb = 0;
+    }
+    if (va < vb) return tableSort.dir === 'asc' ? -1 : 1;
+    if (va > vb) return tableSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  document.getElementById('playerCount').textContent = `${list.length} Spieler angezeigt`;
+
+  const tbody = document.getElementById('playerTableBody');
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#8fa3c8;">Keine Spieler gefunden</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map((p, i) => `
+    <tr>
+      <td class="cell-rank">#${i + 1}</td>
+      <td class="cell-name">
+        ${escapeHtml(p.username)}
+        ${p.deleted ? '<span class="pill red" style="margin-left:6px;">DEL</span>' : ''}
+        ${p.banned ? '<span class="pill red" style="margin-left:6px;">BAN</span>' : ''}
+      </td>
+      <td><span class="status-dot ${p.isOnline ? 'online' : 'offline'}"></span>${p.isOnline ? 'Online' : 'Offline'}</td>
+      <td>${p.level}</td>
+      <td>${p.buildingsCount}</td>
+      <td>${fmtNum(p.money)}</td>
+      <td class="cell-gem">${fmtNum(p.gems)}</td>
+      <td>${p.soldiers}/${p.soldierCap}</td>
+      <td>${p.population}/${p.populationCap}</td>
+      <td>${fmtPlaytime(p.playtimeSeconds)}</td>
+      <td>${timeAgo(p.lastSeen)}</td>
+    </tr>
+  `).join('');
+
+  // Update sort icons
+  document.querySelectorAll('#playerTable th').forEach(th => {
+    const key = th.dataset.sort;
+    th.classList.toggle('sorted', key === tableSort.key);
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = key === tableSort.key ? (tableSort.dir === 'asc' ? '▲' : '▼') : '▼';
+  });
+}
+
+/* =========================================================
+   CANVAS CHART PRIMITIVES
+   ========================================================= */
+const chartTooltip = document.getElementById('chartTooltip');
+
+function showChartTooltip(x, y, html) {
+  chartTooltip.innerHTML = html;
+  chartTooltip.style.display = 'block';
+  const rect = chartTooltip.getBoundingClientRect();
+  let left = x + 14;
+  let top = y + 14;
+  if (left + rect.width > window.innerWidth - 10) left = x - rect.width - 14;
+  if (top + rect.height > window.innerHeight - 10) top = y - rect.height - 14;
+  chartTooltip.style.left = left + 'px';
+  chartTooltip.style.top = top + 'px';
+}
+function hideChartTooltip() { chartTooltip.style.display = 'none'; }
+
+function drawGrid(ctx, w, h, padding, yMax, yLabel) {
+  ctx.save();
+  ctx.strokeStyle = '#eef2f8';
+  ctx.lineWidth = 1;
+  const gridLines = 5;
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padding.top + (h - padding.top - padding.bottom) * (i / gridLines);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(w - padding.right, y);
+    ctx.stroke();
+  }
+  // Y axis labels
+  ctx.fillStyle = '#8fa3c8';
+  ctx.font = '600 11px Segoe UI, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padding.top + (h - padding.top - padding.bottom) * (i / gridLines);
+    const val = yMax * (1 - i / gridLines);
+    ctx.fillText(formatAxisNumber(val), padding.left - 8, y);
+  }
+  if (yLabel) {
+    ctx.save();
+    ctx.translate(14, h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#8fa3c8';
+    ctx.font = '700 10px Segoe UI, sans-serif';
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function formatAxisNumber(v) {
+  if (v >= 1e9) return (v/1e9).toFixed(1) + 'B';
+  if (v >= 1e6) return (v/1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return (v/1e3).toFixed(1) + 'k';
+  if (v >= 100) return Math.round(v);
+  if (v >= 10) return Math.round(v);
+  return v.toFixed(v < 1 ? 2 : 0);
+}
+
+function drawLineChart(ctx, w, h, labels, values, opts) {
+  const padding = { top: 20, right: 20, bottom: 50, left: 60 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+  const yMax = opts.yMax || Math.max(1, ...values);
+  const n = values.length;
+  if (n === 0) { drawEmptyChart(ctx, w, h, 'Keine Daten'); return; }
+
+  drawGrid(ctx, w, h, padding, yMax, opts.yLabel);
+
+  const xFor = i => padding.left + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yFor = v => padding.top + plotH * (1 - v / yMax);
+
+  // Fill gradient
+  if (opts.fillGradient) {
+    const grad = ctx.createLinearGradient(0, padding.top, 0, padding.top + plotH);
+    grad.addColorStop(0, hexToRgba(opts.color, 0.35));
+    grad.addColorStop(1, hexToRgba(opts.color, 0.02));
+    ctx.beginPath();
+    ctx.moveTo(xFor(0), yFor(values[0]));
+    values.forEach((v, i) => ctx.lineTo(xFor(i), yFor(v)));
+    ctx.lineTo(xFor(n - 1), padding.top + plotH);
+    ctx.lineTo(xFor(0), padding.top + plotH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(xFor(0), yFor(values[0]));
+  values.forEach((v, i) => ctx.lineTo(xFor(i), yFor(v)));
+  ctx.strokeStyle = opts.color;
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Points (only if few)
+  if (n <= 60) {
+    values.forEach((v, i) => {
+      ctx.beginPath();
+      ctx.arc(xFor(i), yFor(v), 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = opts.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+  }
+
+  // X axis labels (max 8 shown)
+  ctx.fillStyle = '#8fa3c8';
+  ctx.font = '600 10px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const labelStep = Math.max(1, Math.ceil(n / 8));
+  for (let i = 0; i < n; i += labelStep) {
+    ctx.fillText(labels[i], xFor(i), padding.top + plotH + 8);
+  }
+
+  // Hover
+  canvasHoverSetup(ctx.canvas, {
+    onMove: (mx, my) => {
+      const idx = Math.round(((mx - padding.left) / plotW) * (n - 1));
+      if (idx < 0 || idx >= n) { hideChartTooltip(); return; }
+      if (mx < padding.left - 20 || mx > w - padding.right + 20 || my < padding.top - 20 || my > h - padding.bottom + 20) {
+        hideChartTooltip(); return;
+      }
+      const px = xFor(idx);
+      const py = yFor(values[idx]);
+      const bin = opts.bins ? opts.bins[idx] : null;
+      const fmt = opts.valueFormat || (v => fmtNum(v));
+      showChartTooltip(px, py, `
+        <div class="tt-title">${labels[idx]}</div>
+        <div class="tt-row"><span class="k">${opts.tooltipTitle || 'Wert'}:</span><span class="v">${fmt(values[idx])}</span></div>
+        ${bin && bin.t ? `<div class="tt-row"><span class="k">Zeit:</span><span class="v">${fmtDate(bin.t)}</span></div>` : ''}
+      `);
+    },
+    onLeave: hideChartTooltip
+  });
+}
+
+function drawBarChart(ctx, w, h, labels, values, opts) {
+  const padding = { top: 20, right: 20, bottom: 50, left: 60 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+  const yMax = opts.yMax || Math.max(1, ...values);
+  const n = values.length;
+  if (n === 0) { drawEmptyChart(ctx, w, h, 'Keine Daten'); return; }
+
+  drawGrid(ctx, w, h, padding, yMax, opts.yLabel);
+
+  const gap = plotW / n;
+  const barW = gap * 0.65;
+
+  const color = opts.color || '#2f6fd0';
+  values.forEach((v, i) => {
+    const bx = padding.left + i * gap + (gap - barW) / 2;
+    const bh = plotH * (v / yMax);
+    const by = padding.top + plotH - bh;
+
+    const grad = ctx.createLinearGradient(0, by, 0, padding.top + plotH);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, hexToRgba(color, 0.65));
+
+    // Rounded top
+    const radius = Math.min(6, barW / 2, bh);
+    ctx.beginPath();
+    if (bh > radius) {
+      ctx.moveTo(bx, by + radius);
+      ctx.arcTo(bx, by, bx + radius, by, radius);
+      ctx.lineTo(bx + barW - radius, by);
+      ctx.arcTo(bx + barW, by, bx + barW, by + radius, radius);
+      ctx.lineTo(bx + barW, padding.top + plotH);
+      ctx.lineTo(bx, padding.top + plotH);
+    } else {
+      ctx.rect(bx, by, barW, bh);
+    }
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  });
+
+  // X labels
+  ctx.fillStyle = '#8fa3c8';
+  ctx.font = '600 10px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const labelStep = Math.max(1, Math.ceil(n / 12));
+  for (let i = 0; i < n; i += labelStep) {
+    ctx.fillText(labels[i], padding.left + i * gap + gap / 2, padding.top + plotH + 8);
+  }
+
+  // Hover
+  canvasHoverSetup(ctx.canvas, {
+    onMove: (mx, my) => {
+      const idx = Math.floor((mx - padding.left) / gap);
+      if (idx < 0 || idx >= n) { hideChartTooltip(); return; }
+      const bx = padding.left + idx * gap + gap / 2;
+      const by = padding.top + plotH - plotH * (values[idx] / yMax);
+      const fmt = opts.valueFormat || (v => fmtNum(v));
+      showChartTooltip(bx, by, `
+        <div class="tt-title">${labels[idx]}</div>
+        <div class="tt-row"><span class="k">${opts.tooltipTitle || 'Wert'}:</span><span class="v">${fmt(values[idx])}</span></div>
+      `);
+    },
+    onLeave: hideChartTooltip
+  });
+}
+
+function drawPieChart(ctx, w, h, labels, values, colors, opts) {
+  const total = values.reduce((a, b) => a + b, 0);
+  if (total === 0) { drawEmptyChart(ctx, w, h, 'Keine Daten'); return; }
+
+  const cx = w * 0.38;
+  const cy = h / 2;
+  const radius = Math.min(w * 0.32, h * 0.42);
+  const innerRadius = radius * 0.55;
+
+  let angle = -Math.PI / 2;
+  const slices = [];
+  values.forEach((v, i) => {
+    const sliceAngle = (v / total) * Math.PI * 2;
+    slices.push({ start: angle, end: angle + sliceAngle, value: v, color: colors[i], label: labels[i], index: i });
+    angle += sliceAngle;
+  });
+
+  // Draw slices
+  slices.forEach(s => {
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(s.start) * innerRadius, cy + Math.sin(s.start) * innerRadius);
+    ctx.arc(cx, cy, radius, s.start, s.end);
+    ctx.arc(cx, cy, innerRadius, s.end, s.start, true);
+    ctx.closePath();
+    ctx.fillStyle = s.color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // Center label
+  ctx.fillStyle = '#1e355e';
+  ctx.font = '900 22px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(fmtNum(total), cx, cy - 6);
+  ctx.fillStyle = '#8fa3c8';
+  ctx.font = '700 10px Segoe UI, sans-serif';
+  ctx.fillText('GESAMT', cx, cy + 14);
+
+  // Legend
+  const legendX = w * 0.72;
+  let legendY = cy - (slices.length * 24) / 2;
+  slices.forEach(s => {
+    const pct = total > 0 ? (s.value / total * 100).toFixed(1) : '0';
+    ctx.fillStyle = s.color;
+    roundRect(ctx, legendX, legendY + 4, 14, 14, 4);
+    ctx.fill();
+    ctx.fillStyle = '#26344e';
+    ctx.font = '800 12px Segoe UI, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.label, legendX + 22, legendY + 11);
+    ctx.fillStyle = '#8fa3c8';
+    ctx.font = '700 11px Segoe UI, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${fmtNum(s.value)} (${pct}%)`, w - 10, legendY + 11);
+    legendY += 24;
+  });
+
+  // Hover
+  canvasHoverSetup(ctx.canvas, {
+    onMove: (mx, my) => {
+      const dx = mx - cx, dy = my - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist < innerRadius || dist > radius) { hideChartTooltip(); return; }
+      let a = Math.atan2(dy, dx);
+      if (a < -Math.PI / 2) a += Math.PI * 2;
+      const hit = slices.find(s => a >= s.start && a < s.end);
+      if (!hit) { hideChartTooltip(); return; }
+      const fmt = opts.valueFormat || (v => fmtNum(v));
+      showChartTooltip(mx, my, `
+        <div class="tt-title">${hit.label}</div>
+        <div class="tt-row"><span class="k">Anzahl:</span><span class="v">${fmt(hit.value)}</span></div>
+        <div class="tt-row"><span class="k">Anteil:</span><span class="v">${(hit.value / total * 100).toFixed(1)}%</span></div>
+      `);
+    },
+    onLeave: hideChartTooltip
+  });
+}
+
+function drawEmptyChart(ctx, w, h, msg) {
+  ctx.fillStyle = '#8fa3c8';
+  ctx.font = '700 14px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(msg || 'Keine Daten', w / 2, h / 2);
+}
+
+function canvasHoverSetup(canvas, handlers) {
+  if (canvas._hoverSetup) {
+    canvas.removeEventListener('mousemove', canvas._hoverSetup.move);
+    canvas.removeEventListener('mouseleave', canvas._hoverSetup.leave);
+  }
+  const move = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    handlers.onMove(e.clientX - rect.left, e.clientY - rect.top);
+  };
+  const leave = () => handlers.onLeave && handlers.onLeave();
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseleave', leave);
+  canvas._hoverSetup = { move, leave };
+}
+
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* =========================================================
+   EVENTS
+   ========================================================= */
+document.getElementById('refreshBtn').onclick = () => loadAllData();
+document.getElementById('timeRange').onchange = (e) => {
+  currentTimeRange = e.target.value;
+  renderActivityChart();
+  renderResourceChart();
+};
+document.getElementById('granularity').onchange = (e) => {
+  currentGranularity = e.target.value;
+  renderActivityChart();
+  renderResourceChart();
+};
+document.getElementById('playerFilter').oninput = () => renderPlayerTable();
+document.getElementById('onlineFilter').onchange = () => renderPlayerTable();
+
+document.querySelectorAll('.chart-btn[data-activity]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.chart-btn[data-activity]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activityMode = btn.dataset.activity;
+    renderActivityChart();
+  };
+});
+document.querySelectorAll('.chart-btn[data-resource]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.chart-btn[data-resource]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    resourceMode = btn.dataset.resource;
+    renderResourceChart();
+  };
+});
+
+document.querySelectorAll('#playerTable th').forEach(th => {
+  th.onclick = () => {
+    const key = th.dataset.sort;
+    if (key === 'rank') return;
+    if (tableSort.key === key) tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
+    else { tableSort.key = key; tableSort.dir = 'desc'; }
+    renderPlayerTable();
+  };
+});
+
+// Redraw on resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    renderActivityChart();
+    renderPlaytimeChart();
+    renderBuildingsChart();
+    renderLevelChart();
+    renderResourceChart();
+  }, 200);
+});
+
+// Auto refresh every 30s
+setInterval(() => { if (!document.hidden) loadAllData(); }, 30000);
+</script>
+</body>
+</html>
