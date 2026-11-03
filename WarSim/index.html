@@ -1243,6 +1243,17 @@ let didDrag = false;
 canvas.addEventListener('pointerdown', (e) => {
   if (e.button === 0 && !gameOver) {
     e.preventDefault();
+    const minimap = { x: canvas.clientWidth - 215, y: 57, w: 200, h: Math.round(200 * WORLD_HEIGHT / WORLD_WIDTH) };
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if (px >= minimap.x && px <= minimap.x + minimap.w && py >= minimap.y && py <= minimap.y + minimap.h) {
+      const worldX = ((px - minimap.x) / minimap.w) * WORLD_WIDTH;
+      const worldY = ((py - minimap.y) / minimap.h) * WORLD_HEIGHT;
+      camera.x = worldX - canvas.clientWidth / (2 * camera.zoom);
+      camera.y = worldY - canvas.clientHeight / (2 * camera.zoom);
+      clampCamera();
+      return;
+    }
     isDragging = true;
     didDrag = false;
     dragStart = { x: e.clientX, y: e.clientY };
@@ -3941,7 +3952,8 @@ function reconcile(players) {
   for (const [otherUid, record] of Object.entries(players || {})) {
     if (!record || otherUid === uid || Date.now() - (record.updatedAt || 0) > 20000) continue;
     remotes[otherUid] = { ...record, uid: otherUid };
-    for (const data of record.units || []) {
+    const remoteUnitList = Array.isArray(record.units) ? record.units : Object.values(record.units || {});
+    for (const data of remoteUnitList) {
       const key = `${otherUid}:${data.id}`; localIds.add(key);
       let unit = ownUnits.get(key);
       if (!unit) {
