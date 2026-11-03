@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WarSim · Fahrzeugeinstellungen</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; color: #1d2935; background: #eef3f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 24px; display: flex; justify-content: center; }
+    main { width: min(100%, 960px); padding: clamp(20px, 4vw, 36px); background: #fff; border: 1px solid #dce5e9; border-radius: 18px; box-shadow: 0 16px 48px #23374614; }
+    h1 { margin: 0 0 6px; font-size: clamp(1.5rem, 3.5vw, 2rem); }
+    p { color: #5b6b76; margin: 6px 0; }
+    .status { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: #f1f5f7; color: #53636e; font-size: .9rem; }
+    .status[data-kind="error"] { color: #a12c2c; background: #fff0ef; }
+    .status[data-kind="ok"] { color: #17683d; background: #eaf8ef; }
+    .vehicle { margin-bottom: 26px; padding: 16px; border: 1px solid #e3ebef; border-radius: 14px; background: #fbfdfe; }
+    .vehicle h3 { margin: 0 0 12px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+    .vehicle h3 .icon { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: .85rem; color: #fff; }
+    .vehicle.tank .icon { background: #3a6b9e; }
+    .vehicle.elite .icon { background: #6a8fce; }
+    .vehicle.mega .icon { background: #8a5fce; }
+    .vehicle.art .icon { background: #ff9933; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+    label { display: grid; gap: 4px; font-weight: 600; font-size: .9rem; }
+    label small { color: #74838c; font-weight: 400; font-size: .76rem; }
+    input { width: 100%; padding: 9px; border: 1px solid #cbd7dd; border-radius: 8px; font: inherit; }
+    input:focus { outline: 2px solid #7eb6e0; border-color: #7eb6e0; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+    button { cursor: pointer; padding: 12px 20px; border: 0; border-radius: 10px; font: inherit; font-weight: 700; }
+    button[type="submit"] { background: #2878bd; color: #fff; }
+    button[type="button"] { background: #e5edf3; color: #2a4b66; }
+    button:disabled { opacity: .55; cursor: wait; }
+    a { color: #2878bd; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>⚙️ Fahrzeugwerte</h1>
+    <p>Änderungen werden live in Firebase gespeichert und von allen laufenden Spielen übernommen.</p>
+    <div id="status" class="status">Verbinde mit Firebase …</div>
+    <form id="settingsForm">
+      <div id="vehiclesRoot"></div>
+      <div class="actions">
+        <button id="saveButton" type="submit" disabled>Werte speichern</button>
+        <button id="resetButton" type="button">Auf Standard zurücksetzen</button>
+      </div>
+    </form>
+    <p style="margin-top:20px"><a href="index.html">← Zurück zum Spiel</a></p>
+  </main>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyDQA4aAtKC-c0VJw1NC-Gau37zAb0h0LJY',
+      authDomain: 'data-df966.firebaseapp.com',
+      databaseURL: 'https://data-df966-default-rtdb.europe-west1.firebasedatabase.app',
+      projectId: 'data-df966',
+      storageBucket: 'data-df966.firebasestorage.app',
+      messagingSenderId: '225279017977',
+      appId: '1:225279017977:web:76dc215827540839763328',
+      measurementId: 'G-NPT4JHJ6NS'
+    };
+
+    const DEFAULTS = {
+      tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5,
+      tankDamage: 78, eliteTankDamage: 98, megaTankDamage: 140, artilleryDamage: 180,
+      tankSplashRadius: 95, eliteTankSplashRadius: 105, megaTankSplashRadius: 130, artillerySplashRadius: 180,
+      tankSpeed: 0.95, eliteTankSpeed: 0.55, megaTankSpeed: 0.4, artillerySpeed: 1.6,
+      tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280
+    };
+
+    const VEHICLES = [
+      { key: 'tank',      title: 'Panzer',       icon: '🚜', cls: 'tank'  },
+      { key: 'eliteTank', title: 'Elite-Panzer', icon: '🛡️', cls: 'elite' },
+      { key: 'megaTank',  title: 'Mega-Tank',    icon: '⚡', cls: 'mega'  },
+      { key: 'artillery', title: 'Artillerie',   icon: '🎯', cls: 'art'   }
+    ];
+
+    const FIELDS = [
+      { key: 'Range',       label: 'Reichweite',      small: 'Sicht- & Schussweite', min: 50,   max: 10000, step: 10,   suffix: 'px' },
+      { key: 'Damage',      label: 'Schaden',         small: 'pro Treffer',          min: 1,    max: 5000,  step: 1,    suffix: 'HP' },
+      { key: 'SplashRadius',label: 'Explosionsradius',small: 'Splash-Radius',        min: 10,   max: 800,   step: 5,    suffix: 'px' },
+      { key: 'Speed',       label: 'Geschwindigkeit', small: 'Bewegung',             min: 0.05, max: 10,    step: 0.05, suffix: '' },
+      { key: 'Health',      label: 'Gesundheit',      small: 'max. HP',              min: 10,   max: 20000, step: 10,   suffix: 'HP' }
+    ];
+
+    const $status = document.getElementById('status');
+    const $form = document.getElementById('settingsForm');
+    const $save = document.getElementById('saveButton');
+    const $reset = document.getElementById('resetButton');
+    const $root = document.getElementById('vehiclesRoot');
+    const displayStatus = (msg, kind = '') => { $status.textContent = msg; $status.dataset.kind = kind; };
+
+    function renderForms() {
+      $root.innerHTML = '';
+      for (const v of VEHICLES) {
+        const section = document.createElement('section');
+        section.className = `vehicle ${v.cls}`;
+        const h3 = document.createElement('h3');
+        h3.innerHTML = `<span class="icon">${v.icon}</span>${v.title}`;
+        section.appendChild(h3);
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+        for (const f of FIELDS) {
+          const fieldName = `${v.key}${f.key}`;
+          const label = document.createElement('label');
+          label.innerHTML = `
+            <span>${f.label}<small>${f.small}${f.suffix ? ' · ' + f.suffix : ''}</small></span>
+            <input name="${fieldName}" type="number"
+                   min="${f.min}" max="${f.max}" step="${f.step}"
+                   value="${DEFAULTS[fieldName] ?? ''}" required>
+          `;
+          grid.appendChild(label);
+        }
+        section.appendChild(grid);
+        $root.appendChild(section);
+      }
+    }
+    renderForms();
+
+    const readValues = () => {
+      const out = {};
+      for (const v of VEHICLES) for (const f of FIELDS) {
+        const name = `${v.key}${f.key}`;
+        const raw = $form.elements[name]?.value;
+        out[name] = Number(raw);
+      }
+      return out;
+    };
+    const writeValues = (values) => {
+      for (const v of VEHICLES) for (const f of FIELDS) {
+        const name = `${v.key}${f.key}`;
+        const input = $form.elements[name];
+        if (!input) continue;
+        const val = values[name];
+        input.value = (Number.isFinite(val) ? val : (DEFAULTS[name] ?? ''));
+      }
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      await signInAnonymously(auth);
+      const settingsRef = ref(getDatabase(app), 'warsim/settings/unitStats');
+      onValue(settingsRef, snap => {
+        const stored = snap.val();
+        if (!stored) {
+          writeValues(DEFAULTS);
+          displayStatus('Noch keine Werte gespeichert – Standard geladen.', '');
+        } else {
+          const merged = { ...DEFAULTS };
+          for (const k of Object.keys(DEFAULTS)) if (stored[k] != null) merged[k] = stored[k];
+          writeValues(merged);
+          displayStatus('Verbunden · Werte live synchronisiert.', 'ok');
+        }
+        $save.disabled = false;
+      }, err => displayStatus(`Firebase-Lesefehler: ${err.message}`, 'error'));
+
+      $form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const values = readValues();
+        for (const v of VEHICLES) for (const f of FIELDS) {
+          const n = `${v.key}${f.key}`;
+          const val = values[n];
+          if (!Number.isFinite(val) || val < f.min || val > f.max) {
+            displayStatus(`Ungültiger Wert bei ${v.title} → ${f.label} (${f.min} – ${f.max})`, 'error');
+            return;
+          }
+        }
+        $save.disabled = true;
+        displayStatus('Speichere …');
+        try {
+          await set(settingsRef, { ...values, updatedAt: Date.now(), updatedBy: auth.currentUser.uid });
+          displayStatus('✅ Gespeichert · Alle laufenden Spiele übernehmen die Werte.', 'ok');
+        } catch (err) {
+          displayStatus(`Firebase-Schreibfehler: ${err.message}`, 'error');
+        } finally {
+          $save.disabled = false;
+        }
+      });
+
+      $reset.addEventListener('click', () => {
+        writeValues(DEFAULTS);
+        displayStatus('Standardwerte geladen – zum Übernehmen speichern klicken.', '');
+      });
+
+    } catch (err) {
+      displayStatus(`Firebase-Verbindung fehlgeschlagen: ${err.message}`, 'error');
+    }
+  </script>
+</body>
+</html>
