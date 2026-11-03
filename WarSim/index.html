@@ -3938,7 +3938,11 @@ function snapshot() {
     if (!unit.unitId) unit.unitId = crypto.randomUUID();
     units.push({ id: unit.unitId, kind: unit.kind, x: unit.x, y: unit.y, hp: unit.hp, maxHp: unit.maxHp,
       radius: unit.radius, armored: !!unit.armored, elite: !!unit.elite, isElite: !!unit.isElite,
-      mega: !!unit.mega, angle: unit.angle || 0, turretAngle: unit.turretAngle || 0, facing: unit.facing || 1, team: unit.team,
+      mega: !!unit.mega, angle: unit.angle || 0, turretAngle: unit.turretAngle || 0, barrelPitch: unit.barrelPitch || 0,
+      recoilOffset: unit.recoilOffset || 0, walkPhase: Number.isFinite(unit.walkPhase) ? unit.walkPhase : 0,
+      facing: unit.facing === -1 ? -1 : 1, team: unit.team,
+      attackCooldown: Number.isFinite(unit.attackCooldown) ? unit.attackCooldown : 0,
+      attackInterval: Number.isFinite(unit.attackInterval) && unit.attackInterval > 0 ? unit.attackInterval : 1000,
       damage: unit.damage || 0, attackRange: unit.attackRange || unit.range || 0, color: unit.color || '' });
   }
   return { uid, name: `Commander-${uid.slice(0, 4)}`, base: { x: window.WarSim.base().x, y: window.WarSim.base().y,
@@ -3954,13 +3958,32 @@ function reconcile(players) {
     remotes[otherUid] = { ...record, uid: otherUid };
     const remoteUnitList = Array.isArray(record.units) ? record.units : Object.values(record.units || {});
     for (const data of remoteUnitList) {
-      const key = `${otherUid}:${data.id}`; localIds.add(key);
+      const key = `${otherUid}:${data.id}`;
+      if (!Number.isFinite(data.x) || !Number.isFinite(data.y)) continue;
+      localIds.add(key);
       let unit = ownUnits.get(key);
       if (!unit) {
-        unit = { ...data, team: 'enemy', remote: true, ownerUid: otherUid, unitId: data.id, spawnAnim: 0, hitFlash: 0,
-          collisionRadius: Math.min(data.radius || 12, data.kind === 'tank' ? 15 : 12) };
+        unit = { ...data, radius: Number.isFinite(data.radius) ? data.radius : 12,
+          maxHp: Number.isFinite(data.maxHp) && data.maxHp > 0 ? data.maxHp : 100,
+          walkPhase: Number.isFinite(data.walkPhase) ? data.walkPhase : Math.random() * Math.PI * 2,
+          turretAngle: Number.isFinite(data.turretAngle) ? data.turretAngle : 0,
+          barrelPitch: Number.isFinite(data.barrelPitch) ? data.barrelPitch : 0,
+          recoilOffset: Number.isFinite(data.recoilOffset) ? data.recoilOffset : 0,
+          attackCooldown: Number.isFinite(data.attackCooldown) ? data.attackCooldown : 0,
+          attackInterval: Number.isFinite(data.attackInterval) && data.attackInterval > 0 ? data.attackInterval : 1000,
+          facing: data.facing === -1 ? -1 : 1, team: 'enemy', remote: true, ownerUid: otherUid, unitId: data.id,
+          spawnAnim: 0, hitFlash: 0, crouch: 0,
+          collisionRadius: Math.min(Number.isFinite(data.radius) ? data.radius : 12, data.kind === 'tank' ? 15 : 12) };
         ownUnits.set(key, unit); soldiers.push(unit);
-      } else Object.assign(unit, data, { x: data.x, y: data.y, hp: data.hp, maxHp: data.maxHp, team: 'enemy', remote: true });
+      } else Object.assign(unit, data, {
+        walkPhase: Number.isFinite(data.walkPhase) ? data.walkPhase : unit.walkPhase,
+        turretAngle: Number.isFinite(data.turretAngle) ? data.turretAngle : unit.turretAngle,
+        barrelPitch: Number.isFinite(data.barrelPitch) ? data.barrelPitch : unit.barrelPitch,
+        recoilOffset: Number.isFinite(data.recoilOffset) ? data.recoilOffset : unit.recoilOffset,
+        attackCooldown: Number.isFinite(data.attackCooldown) ? data.attackCooldown : 0,
+        attackInterval: Number.isFinite(data.attackInterval) && data.attackInterval > 0 ? data.attackInterval : 1000,
+        facing: data.facing === -1 ? -1 : 1, team: 'enemy', remote: true
+      });
     }
   }
   for (const [key, unit] of ownUnits) if (!localIds.has(key)) {
