@@ -1332,10 +1332,8 @@ function findGridSpot(radius) {
 }
 
 function trySpawn(wx, wy) {
-  if (!selectedType || gameOver || !onlineUid) return;
+  if (!selectedType || gameOver) return;
   if (ownBase.hp <= 0) return;
-  const dist = Math.hypot(wx - ownBase.x, wy - ownBase.y);
-  if (dist > ownBase.radius) return;
   
   let radius = 12;
   if (selectedType === 'soldier') radius = 12;
