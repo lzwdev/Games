@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WarSim · Fahrzeugeinstellungen</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; color: #1d2935; background: #eef3f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    main { width: min(100%, 680px); padding: clamp(22px, 5vw, 42px); background: white; border: 1px solid #dce5e9; border-radius: 20px; box-shadow: 0 16px 48px #23374614; }
+    h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); } p { color: #5b6b76; }
+    .status { padding: 10px 12px; border-radius: 10px; background: #f1f5f7; color: #53636e; font-size: .9rem; }
+    .status[data-kind="error"] { color: #a12c2c; background: #fff0ef; }
+    .status[data-kind="ok"] { color: #17683d; background: #eaf8ef; }
+    .grid { display: grid; gap: 16px; margin: 24px 0; }
+    label { display: grid; grid-template-columns: 1fr 130px; align-items: center; gap: 12px; font-weight: 650; }
+    label small { display: block; color: #74838c; font-weight: 400; }
+    input { width: 100%; padding: 11px; border: 1px solid #cbd7dd; border-radius: 9px; font: inherit; }
+    button { cursor: pointer; padding: 12px 18px; border: 0; border-radius: 10px; background: #2878bd; color: white; font: inherit; font-weight: 700; }
+    button:disabled { opacity: .55; cursor: wait; }
+    a { color: #2878bd; }
+    @media(max-width: 480px) { label { grid-template-columns: 1fr 100px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Fahrzeugwerte</h1>
+    <p>Änderungen werden in Firebase gespeichert und von den laufenden Spielen übernommen.</p>
+    <div id="status" class="status">Verbinde mit Firebase …</div>
+    <form id="settingsForm">
+      <div class="grid">
+        <label><span>Panzerreichweite<small>Standardpanzer</small></span><input name="tankRange" type="number" min="50" max="10000" step="10" required></label>
+        <label><span>Elitepanzerreichweite</span><input name="eliteTankRange" type="number" min="50" max="10000" step="10" required></label>
+        <label><span>Megapanzerreichweite</span><input name="megaTankRange" type="number" min="50" max="10000" step="10" required></label>
+        <label><span>Artilleriereichweite</span><input name="artilleryRange" type="number" min="50" max="10000" step="10" required></label>
+      </div>
+      <button id="saveButton" type="submit" disabled>Werte speichern</button>
+    </form>
+    <p><a href="index.html">Zurück zum Spiel</a></p>
+  </main>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyDQA4aAtKC-c0VJw1NC-Gau37zAb0h0LJY',
+      authDomain: 'data-df966.firebaseapp.com',
+      databaseURL: 'https://data-df966-default-rtdb.europe-west1.firebasedatabase.app',
+      projectId: 'data-df966',
+      storageBucket: 'data-df966.firebasestorage.app',
+      messagingSenderId: '225279017977',
+      appId: '1:225279017977:web:76dc215827540839763328',
+      measurementId: 'G-NPT4JHJ6NS'
+    };
+    const defaults = { tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5 };
+    const status = document.getElementById('status');
+    const form = document.getElementById('settingsForm');
+    const button = document.getElementById('saveButton');
+    const values = () => Object.fromEntries(Object.keys(defaults).map(key => [key, Number(form.elements[key].value)]));
+    const displayStatus = (message, kind = '') => { status.textContent = message; status.dataset.kind = kind; };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      await signInAnonymously(auth);
+      const settingsRef = ref(getDatabase(app), 'warsim/settings/unitStats');
+      onValue(settingsRef, snapshot => {
+        const stored = snapshot.val() || defaults;
+        for (const [key, fallback] of Object.entries(defaults)) form.elements[key].value = stored[key] ?? fallback;
+        button.disabled = false;
+        displayStatus('Verbunden · Einstellungen werden live synchronisiert.', 'ok');
+      }, error => displayStatus(`Firebase-Lesefehler: ${error.message}`, 'error'));
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const next = values();
+        if (Object.values(next).some(value => !Number.isFinite(value) || value < 50 || value > 10000)) {
+          displayStatus('Bitte Werte zwischen 50 und 10.000 eingeben.', 'error'); return;
+        }
+        button.disabled = true;
+        displayStatus('Speichere …');
+        try {
+          await set(settingsRef, { ...next, updatedAt: Date.now(), updatedBy: auth.currentUser.uid });
+          displayStatus('Gespeichert · Alle verbundenen Spiele erhalten die neuen Werte.', 'ok');
+        } catch (error) {
+          displayStatus(`Firebase-Schreibfehler: ${error.message}`, 'error');
+        } finally { button.disabled = false; }
+      });
+    } catch (error) {
+      displayStatus(`Firebase-Verbindung fehlgeschlagen: ${error.message}`, 'error');
+    }
+  </script>
+</body>
+</html>
