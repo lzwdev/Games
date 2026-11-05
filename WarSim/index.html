@@ -1175,7 +1175,20 @@ let remoteMuzzleFlashes = [];
 let remoteExplosions = [];
 let remoteShockwaves = [];
 let remoteEffects = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
-const GAME_SETTINGS = { tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5 };
+const GAME_SETTINGS = {
+  tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5,
+  tankDamage: 78, eliteTankDamage: 98, megaTankDamage: 140, artilleryDamage: 180,
+  tankSplashRadius: 95, eliteTankSplashRadius: 105, megaTankSplashRadius: 130, artillerySplashRadius: 180,
+  tankSpeed: 0.95, eliteTankSpeed: 0.55, megaTankSpeed: 0.4, artillerySpeed: 1.6,
+  tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280
+};
+// Erlaubte Bereiche je Wert (Endung des Schlüssels)
+const SETTING_LIMITS = { Range: [50, 10000], Damage: [1, 5000], SplashRadius: [10, 800], Speed: [0.05, 10], Health: [10, 20000] };
+const settingLimit = key => SETTING_LIMITS[Object.keys(SETTING_LIMITS).find(k => key.endsWith(k))];
+// Gegner-Faktoren (wie bisher): Gegner sind etwas langsamer / haben etwas weniger Reichweite
+const ENEMY_RANGE_FACTOR = { tank: 380 / 420, eliteTank: 570 / 620, megaTank: 700 / 750 };
+const ENEMY_SPEED_FACTOR = { tank: 0.85 / 0.95, eliteTank: 0.5 / 0.55, megaTank: 0.35 / 0.4 };
+function tankSettingKey(u) { return u.mega ? 'megaTank' : u.elite ? 'eliteTank' : 'tank'; }
 
 let enemySpawnTimer = 0;
 const enemySpawnInterval = 450;
@@ -1567,12 +1580,12 @@ function spawnEliteSoldier(team, x, y) {
 function spawnTank(team, x, y) {
   soldiers.push({
     kind: 'tank', team, x, y,
-    hp: 420, maxHp: 420,
-    speed: team === 'own' ? 0.95 : 0.85,
-    damage: 78, attackCooldown: Math.random() * 1000,
+    hp: GAME_SETTINGS.tankHealth, maxHp: GAME_SETTINGS.tankHealth,
+    speed: GAME_SETTINGS.tankSpeed * (team === 'own' ? 1 : ENEMY_SPEED_FACTOR.tank),
+    damage: GAME_SETTINGS.tankDamage, attackCooldown: Math.random() * 1000,
     attackInterval: 2900,
     attackRange: GAME_SETTINGS.tankRange * (team === 'own' ? 1 : 380 / 420),
-    splashRadius: 95, radius: 24, collisionRadius: 15,
+    splashRadius: GAME_SETTINGS.tankSplashRadius, radius: 24, collisionRadius: 15,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
     turretAngle: 0, barrelPitch: 0, recoil: 0,
@@ -1588,12 +1601,12 @@ function spawnTank(team, x, y) {
 function spawnEliteTank(team, x, y) {
   soldiers.push({
     kind: 'tank', elite: true, team, x, y,
-    hp: 640, maxHp: 640,
-    speed: team === 'own' ? 0.55 : 0.5,
-    damage: 98, attackCooldown: Math.random() * 1000,
+    hp: GAME_SETTINGS.eliteTankHealth, maxHp: GAME_SETTINGS.eliteTankHealth,
+    speed: GAME_SETTINGS.eliteTankSpeed * (team === 'own' ? 1 : ENEMY_SPEED_FACTOR.eliteTank),
+    damage: GAME_SETTINGS.eliteTankDamage, attackCooldown: Math.random() * 1000,
     attackInterval: 2700,
     attackRange: GAME_SETTINGS.eliteTankRange * (team === 'own' ? 1 : 570 / 620),
-    splashRadius: 105, radius: 28, collisionRadius: 17,
+    splashRadius: GAME_SETTINGS.eliteTankSplashRadius, radius: 28, collisionRadius: 17,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
     turretAngle: 0, barrelPitch: 0, recoil: 0,
@@ -1609,12 +1622,12 @@ function spawnEliteTank(team, x, y) {
 function spawnMegaTank(team, x, y) {
   soldiers.push({
     kind: 'tank', mega: true, team, x, y,
-    hp: 2000, maxHp: 2000,
-    speed: team === 'own' ? 0.4 : 0.35,
-    damage: 140, attackCooldown: 0,
+    hp: GAME_SETTINGS.megaTankHealth, maxHp: GAME_SETTINGS.megaTankHealth,
+    speed: GAME_SETTINGS.megaTankSpeed * (team === 'own' ? 1 : ENEMY_SPEED_FACTOR.megaTank),
+    damage: GAME_SETTINGS.megaTankDamage, attackCooldown: 0,
     attackInterval: 250,
     attackRange: GAME_SETTINGS.megaTankRange * (team === 'own' ? 1 : 700 / 750),
-    splashRadius: 130, radius: 48, collisionRadius: 29,
+    splashRadius: GAME_SETTINGS.megaTankSplashRadius, radius: 48, collisionRadius: 29,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
     turretAngle: 0, barrelPitch: 0, recoil: 0,
@@ -1636,7 +1649,7 @@ function spawnTruck(team, x, y, type = 'atgun') {
     collisionRadius: type === 'artillery' ? 16 : 14,
     hp: type === 'artillery' ? 200 : 160,
     maxHp: type === 'artillery' ? 200 : 160,
-    speed: type === 'artillery' ? 1.6 : 2.0,
+    speed: type === 'artillery' ? GAME_SETTINGS.artillerySpeed : 2.0,
     arrived: false, arrivedAt: 0,
     unloadTimer: 0, unloadPhase: 0,
     facing: team === 'own' ? 1 : -1,
@@ -1693,7 +1706,7 @@ function spawnAtgunSetup(team, truck) {
 function spawnArtillerySetup(team, truck) {
   const art = {
     team, x: truck.x, y: truck.y,
-    radius: 24, collisionRadius: 15, hp: 280, maxHp: 280,
+    radius: 24, collisionRadius: 15, hp: GAME_SETTINGS.artilleryHealth, maxHp: GAME_SETTINGS.artilleryHealth,
     setupState: 'setting_up',
     setupProgress: 0, setupTime: 2800,
     armed: false,
@@ -1707,8 +1720,8 @@ function spawnArtillerySetup(team, truck) {
     burstShotsLeft: 0,
     burstActive: false,
     burstCooldown: 0,
-    damage: 180,
-    splashRadius: 180,
+    damage: GAME_SETTINGS.artilleryDamage,
+    splashRadius: GAME_SETTINGS.artillerySplashRadius,
     destroyed: false,
     color: team === 'own' ? '#ff9933' : '#ff5533',
     hitFlash: 0,
@@ -3954,15 +3967,31 @@ window.WarSim = {
 window.WarSim.setSettings = settings => {
   for (const key of Object.keys(GAME_SETTINGS)) {
     const value = Number(settings?.[key]);
-    if (Number.isFinite(value)) GAME_SETTINGS[key] = Math.max(50, Math.min(10000, value));
+    const [min, max] = settingLimit(key);
+    if (Number.isFinite(value)) GAME_SETTINGS[key] = Math.max(min, Math.min(max, value));
   }
+  const rescaleHp = (unit, newMax) => {
+    if (!(unit.maxHp > 0) || unit.maxHp === newMax) return;
+    unit.hp = Math.max(1, unit.hp * newMax / unit.maxHp);
+    unit.maxHp = newMax;
+  };
   soldiers.forEach(unit => {
-    if (unit.kind !== 'tank') return;
-    if (unit.mega) unit.attackRange = GAME_SETTINGS.megaTankRange * (unit.team === 'own' ? 1 : 700 / 750);
-    else if (unit.elite) unit.attackRange = GAME_SETTINGS.eliteTankRange * (unit.team === 'own' ? 1 : 570 / 620);
-    else unit.attackRange = GAME_SETTINGS.tankRange * (unit.team === 'own' ? 1 : 380 / 420);
+    if (unit.kind !== 'tank' || unit.remote) return;
+    const k = tankSettingKey(unit), own = unit.team === 'own';
+    unit.attackRange = GAME_SETTINGS[k + 'Range'] * (own ? 1 : ENEMY_RANGE_FACTOR[k]);
+    unit.damage = GAME_SETTINGS[k + 'Damage'];
+    unit.splashRadius = GAME_SETTINGS[k + 'SplashRadius'];
+    unit.speed = GAME_SETTINGS[k + 'Speed'] * (own ? 1 : ENEMY_SPEED_FACTOR[k]);
+    if (unit.hp > 0) rescaleHp(unit, GAME_SETTINGS[k + 'Health']);
   });
-  artillery.forEach(unit => unit.range = GAME_SETTINGS.artilleryRange);
+  artillery.forEach(unit => {
+    if (unit.remote) return;
+    unit.range = GAME_SETTINGS.artilleryRange;
+    unit.damage = GAME_SETTINGS.artilleryDamage;
+    unit.splashRadius = GAME_SETTINGS.artillerySplashRadius;
+    if (unit.hp > 0) rescaleHp(unit, GAME_SETTINGS.artilleryHealth);
+  });
+  trucks.forEach(t => { if (!t.remote && t.type === 'artillery') t.speed = GAME_SETTINGS.artillerySpeed; });
 };
 
 </script>
