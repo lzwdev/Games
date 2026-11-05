@@ -434,6 +434,7 @@
     #sidebar { border-top:1px solid #d6deea; }
   }
 </style>
+<base target="_blank">
 </head>
 <body>
 <div id="game">
@@ -551,7 +552,10 @@ function resize() {
   canvas.height = canvas.clientHeight * window.devicePixelRatio;
   canvas.style.width = canvas.clientWidth + 'px';
   canvas.style.height = canvas.clientHeight + 'px';
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  // FIX: never stack transforms on repeated resizes
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 }
 window.addEventListener('resize', resize);
 
@@ -791,7 +795,7 @@ renderIcon('icon-buffflag', (c) => {
   c.closePath(); c.fill();
 });
 
-// ============ AUDIO ============
+// ============ AUDIO (HÖHERE QUALITÄT) ============
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 let soundEnabled = true;
@@ -811,10 +815,13 @@ function initAudio() {
     compressor.ratio.value = 6;
     compressor.attack.value = 0.002;
     compressor.release.value = 0.15;
+    
+    // Reverb für mehr Räumlichkeit
     reverbNode = audioCtx.createConvolver();
     reverbNode.buffer = createReverbImpulse(audioCtx, 1.8, 2.5);
     reverbGain = audioCtx.createGain();
     reverbGain.gain.value = 0.18;
+    
     masterGain.connect(compressor);
     compressor.connect(audioCtx.destination);
     masterGain.connect(reverbGain);
@@ -846,6 +853,7 @@ document.getElementById('sound-toggle').addEventListener('click', (e) => {
 function playShot(vol = 0.15) {
   if (!soundEnabled || !audioCtx) return;
   const t = audioCtx.currentTime;
+  // Schuss mit mehr Schichten für Realismus
   const bs = audioCtx.sampleRate * 0.08;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -859,6 +867,7 @@ function playShot(vol = 0.15) {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
   noise.connect(f).connect(g).connect(masterGain);
   noise.start(t); noise.stop(t + 0.08);
+  
   const osc = audioCtx.createOscillator();
   osc.type = 'triangle';
   osc.frequency.setValueAtTime(240, t);
@@ -873,6 +882,7 @@ function playShot(vol = 0.15) {
 function playCannonShot() {
   if (!soundEnabled || !audioCtx) return;
   const t = audioCtx.currentTime;
+  // Tiefer Bass + Layer
   const osc1 = audioCtx.createOscillator();
   osc1.type = 'sine';
   osc1.frequency.setValueAtTime(160, t);
@@ -882,6 +892,8 @@ function playCannonShot() {
   g1.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
   osc1.connect(g1).connect(masterGain);
   osc1.start(t); osc1.stop(t + 0.45);
+  
+  // Mid-Range
   const osc2 = audioCtx.createOscillator();
   osc2.type = 'triangle';
   osc2.frequency.setValueAtTime(80, t);
@@ -891,6 +903,8 @@ function playCannonShot() {
   g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
   osc2.connect(g2).connect(masterGain);
   osc2.start(t); osc2.stop(t + 0.3);
+  
+  // Noise
   const bs = audioCtx.sampleRate * 0.3;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -920,6 +934,7 @@ function playMegaShot() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 0.65);
+  
   const bs = audioCtx.sampleRate * 0.45;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -949,6 +964,7 @@ function playArtilleryShot() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 1.2);
+  
   const osc2 = audioCtx.createOscillator();
   osc2.type = 'sawtooth';
   osc2.frequency.setValueAtTime(200, t);
@@ -958,6 +974,7 @@ function playArtilleryShot() {
   g2.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
   osc2.connect(g2).connect(masterGain);
   osc2.start(t); osc2.stop(t + 0.7);
+  
   const bs = audioCtx.sampleRate * 0.9;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -987,6 +1004,7 @@ function playExplosion() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 0.95);
+  
   const bs = audioCtx.sampleRate * 0.7;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1030,6 +1048,7 @@ function playMachineGun() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 0.05);
+  
   const bs = audioCtx.sampleRate * 0.03;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1112,7 +1131,7 @@ const WORLD_WIDTH = 18000;
 const WORLD_HEIGHT = 12000;
 
 const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false };
-const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 280, hp: 0, maxHp: 5000, destroyed: true, ownerUid: null };
+const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false, ownerUid: null };
 
 const camera = {
   x: 0, y: 0, zoom: 1, targetZoom: 1,
@@ -1160,14 +1179,7 @@ let remoteMuzzleFlashes = [];
 let remoteExplosions = [];
 let remoteShockwaves = [];
 let remoteEffects = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
-
-const GAME_SETTINGS = {
-  tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5,
-  tankDamage: 78, eliteTankDamage: 98, megaTankDamage: 140, artilleryDamage: 180,
-  tankSplashRadius: 95, eliteTankSplashRadius: 105, megaTankSplashRadius: 130, artillerySplashRadius: 180,
-  tankSpeed: 0.95, eliteTankSpeed: 0.55, megaTankSpeed: 0.4, artillerySpeed: 1.6,
-  tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280
-};
+const GAME_SETTINGS = { tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5 };
 
 let enemySpawnTimer = 0;
 const enemySpawnInterval = 450;
@@ -1303,7 +1315,6 @@ canvas.addEventListener('wheel', (e) => {
   const sy = e.clientY - rect.top;
   const before = screenToWorld(sx, sy);
   camera.targetZoom = Math.max(0.08, Math.min(2.2, camera.targetZoom * (e.deltaY < 0 ? 1.15 : 0.87)));
-  camera.zoom = camera.targetZoom;
   const after = screenToWorld(sx, sy);
   camera.x += before.x - after.x;
   camera.y += before.y - after.y;
@@ -1351,6 +1362,7 @@ function findGridSpot(radius) {
 function trySpawn(wx, wy) {
   if (!selectedType || gameOver) return;
   if (ownBase.hp <= 0) return;
+  
   let radius = 12;
   if (selectedType === 'soldier') radius = 12;
   else if (selectedType === 'elitesoldier') radius = 14;
@@ -1360,8 +1372,10 @@ function trySpawn(wx, wy) {
   else if (selectedType === 'atgun') radius = 32;
   else if (selectedType === 'artillery') radius = 36;
   else if (selectedType === 'buffflag') radius = 24;
+  
   const pos = findGridSpot(radius);
   if (!pos) return;
+  
   if (selectedType === 'soldier') { spawnSoldier('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#4a90e2', 15); }
   else if (selectedType === 'elitesoldier') { spawnEliteSoldier('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#6bb3ff', 18); }
   else if (selectedType === 'tank') { spawnTank('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#4a90e2', 20); }
@@ -1373,13 +1387,15 @@ function trySpawn(wx, wy) {
 }
 
 function spawnParticles(x, y, color, count = 12) {
+  if (particles.length > 1400) count = Math.min(count, 3);
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 1 + Math.random() * 4;
     particles.push({
       x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
       life: 400 + Math.random() * 300, maxLife: 700,
-      color, size: 2 + Math.random() * 2, gravity: 0.05, drag: 0.96
+      color, size: 2 + Math.random() * 2,
+      gravity: 0.05, drag: 0.96
     });
   }
 }
@@ -1555,12 +1571,12 @@ function spawnEliteSoldier(team, x, y) {
 function spawnTank(team, x, y) {
   soldiers.push({
     kind: 'tank', team, x, y,
-    hp: GAME_SETTINGS.tankHealth, maxHp: GAME_SETTINGS.tankHealth,
-    speed: GAME_SETTINGS.tankSpeed,
-    damage: GAME_SETTINGS.tankDamage, attackCooldown: Math.random() * 1000,
+    hp: 420, maxHp: 420,
+    speed: team === 'own' ? 0.95 : 0.85,
+    damage: 78, attackCooldown: Math.random() * 1000,
     attackInterval: 2900,
-    attackRange: GAME_SETTINGS.tankRange,
-    splashRadius: GAME_SETTINGS.tankSplashRadius, radius: 24, collisionRadius: 15,
+    attackRange: GAME_SETTINGS.tankRange * (team === 'own' ? 1 : 380 / 420),
+    splashRadius: 95, radius: 24, collisionRadius: 15,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
     turretAngle: 0, barrelPitch: 0, recoil: 0,
@@ -1576,12 +1592,12 @@ function spawnTank(team, x, y) {
 function spawnEliteTank(team, x, y) {
   soldiers.push({
     kind: 'tank', elite: true, team, x, y,
-    hp: GAME_SETTINGS.eliteTankHealth, maxHp: GAME_SETTINGS.eliteTankHealth,
-    speed: GAME_SETTINGS.eliteTankSpeed,
-    damage: GAME_SETTINGS.eliteTankDamage, attackCooldown: Math.random() * 1000,
+    hp: 640, maxHp: 640,
+    speed: team === 'own' ? 0.55 : 0.5,
+    damage: 98, attackCooldown: Math.random() * 1000,
     attackInterval: 2700,
-    attackRange: GAME_SETTINGS.eliteTankRange,
-    splashRadius: GAME_SETTINGS.eliteTankSplashRadius, radius: 28, collisionRadius: 17,
+    attackRange: GAME_SETTINGS.eliteTankRange * (team === 'own' ? 1 : 570 / 620),
+    splashRadius: 105, radius: 28, collisionRadius: 17,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
     turretAngle: 0, barrelPitch: 0, recoil: 0,
@@ -1597,12 +1613,12 @@ function spawnEliteTank(team, x, y) {
 function spawnMegaTank(team, x, y) {
   soldiers.push({
     kind: 'tank', mega: true, team, x, y,
-    hp: GAME_SETTINGS.megaTankHealth, maxHp: GAME_SETTINGS.megaTankHealth,
-    speed: GAME_SETTINGS.megaTankSpeed,
-    damage: GAME_SETTINGS.megaTankDamage, attackCooldown: 0,
+    hp: 2000, maxHp: 2000,
+    speed: team === 'own' ? 0.4 : 0.35,
+    damage: 140, attackCooldown: 0,
     attackInterval: 250,
-    attackRange: GAME_SETTINGS.megaTankRange,
-    splashRadius: GAME_SETTINGS.megaTankSplashRadius, radius: 48, collisionRadius: 29,
+    attackRange: GAME_SETTINGS.megaTankRange * (team === 'own' ? 1 : 700 / 750),
+    splashRadius: 130, radius: 48, collisionRadius: 29,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
     turretAngle: 0, barrelPitch: 0, recoil: 0,
@@ -1624,7 +1640,7 @@ function spawnTruck(team, x, y, type = 'atgun') {
     collisionRadius: type === 'artillery' ? 16 : 14,
     hp: type === 'artillery' ? 200 : 160,
     maxHp: type === 'artillery' ? 200 : 160,
-    speed: type === 'artillery' ? GAME_SETTINGS.artillerySpeed : 2.0,
+    speed: type === 'artillery' ? 1.6 : 2.0,
     arrived: false, arrivedAt: 0,
     unloadTimer: 0, unloadPhase: 0,
     facing: team === 'own' ? 1 : -1,
@@ -1673,6 +1689,7 @@ function spawnAtgunSetup(team, truck) {
     range: 1880
   };
   atguns.push(atgun);
+  
   return atgun;
 }
 
@@ -1680,23 +1697,22 @@ function spawnAtgunSetup(team, truck) {
 function spawnArtillerySetup(team, truck) {
   const art = {
     team, x: truck.x, y: truck.y,
-    radius: 24, collisionRadius: 15,
-    hp: GAME_SETTINGS.artilleryHealth, maxHp: GAME_SETTINGS.artilleryHealth,
+    radius: 24, collisionRadius: 15, hp: 280, maxHp: 280,
     setupState: 'setting_up',
     setupProgress: 0, setupTime: 2800,
     armed: false,
     angle: -Math.PI / 2,
     barrelPitch: 0.8, recoil: 0,
     recoilOffset: 0,
-    attackCooldown: 7500,
-    attackInterval: 7500,
+    attackCooldown: 7500,  // 50% länger als 5000
+    attackInterval: 7500,  // 50% länger als 5000
     burstInterval: 250,
     burstCount: 8,
     burstShotsLeft: 0,
     burstActive: false,
     burstCooldown: 0,
-    damage: GAME_SETTINGS.artilleryDamage,
-    splashRadius: GAME_SETTINGS.artillerySplashRadius,
+    damage: 180,
+    splashRadius: 180,
     destroyed: false,
     color: team === 'own' ? '#ff9933' : '#ff5533',
     hitFlash: 0,
@@ -1733,6 +1749,7 @@ function shoot(shooter, target) {
   const dy = target.y - shooter.y;
   const angle = Math.atan2(dy, dx);
   const damageMult = getDamageMultiplier(shooter);
+  
   if (shooter.isElite) {
     if (shooter.burstState === 'reloading') return;
     if (shooter.burstState === 'ready') shooter.burstState = 'firing';
@@ -1755,6 +1772,7 @@ function shoot(shooter, target) {
     }
     return;
   }
+  
   if (shooter.kind === 'tank') {
     const spread = shooter.accuracy;
     const a = angle + (Math.random() - 0.5) * spread;
@@ -1843,19 +1861,24 @@ function atgunShoot(atgun, target) {
   });
 }
 
+// ============ ARTILLERIE (Genauigkeit verringert) ============
 function artilleryShootSingle(art, target) {
   const dx = target.x - art.x;
   const dy = target.y - art.y;
   const dist = Math.hypot(dx, dy);
   const flightTime = 800 + dist * 0.8;
+  
+  // GENAUIGKEIT WEITER VERRINGERT: 150-350 statt 80-200
   const spread = 150 + Math.random() * 200;
   const spreadAngle = Math.random() * Math.PI * 2;
   const finalX = target.x + Math.cos(spreadAngle) * spread;
   const finalY = target.y + Math.sin(spreadAngle) * spread;
   const damageMult = getDamageMultiplier(art);
+  
   const pitchCos = Math.cos(art.barrelPitch);
   const startX = art.x + Math.cos(art.angle) * 47 * pitchCos;
   const startY = art.y + Math.sin(art.angle) * 47 * pitchCos;
+  
   artilleryShells.push({
     startX, startY, endX: finalX, endY: finalY,
     x: startX, y: startY,
@@ -1868,15 +1891,18 @@ function artilleryShootSingle(art, target) {
     life: flightTime, maxLife: flightTime,
     trail: [], exploded: false
   });
+  
   art.recoil = 1;
   art.recoilOffset = 1;
   art.fireFlash = 500;
   playArtilleryShot();
   screenShake(10);
+  
   muzzleFlashes.push({
     x: startX, y: startY,
     angle: art.angle, size: 40, life: 180, maxLife: 180, team: art.team
   });
+  
   for (let i = 0; i < 20; i++) {
     const a = art.angle + (Math.random() - 0.5) * 1.5;
     particles.push({
@@ -1888,6 +1914,7 @@ function artilleryShootSingle(art, target) {
       size: 4 + Math.random() * 6, gravity: -0.1, drag: 0.94
     });
   }
+  
 }
 
 function shootBase(shooter, base) {
@@ -1897,6 +1924,7 @@ function shootBase(shooter, base) {
   const edgeX = base.x - Math.cos(angle) * base.radius;
   const edgeY = base.y - Math.sin(angle) * base.radius;
   const damageMult = getDamageMultiplier(shooter);
+  
   if (shooter.kind === 'tank') {
     const a = Math.atan2(edgeY - shooter.y, edgeX - shooter.x) + (Math.random() - 0.5) * shooter.accuracy;
     const speed = shooter.shellSpeed;
@@ -2129,12 +2157,14 @@ function tryRicochet(shell, target) {
   return false;
 }
 
+// ============ SOLDATEN-VERHALTEN ============
 function updateSoldierBehavior() { return false; }
 
 // ============ UPDATE ============
 function update(dt) {
   if (gameOver) return;
   gameTime += dt;
+  
   waveTimer += dt;
   if (waveTimer > waveDuration) {
     waveTimer = 0;
@@ -2143,6 +2173,7 @@ function update(dt) {
     playWaveStart();
     document.getElementById('hudWave').textContent = 'Welle ' + waveNumber;
   }
+  
   if (camera.shakePower > 0) {
     camera.shakeX = (Math.random() - 0.5) * camera.shakePower * 2;
     camera.shakeY = (Math.random() - 0.5) * camera.shakePower * 2;
@@ -2151,9 +2182,21 @@ function update(dt) {
   } else {
     camera.shakeX = 0; camera.shakeY = 0;
   }
+  
+  // FIX: enemies actually spawn (enemySpawnTimer was never advanced before)
+  if (enemyBase.hp > 0 && enemyCount < maxEnemies) {
+    enemySpawnTimer += dt;
+    const scaledInterval = Math.max(200, enemySpawnInterval - waveNumber * 15);
+    if (enemySpawnTimer >= scaledInterval) {
+      enemySpawnTimer = 0;
+      spawnEnemy();
+    }
+  }
+
   if (typeof window.WarSim?.refreshLocalState === 'function') {
     window.WarSim.refreshLocalState(dt);
   }
+  
   trucks = trucks.filter(t => {
     if (t.remote) return !t.destroyed;
     if (t.destroyed) return false;
@@ -2180,11 +2223,13 @@ function update(dt) {
     }
     return true;
   });
+  
   atguns.forEach(atgun => {
     if (atgun.destroyed || atgun.remote) return;
     if (atgun.hitFlash > 0) atgun.hitFlash -= dt;
     if (atgun.recoil) atgun.recoil = Math.max(0, atgun.recoil - dt * 0.005);
     if (atgun.recoilOffset) atgun.recoilOffset = Math.max(0, atgun.recoilOffset - dt * 0.008);
+    
     if (atgun.setupState === 'setting_up') {
       atgun.setupProgress += dt;
       if (atgun.setupProgress >= atgun.setupTime) {
@@ -2224,12 +2269,14 @@ function update(dt) {
       }
     }
   });
+  
   artillery.forEach(art => {
     if (art.destroyed || art.remote) return;
     if (art.hitFlash > 0) art.hitFlash -= dt;
     if (art.recoil) art.recoil = Math.max(0, art.recoil - dt * 0.005);
     if (art.recoilOffset) art.recoilOffset = Math.max(0, art.recoilOffset - dt * 0.008);
     if (art.fireFlash > 0) art.fireFlash -= dt;
+    
     if (art.setupState === 'setting_up') {
       art.setupProgress += dt;
       if (art.setupProgress >= art.setupTime) {
@@ -2296,19 +2343,23 @@ function update(dt) {
       }
     }
   });
+  
   buffFlags.forEach(flag => {
     if (flag.destroyed || flag.remote) return;
     if (flag.hitFlash > 0) flag.hitFlash -= dt;
     if (flag.spawnAnim > 0) flag.spawnAnim -= dt * 0.004;
     flag.flagWave += dt * 0.005;
   });
+  
   soldiers.forEach(s => {
     if (s.remote) return;
     if (s.hp <= 0) return;
     if (s.hitFlash > 0) s.hitFlash -= dt;
     if (s.spawnAnim > 0) s.spawnAnim -= dt * 0.004;
     if (s.crouch > 0) s.crouch -= dt;
+    
     if (updateSoldierBehavior(s, dt)) return;
+    
     if (s.kind === 'tank' && s.recoilOffset) {
       s.recoilOffset = Math.max(0, s.recoilOffset - dt * 0.008);
     }
@@ -2319,6 +2370,7 @@ function update(dt) {
         s.barrelPitch = Math.min(0.15, distToBase / 500 * 0.15);
       }
     }
+    
     if (s.isElite) {
       if (s.burstState === 'reloading') {
         s.burstTimer -= dt;
@@ -2332,12 +2384,14 @@ function update(dt) {
         playReload();
       }
     }
+    
     let closest = null, closestDist = Infinity;
     soldiers.forEach(other => {
       if (other === s || other.team === s.team || other.hp <= 0) return;
       const d = Math.hypot(other.x - s.x, other.y - s.y);
       if (d < closestDist) { closestDist = d; closest = other; }
     });
+    
     const oppBase = s.team === 'own' ? enemyBase : ownBase;
     const baseAlive = oppBase && oppBase.hp > 0;
     let attackSoldier = false;
@@ -2347,6 +2401,7 @@ function update(dt) {
         attackSoldier = closestDist < distToBaseEdge;
       } else attackSoldier = true;
     }
+    
     if (attackSoldier && closest) {
       const targetAngle = Math.atan2(closest.y - s.y, closest.x - s.x);
       if (s.kind === 'tank') s.turretAngle = targetAngle;
@@ -2376,7 +2431,10 @@ function update(dt) {
     s.attackCooldown -= dt;
     if (s.recoil) s.recoil = Math.max(0, s.recoil - dt * 0.005);
   });
+  
   resolveCollisions();
+  
+  // Bullets
   bullets = bullets.filter(b => {
     b.life -= dt;
     if (b.life <= 0) return false;
@@ -2437,6 +2495,7 @@ function update(dt) {
     }
     return true;
   });
+  
   shells = shells.filter(sh => {
     sh.life -= dt;
     if (sh.life <= 0) return false;
@@ -2499,6 +2558,7 @@ function update(dt) {
     }
     return true;
   });
+  
   artilleryShells = artilleryShells.filter(ash => {
     ash.t += dt / ash.flightTime;
     if (ash.t >= 1) {
@@ -2533,6 +2593,7 @@ function update(dt) {
     if (ash.trail.length > 15) ash.trail.shift();
     return true;
   });
+  
   ricochets = ricochets.filter(r => {
     r.life -= dt;
     r.trail.push({ x: r.x, y: r.y });
@@ -2545,8 +2606,10 @@ function update(dt) {
     }
     return r.life > 0;
   });
+  
   checkBaseDestroyed(ownBase);
   checkBaseDestroyed(enemyBase);
+  
   particles = particles.filter(p => {
     p.life -= dt;
     p.x += p.vx; p.y += p.vy;
@@ -2658,6 +2721,7 @@ function update(dt) {
     }
     return true;
   });
+  
   ownCount = soldiers.filter(s => s.hp > 0 && s.team === 'own' && !s.remote).length;
   enemyCount = soldiers.filter(s => s.hp > 0 && s.team === 'enemy').length;
   document.getElementById('ownCount').textContent = ownCount;
@@ -2730,6 +2794,7 @@ function triggerWaveNotification() {
 }
 
 // ============ RENDERING ============
+// [Alle draw-Funktionen bleiben gleich wie vorher]
 function drawSoldier(s) {
   const r = s.radius;
   const bob = Math.sin(s.walkPhase) * 1.8;
@@ -2766,6 +2831,7 @@ function drawSoldier(s) {
   ctx.fillStyle = clothGrad; ctx.fillRect(-r + 2, -r + 4, r * 2 - 4, r + 5);
   ctx.fillStyle = '#202b31'; ctx.fillRect(-r + 2, r - 4, r * 2 - 4, 3);
   ctx.fillStyle = uniformDark; ctx.fillRect(-r - 1, -r + 5, 3, 10); ctx.fillRect(r - 2, -r + 5, 3, 10);
+  // Webbing, pouches and stitched shoulder panels give the small infantry sprites more depth.
   ctx.fillStyle = 'rgba(18,29,37,.72)'; ctx.fillRect(-4, -r + 5, 8, r + 4);
   ctx.fillStyle = isOwn ? '#7391a0' : '#a67a64';
   ctx.fillRect(-r + 3, -r + 8, 4, 5); ctx.fillRect(r - 7, -r + 8, 4, 5);
@@ -2873,6 +2939,8 @@ function drawTank(s) {
   const width = isMega ? 1.52 * r : 1.38 * r;
   ctx.fillStyle = 'rgba(0,0,0,.48)';
   ctx.beginPath(); ctx.ellipse(0, 4, length * .58, width * .67, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Low side tracks with separate links and road wheels, viewed from above.
   const trackH = width * .31, trackY = width * .39;
   for (const side of [-1, 1]) {
     const ty = side * trackY;
@@ -2897,6 +2965,8 @@ function drawTank(s) {
       ctx.fillStyle = '#252d2c'; ctx.beginPath(); ctx.arc(wx, ty, wr * .28, 0, Math.PI * 2); ctx.fill();
     }
   }
+
+  // Sloped glacis, compact hull and access panels keep the silhouette broad and low.
   const hull = () => {
     ctx.beginPath();
     ctx.moveTo(-length * .43, -width * .31); ctx.lineTo(length * .22, -width * .31);
@@ -2921,6 +2991,8 @@ function drawTank(s) {
   ctx.fillRect(-length * .4, -width * .18, length * .13, width * .36);
   ctx.fillStyle = 'rgba(235,228,192,.65)'; ctx.fillRect(-length * .38, -width * .12, length * .08, width * .08);
   ctx.fillRect(-length * .38, width * .04, length * .08, width * .08);
+
+  // Rotating low turret, mantlet and a tapered gun barrel.
   const recoil = s.recoilOffset ? s.recoilOffset * (isMega ? 12 : isElite ? 8 : 5) : 0;
   ctx.save(); ctx.translate(-length * .08, 0);
   ctx.rotate(isOwn ? s.turretAngle : Math.PI - s.turretAngle);
@@ -3039,6 +3111,7 @@ function drawAtgun(atgun) {
   ctx.fillStyle = 'rgba(0,0,0,.42)'; ctx.beginPath(); ctx.ellipse(0, 5, 37, 20, 0, 0, Math.PI * 2); ctx.fill();
   ctx.save(); ctx.rotate(atgun.angle);
   const recoil = atgun.recoilOffset ? atgun.recoilOffset * 7 : 0;
+  // Split trails, spades and paired road wheels form a low towed-gun carriage.
   ctx.strokeStyle = '#363c38'; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-5, -7); ctx.lineTo(-30, -22); ctx.moveTo(-5, 7); ctx.lineTo(-30, 22); ctx.stroke();
   for (const side of [-1, 1]) {
@@ -3052,6 +3125,7 @@ function drawAtgun(atgun) {
   }
   ctx.fillStyle = '#555d55'; ctx.beginPath(); ctx.roundRect(-14, -8, 28, 16, 4); ctx.fill();
   ctx.strokeStyle = '#202624'; ctx.lineWidth = 2; ctx.stroke();
+  // Gun shield protects the crew; the breech and recoil sleeve sit behind the barrel.
   const shield = ctx.createLinearGradient(-3, -16, 12, 16);
   shield.addColorStop(0, '#929687'); shield.addColorStop(.42, '#616b62'); shield.addColorStop(1, '#343d3a');
   ctx.fillStyle = shield; ctx.beginPath(); ctx.moveTo(-4, -14); ctx.lineTo(9, -12); ctx.lineTo(14, -7); ctx.lineTo(14, 7); ctx.lineTo(9, 12); ctx.lineTo(-4, 14); ctx.closePath(); ctx.fill();
@@ -3102,6 +3176,7 @@ function drawArtillery(art) {
   ctx.fillStyle = 'rgba(0,0,0,.48)'; ctx.beginPath(); ctx.ellipse(0, 6, 47, 24, 0, 0, Math.PI * 2); ctx.fill();
   const teamMark = art.team === 'own' ? '#55baff' : '#ef6655';
   ctx.save(); ctx.rotate(art.angle);
+  // A low field-howitzer silhouette: split trails, large wheels, shield and long barrel.
   ctx.strokeStyle = '#343b37'; ctx.lineWidth = 7; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(-43, -30); ctx.moveTo(-8, 8); ctx.lineTo(-43, 30); ctx.stroke();
   for (const side of [-1, 1]) {
@@ -3121,6 +3196,7 @@ function drawArtillery(art) {
   ctx.fillStyle = '#282f2d'; ctx.beginPath(); ctx.roundRect(-18, -8, 24, 16, 4); ctx.fill();
   ctx.fillStyle = '#6e786d'; ctx.beginPath(); ctx.arc(1, 0, 11, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#242b29'; ctx.lineWidth = 2; ctx.stroke();
+  // Broad low gun shield with a reinforced rim and team recognition stripe.
   const shield = ctx.createLinearGradient(-2, -21, 12, 21);
   shield.addColorStop(0, '#a1a28c'); shield.addColorStop(.35, '#737b6d'); shield.addColorStop(1, '#3a433f');
   ctx.fillStyle = shield; ctx.beginPath(); ctx.moveTo(-1, -19); ctx.lineTo(13, -16); ctx.lineTo(19, -10); ctx.lineTo(19, 10); ctx.lineTo(13, 16); ctx.lineTo(-1, 19); ctx.closePath(); ctx.fill();
@@ -3137,6 +3213,7 @@ function drawArtillery(art) {
   ctx.fillStyle = tube; ctx.beginPath(); ctx.roundRect(12 - recoil, -barrelW / 2, barrelLen, barrelW, 4); ctx.fill();
   ctx.fillStyle = '#202624'; ctx.fillRect(barrelLen + 5 - recoil, -7, 10, 14);
   ctx.fillStyle = '#0c1110'; ctx.fillRect(barrelLen + 12 - recoil, -4.5, 2, 9);
+  // Small sight and breech details keep the artillery readable at a glance.
   ctx.fillStyle = '#262d2b'; ctx.fillRect(-16, -5, 7, 10);
   ctx.strokeStyle = 'rgba(226,222,190,.6)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(-8, -9); ctx.lineTo(3, -9); ctx.moveTo(-8, 9); ctx.lineTo(3, 9); ctx.stroke();
@@ -3464,6 +3541,7 @@ function drawBase(base, color, label, isOwn) {
     grad.addColorStop(0, baseColor + '99'); grad.addColorStop(0.7, baseColor + '44'); grad.addColorStop(1, baseColor + '11');
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+    // Concrete apron, sandbag ring and a compact command bunker make each HQ read as a place.
     ctx.save();
     ctx.strokeStyle = 'rgba(208,205,177,.34)'; ctx.lineWidth = 2; ctx.setLineDash([7, 8]);
     ctx.beginPath(); ctx.arc(x, y, radius - 12, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
@@ -3547,6 +3625,8 @@ function buildTerrainTexture() {
   const ground = g.createLinearGradient(0, 0, WORLD_WIDTH * .24, WORLD_HEIGHT);
   ground.addColorStop(0, '#778363'); ground.addColorStop(.32, '#68765a'); ground.addColorStop(.7, '#596a50'); ground.addColorStop(1, '#495b49');
   g.fillStyle = ground; g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+  // Broad irregular vegetation and dry-earth patches create natural color variation.
   for (let i = 0; i < 145; i++) {
     const x = rand() * WORLD_WIDTH, y = rand() * WORLD_HEIGHT;
     const rx = 35 + rand() * 165, ry = 25 + rand() * 105;
@@ -3556,6 +3636,8 @@ function buildTerrainTexture() {
     patch.addColorStop(1, 'rgba(60,70,48,0)');
     g.fillStyle = patch; g.beginPath(); g.ellipse(x, y, rx, ry, rand() * Math.PI, 0, Math.PI * 2); g.fill();
   }
+
+  // A worn supply track crosses the battlefield, with ruts and dusty shoulders.
   const roadY = y => WORLD_HEIGHT * .5 + Math.sin((y / WORLD_HEIGHT) * Math.PI * 2.3) * 75;
   g.beginPath();
   for (let x = 160; x <= WORLD_WIDTH - 120; x += 20) {
@@ -3574,6 +3656,8 @@ function buildTerrainTexture() {
     }
     g.strokeStyle = 'rgba(58,53,43,.24)'; g.lineWidth = 7; g.stroke();
   }
+
+  // Low grass, scrub and pebbles are baked once, so battlefield detail is cheap to render.
   for (let i = 0; i < 2450; i++) {
     const x = rand() * WORLD_WIDTH, y = rand() * WORLD_HEIGHT;
     const onRoad = Math.abs(y - roadY(x)) < 74;
@@ -3589,6 +3673,8 @@ function buildTerrainTexture() {
     g.fillStyle = rand() < .55 ? 'rgba(45,50,44,.48)' : 'rgba(190,176,139,.4)';
     g.beginPath(); g.ellipse(x, y, size, size * (.35 + rand() * .4), rand() * Math.PI, 0, Math.PI * 2); g.fill();
   }
+
+  // Faint contour lines and the center boundary give the map a tactical reading.
   g.strokeStyle = 'rgba(221,218,183,.09)'; g.lineWidth = 2;
   for (let row = 0; row < 7; row++) {
     const y0 = 90 + row * 195;
@@ -3604,6 +3690,8 @@ function buildTerrainTexture() {
   g.strokeStyle = 'rgba(225,213,172,.22)'; g.lineWidth = 2; g.setLineDash([18, 14]);
   g.beginPath(); g.moveTo(WORLD_WIDTH / 2, 0); g.lineTo(WORLD_WIDTH / 2, WORLD_HEIGHT); g.stroke();
   g.setLineDash([]);
+
+  // Subtle vignette frames the playable area without hiding map detail.
   const vignette = g.createRadialGradient(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 300, WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH * .62);
   vignette.addColorStop(0, 'rgba(16,22,17,0)'); vignette.addColorStop(1, 'rgba(14,20,17,.32)');
   g.fillStyle = vignette; g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -3612,6 +3700,8 @@ function buildTerrainTexture() {
 
 function drawGround() {
   if (!terrainTexture) buildTerrainTexture();
+  // Blit only the camera's visible part of the terrain cache. Scaling the entire
+  // 18k x 12k world every frame can stall the canvas and look like a blank map.
   const scaleX = terrainTexture.width / WORLD_WIDTH;
   const scaleY = terrainTexture.height / WORLD_HEIGHT;
   const viewW = canvas.clientWidth / camera.zoom;
@@ -3696,6 +3786,7 @@ function draw() {
   ctx.save();
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-camera.x + camera.shakeX, -camera.y + camera.shakeY);
+  
   buffFlags.forEach(f => {
     if (f.destroyed) return;
     const pulse = 0.85 + Math.sin(gameTime * 0.002) * 0.15;
@@ -3710,6 +3801,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(f.x, f.y, BUFF_RADIUS, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
   });
+  
   drawGround();
   drawScorchMarks();
   drawScorchMarks(remoteEffects.scorchMarks);
@@ -3718,6 +3810,7 @@ function draw() {
     if (player.uid !== onlineUid && player.base) drawBase(player.base, '#ff5a4a', player.name || 'SPIELER', false);
   });
   if (!Object.keys(remotePlayers).length) drawBase(enemyBase, '#ff5a4a', 'FEIND-BASIS', false);
+  
   tracks.forEach(t => {
     const alpha = (t.life / t.maxLife) * 0.4;
     ctx.globalAlpha = alpha; ctx.fillStyle = '#222';
@@ -3728,6 +3821,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
+  
   particles.forEach(p => {
     const alpha = p.life / p.maxLife;
     ctx.globalAlpha = alpha; ctx.fillStyle = p.color;
@@ -3739,6 +3833,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(p.x, p.y, (p.size || 3) / 2, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
+  
   shellCasings.forEach(c => {
     const alpha = Math.min(1, c.life / 500);
     ctx.globalAlpha = alpha * 0.8;
@@ -3751,6 +3846,7 @@ function draw() {
     ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.fillStyle = '#b8860b';
     ctx.fillRect(-2, -1, 4, 2); ctx.restore(); ctx.globalAlpha = 1;
   });
+  
   debris.forEach(d => {
     ctx.globalAlpha = Math.min(1, d.life / 1000);
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
@@ -3762,6 +3858,7 @@ function draw() {
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = '#333';
     ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size); ctx.restore(); ctx.globalAlpha = 1;
   });
+  
   ragdolls.forEach(r => {
     if (r.landed) {
       const fadeAlpha = r.life < 800 ? r.life / 800 : 1;
@@ -3774,14 +3871,17 @@ function draw() {
     if (r.landed) ctx.globalAlpha = r.life < 800 ? r.life / 800 : 1;
     drawRagdoll(r); ctx.globalAlpha = 1;
   });
+  
   atguns.forEach(a => drawAtgun(a));
   artillery.forEach(a => drawArtillery(a));
   buffFlags.forEach(f => drawBuffFlag(f));
   trucks.forEach(t => drawTruck(t));
+  
   soldiers.forEach(s => {
     if (s.kind === 'tank') drawTank(s);
     else drawSoldier(s);
   });
+  
   turrets.forEach(t => drawTurret(t));
   remoteEffects.turrets.forEach(t => drawTurret(t));
   bullets.forEach(b => drawBullet(b));
@@ -3798,6 +3898,7 @@ function draw() {
   remoteShockwaves.forEach(s => drawShockwave(s));
   muzzleFlashes.forEach(m => drawMuzzleFlash(m));
   remoteMuzzleFlashes.forEach(m => drawMuzzleFlash(m));
+  
   ctx.restore();
   drawMinimap();
 }
@@ -3807,6 +3908,7 @@ let lastTime = performance.now();
 function loop(now) {
   const dt = Math.min(now - lastTime, 100);
   lastTime = now;
+  
   frameCount++;
   fpsTimer += dt;
   if (fpsTimer > 500) {
@@ -3814,6 +3916,11 @@ function loop(now) {
     document.getElementById('hudFps').textContent = currentFps;
     frameCount = 0;
     fpsTimer = 0;
+  }
+  
+  if (Math.abs(camera.zoom - camera.targetZoom) > 0.0005) {
+    camera.zoom += (camera.targetZoom - camera.zoom) * Math.min(1, dt * 0.02);
+    clampCamera();
   }
   update(dt);
   draw();
@@ -3831,10 +3938,6 @@ window.WarSim = {
   ricochets: () => ricochets, muzzleFlashes: () => muzzleFlashes, explosions: () => explosions,
   shockwaves: () => shockwaves, particles: () => particles, debris: () => debris, tracks: () => tracks,
   scorchMarks: () => scorchMarks, ragdolls: () => ragdolls, shellCasings: () => shellCasings, turrets: () => turrets,
-  remoteBullets: () => remoteBullets, remoteShells: () => remoteShells, remoteArtilleryShells: () => remoteArtilleryShells,
-  remoteRicochets: () => remoteRicochets, remoteMuzzleFlashes: () => remoteMuzzleFlashes,
-  remoteExplosions: () => remoteExplosions, remoteShockwaves: () => remoteShockwaves,
-  remoteEffects: () => remoteEffects,
   base: () => ownBase,
   setLocalPlayer: id => { onlineUid = id; onlineName = `Commander-${String(id).slice(0, 4)}`; },
   setRemotePlayers: players => {
@@ -3843,48 +3946,51 @@ window.WarSim = {
     const nearest = Object.values(players).filter(p => p.base && p.base.hp > 0)
       .sort((a, b) => Math.hypot(a.base.x - ownBase.x, a.base.y - ownBase.y) - Math.hypot(b.base.x - ownBase.x, b.base.y - ownBase.y))[0];
     if (nearest) Object.assign(enemyBase, nearest.base, { ownerUid: nearest.uid, destroyed: nearest.base.hp <= 0 });
-    else Object.assign(enemyBase, { hp: 0, destroyed: true, ownerUid: null });
+    else {
+      // Solo fallback: no remote opponent -> keep the AI base running
+      if (enemyBase.ownerUid) enemyBase.ownerUid = null;
+      if (!enemyBase.destroyed && enemyBase.hp <= 0) Object.assign(enemyBase, { hp: enemyBase.maxHp, destroyed: false });
+    }
   },
+  setRemoteProjectiles: projectiles => {
+    remoteBullets = projectiles.bullets;
+    remoteShells = projectiles.shells;
+    remoteArtilleryShells = projectiles.artilleryShells;
+    remoteRicochets = projectiles.ricochets;
+    remoteMuzzleFlashes = projectiles.muzzleFlashes;
+    remoteExplosions = projectiles.explosions;
+    remoteShockwaves = projectiles.shockwaves;
+  },
+  setRemoteEffects: effects => { remoteEffects = effects; },
   centerCamera: () => { centerCamera(); clampCamera(); },
   checkBaseDestroyed: base => checkBaseDestroyed(base),
-  launchRagdoll: (soldier, x, y, radius) => launchRagdoll(soldier, x, y, radius)
+  launchRagdoll: (soldier, x, y, radius) => launchRagdoll(soldier, x, y, radius),
+  fxExplosion: (x, y, size) => createExplosion(x, y, size),
+  fxShockwave: (x, y, r, c) => createShockwave(x, y, r, c),
+  fxScorch: (x, y, s) => createScorchMark(x, y, s),
+  destroyStatic: a => destroyStatic(a),
+  destroyTruck: t => destroyTruck(t),
+  destroyBuffFlag: f => destroyBuffFlag(f)
 };
 window.WarSim.setSettings = settings => {
   for (const key of Object.keys(GAME_SETTINGS)) {
     const value = Number(settings?.[key]);
-    if (Number.isFinite(value)) GAME_SETTINGS[key] = Math.max(0.01, Math.min(20000, value));
+    if (Number.isFinite(value)) GAME_SETTINGS[key] = Math.max(50, Math.min(10000, value));
   }
   soldiers.forEach(unit => {
     if (unit.kind !== 'tank') return;
-    const isMega = !!unit.mega, isElite = !!unit.elite;
-    const dmg = isMega ? GAME_SETTINGS.megaTankDamage : isElite ? GAME_SETTINGS.eliteTankDamage : GAME_SETTINGS.tankDamage;
-    const splash = isMega ? GAME_SETTINGS.megaTankSplashRadius : isElite ? GAME_SETTINGS.eliteTankSplashRadius : GAME_SETTINGS.tankSplashRadius;
-    const speed = isMega ? GAME_SETTINGS.megaTankSpeed : isElite ? GAME_SETTINGS.eliteTankSpeed : GAME_SETTINGS.tankSpeed;
-    const hp = isMega ? GAME_SETTINGS.megaTankHealth : isElite ? GAME_SETTINGS.eliteTankHealth : GAME_SETTINGS.tankHealth;
-    const range = isMega ? GAME_SETTINGS.megaTankRange : isElite ? GAME_SETTINGS.eliteTankRange : GAME_SETTINGS.tankRange;
-    unit.damage = dmg;
-    unit.splashRadius = splash;
-    unit.speed = speed;
-    const hpRatio = unit.hp / unit.maxHp;
-    unit.maxHp = hp;
-    unit.hp = Math.min(hp, Math.max(1, Math.round(hp * hpRatio)));
-    unit.attackRange = range;
+    if (unit.mega) unit.attackRange = GAME_SETTINGS.megaTankRange * (unit.team === 'own' ? 1 : 700 / 750);
+    else if (unit.elite) unit.attackRange = GAME_SETTINGS.eliteTankRange * (unit.team === 'own' ? 1 : 570 / 620);
+    else unit.attackRange = GAME_SETTINGS.tankRange * (unit.team === 'own' ? 1 : 380 / 420);
   });
-  artillery.forEach(unit => {
-    unit.damage = GAME_SETTINGS.artilleryDamage;
-    unit.splashRadius = GAME_SETTINGS.artillerySplashRadius;
-    const hpRatio = unit.hp / unit.maxHp;
-    unit.maxHp = GAME_SETTINGS.artilleryHealth;
-    unit.hp = Math.min(unit.maxHp, Math.max(1, Math.round(unit.maxHp * hpRatio)));
-    unit.range = GAME_SETTINGS.artilleryRange;
-  });
+  artillery.forEach(unit => unit.range = GAME_SETTINGS.artilleryRange);
 };
-</script>
 
+</script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getDatabase, ref, onValue, set, push, remove, runTransaction, onDisconnect, onChildAdded } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getDatabase, ref, onValue, set, update, remove, push, onDisconnect, runTransaction, onChildAdded } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDQA4aAtKC-c0VJw1NC-Gau37zAb0h0LJY",
@@ -3903,24 +4009,31 @@ const db = getDatabase(app);
 const status = document.getElementById('onlineStatus');
 const playerRoot = ref(db, 'warsim/players');
 const settingsRef = ref(db, 'warsim/settings/unitStats');
-
-let uid = null, playerRef = null;
-let hitRef = null;
-let pingInterval = null;
-let lastSync = 0;
-let syncInFlight = false, syncQueued = false;
-
+let uid = null, playerRef = null, syncTimer = 0, hitRef = null;
 const remoteUnitByKey = new Map();
 let fallbackUnitId = 0;
-const appliedEventKeys = new Set();
+let syncInFlight = false, syncQueued = false;
+let pingInterval = null;
+
+// NETCODE: send at 10 Hz, render remote entities ~280 ms in the past and
+// interpolate (with capped extrapolation) between snapshot positions.
+// This removes the jerky "freeze then teleport" movement.
+const NET_SEND_INTERVAL = 100;
+const NET_RENDER_DELAY = 280;
+
+function lerpAngle(a, b, t) {
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return a + d * t;
+}
 
 function makeUnitId() {
-  try { if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID(); } catch (_) {}
+  try {
+    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') return globalThis.crypto.randomUUID();
+  } catch (_) {}
   fallbackUnitId += 1;
-  return `u_${Date.now().toString(36)}_${fallbackUnitId.toString(36)}_${Math.random().toString(36).slice(2,9)}`;
-}
-function makeEventId() {
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`;
+  return `unit_${Date.now().toString(36)}_${fallbackUnitId.toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function assignSpawn(uid) {
@@ -3931,325 +4044,243 @@ function assignSpawn(uid) {
       const x = i % cols, y = Math.floor(i / cols), key = `${x}_${y}`;
       const claim = ref(db, `warsim/spawnReservations/${key}`);
       const result = await runTransaction(claim, current => {
-        if (current && current.uid !== uid && Date.now() - (current.ts||0) < 120000) return;
+        if (current && current.uid !== uid) return;
         return { uid, ts: Date.now() };
       });
       if (result.committed && result.snapshot.val()?.uid === uid) {
         onDisconnect(claim).remove();
         return { x: Math.min(17500, Math.max(500, x * cellW + 1000 + (Math.random() - .5) * 500)),
-          y: Math.min(11500, Math.max(500, y * cellH + 1000 + (Math.random() - .5) * 500)) };
+          y: Math.min(11500, Math.max(500, y * cellH + 1000 + (Math.random() - .5) * 500)), claim };
       }
     }
-    return { x: 900 + Math.random() * 16200, y: 600 + Math.random() * 10800 };
+    return { x: 900 + Math.random() * 16200, y: 600 + Math.random() * 10800, claim: null };
   })();
 }
 
-function leanSnapshot() {
+function toList(value) {
+  return Array.isArray(value) ? value : Object.values(value || {});
+}
+
+function serializeEntities(entities, projectile = false) {
+  const now = Date.now();
+  return entities.filter(entity => !entity.remote && !entity.destroyed && (!projectile || (entity.life > 0 && (!entity.netCreatedAt || now - entity.netCreatedAt < Math.min(3000, (entity.maxLife || 500) + 400))))).slice(projectile ? -500 : -1200).map(entity => {
+    const idKey = projectile ? 'netId' : 'unitId';
+    if (!entity[idKey]) entity[idKey] = makeUnitId();
+    if (projectile && !entity.netCreatedAt) entity.netCreatedAt = now;
+    const packed = { id: entity[idKey] };
+    if (projectile) packed.createdAt = entity.netCreatedAt;
+    for (const [key, value] of Object.entries(entity)) {
+      if (['unitId', 'netId', 'remote', 'ownerUid', 'assignedAtgun', 'assignedArtillery'].includes(key)) continue;
+      if (typeof value === 'number' && Number.isFinite(value) || typeof value === 'string' || typeof value === 'boolean') packed[key] = value;
+      else if (key === 'moveTarget' && value && Number.isFinite(value.x) && Number.isFinite(value.y)) packed[key] = { x: value.x, y: value.y };
+      else if (Array.isArray(value)) packed[key] = value.slice(-16).map(item => {
+        if (typeof item === 'number' || typeof item === 'string' || typeof item === 'boolean') return item;
+        if (!item || typeof item !== 'object') return null;
+        const safeItem = {};
+        for (const [itemKey, itemValue] of Object.entries(item)) {
+          if (typeof itemValue === 'number' && Number.isFinite(itemValue) || typeof itemValue === 'string' || typeof itemValue === 'boolean') safeItem[itemKey] = itemValue;
+        }
+        return safeItem;
+      }).filter(Boolean);
+    }
+    return packed;
+  });
+}
+
+function snapshot() {
   const base = window.WarSim.base();
   const unitCollections = {
-    s: window.WarSim.soldiers(),
-    a: window.WarSim.atguns(),
-    r: window.WarSim.artillery(),
-    t: window.WarSim.trucks(),
-    f: window.WarSim.flags()
+    soldiers: window.WarSim.soldiers(), atguns: window.WarSim.atguns(), artillery: window.WarSim.artillery(),
+    trucks: window.WarSim.trucks(), flags: window.WarSim.flags()
   };
-  const units = [];
-  for (const [bucket, list] of Object.entries(unitCollections)) {
-    for (const e of list) {
-      if (e.remote || e.destroyed || (e.hp ?? 0) <= 0) continue;
-      if (!e.unitId) e.unitId = makeUnitId();
-      units.push([
-        bucket, e.unitId,
-        Math.round(e.x), Math.round(e.y),
-        Math.round(e.hp),
-        e.kind === 'tank' ? (e.elite ? 2 : e.mega ? 3 : 1) : 0,
-        Math.round((e.facing || 1) * 100),
-        Math.round((e.turretAngle || 0) * 100),
-        Math.round((e.barrelPitch || 0) * 100)
-      ]);
-    }
-  }
-  return {
-    uid,
-    base: { x: Math.round(base.x), y: Math.round(base.y), hp: Math.round(base.hp), maxHp: base.maxHp, radius: base.radius },
-    units,
-    updatedAt: Date.now()
+  const projectileCollections = {
+    bullets: window.WarSim.bullets(), shells: window.WarSim.shells(), artilleryShells: window.WarSim.artilleryShells(),
+    ricochets: window.WarSim.ricochets(), muzzleFlashes: window.WarSim.muzzleFlashes(),
+    explosions: window.WarSim.explosions(), shockwaves: window.WarSim.shockwaves()
   };
+  // Bandwidth: skip short-lived cosmetic effects, sync durable ones only
+  const effectCollections = {
+    tracks: window.WarSim.tracks(),
+    scorchMarks: window.WarSim.scorchMarks(), ragdolls: window.WarSim.ragdolls(),
+    turrets: window.WarSim.turrets()
+  };
+  const units = {}, projectiles = {}, effects = {};
+  for (const [key, list] of Object.entries(unitCollections)) units[key] = serializeEntities(list);
+  for (const [key, list] of Object.entries(projectileCollections)) projectiles[key] = serializeEntities(list, true);
+  for (const [key, list] of Object.entries(effectCollections)) effects[key] = serializeEntities(list, true);
+  return { uid, name: `Commander-${uid.slice(0, 4)}`, base: { x: base.x, y: base.y, hp: base.hp, maxHp: base.maxHp, radius: base.radius }, units, projectiles, effects, updatedAt: Date.now() };
 }
 
-const pendingEvents = [];
-let eventFlushTimer = null;
-
-function queueEvent(type, payload) {
-  if (!uid) return;
-  pendingEvents.push({ type, payload, id: makeEventId(), ts: Date.now() });
-  if (!eventFlushTimer) eventFlushTimer = setTimeout(flushEvents, 60);
-}
-
-function flushEvents() {
-  eventFlushTimer = null;
-  if (!uid || !pendingEvents.length) return;
-  const batch = pendingEvents.splice(0, 40);
-  const updates = {};
-  for (const ev of batch) updates[`warsim/events_broadcast/${ev.id}`] = { ...ev, from: uid };
-  update(ref(db), updates).catch(() => {});
-  setTimeout(() => {
-    for (const ev of batch) remove(ref(db, `warsim/events_broadcast/${ev.id}`)).catch(() => {});
-  }, 6000);
-}
-
-function applyIncomingEvent(ev) {
-  if (!ev || ev.from === uid) return;
-  if (appliedEventKeys.has(ev.id)) return;
-  appliedEventKeys.add(ev.id);
-  if (appliedEventKeys.size > 5000) {
-    const first = appliedEventKeys.values().next().value;
-    appliedEventKeys.delete(first);
-  }
-  const p = ev.payload || {};
-  const W = window.WarSim;
-  switch (ev.type) {
-    case 'muzzle_flash':
-      W.remoteMuzzleFlashes().push({ x: p.x, y: p.y, angle: p.angle, size: p.size, life: p.life || 100, maxLife: p.maxLife || 120, team: 'enemy' });
-      break;
-    case 'bullet':
-      W.remoteBullets().push({
-        x: p.x, y: p.y, vx: p.vx, vy: p.vy, team: 'enemy', damage: p.damage || 10,
-        life: p.life || 1500, maxLife: p.life || 1500, trail: [], trailLength: p.trailLength || 5,
-        elite: !!p.elite, remote: true, ownerUid: ev.from, receivedAt: performance.now(),
-        snapshotX: p.x, snapshotY: p.y, snapshotLife: p.life || 1500
-      });
-      break;
-    case 'shell':
-      W.remoteShells().push({
-        x: p.x, y: p.y, vx: p.vx, vy: p.vy, team: 'enemy', damage: p.damage || 40,
-        life: p.life || 2800, maxLife: p.life || 2800, trail: [], trailLength: p.trailLength || 10,
-        radius: p.radius || 6, elite: !!p.elite, mega: !!p.mega, splashRadius: p.splashRadius || 80,
-        remote: true, ownerUid: ev.from, receivedAt: performance.now(),
-        snapshotX: p.x, snapshotY: p.y, snapshotLife: p.life || 2800
-      });
-      break;
-    case 'artillery_shell':
-      W.remoteArtilleryShells().push({
-        startX: p.startX, startY: p.startY, endX: p.endX, endY: p.endY,
-        x: p.startX, y: p.startY, t: 0, flightTime: p.flightTime || 1200,
-        arcHeight: p.arcHeight || 400, team: 'enemy', damage: p.damage || 100,
-        splashRadius: p.splashRadius || 180, life: p.flightTime || 1200, maxLife: p.flightTime || 1200,
-        trail: [], exploded: false, remote: true, ownerUid: ev.from,
-        receivedAt: performance.now(), snapshotT: 0, snapshotLife: p.flightTime || 1200
-      });
-      break;
-    case 'explosion': {
-      W.remoteExplosions().push({ x: p.x, y: p.y, life: 650, maxLife: 650, size: p.size || 1 });
-      W.remoteShockwaves().push({ x: p.x, y: p.y, radius: 5, maxRadius: p.shockRadius || 120, life: 550, maxLife: 550, color: p.color || '#ffcc66' });
-      W.remoteEffects().scorchMarks.push({
-        x: p.x, y: p.y, radius: (p.scorchSize || 1) * 32, life: 16000, maxLife: 16000, size: p.scorchSize || 1,
-        blobs: Array.from({length: 8}, () => ({
-          dx: (Math.random() - .5) * 24 * (p.scorchSize || 1),
-          dy: (Math.random() - .5) * 24 * (p.scorchSize || 1),
-          r: (5 + Math.random() * 10) * (p.scorchSize || 1)
-        }))
-      });
-      break;
-    }
-    case 'ricochet':
-      W.remoteRicochets().push({
-        x: p.x, y: p.y, vx: p.vx, vy: p.vy, life: 900, maxLife: 900,
-        trail: [], trailLength: 5, remote: true, receivedAt: performance.now(),
-        snapshotX: p.x, snapshotY: p.y, snapshotLife: 900
-      });
-      break;
-    case 'ragdoll':
-      W.remoteEffects().ragdolls.push({
-        x: p.x, y: p.y, vx: p.vx, vy: p.vy, rot: 0, rotSpeed: p.rotSpeed || 0,
-        bodyColor: p.color || '#a02a1e', facing: p.facing || 1, walkPhase: 0,
-        isElite: !!p.isElite, landed: false, landedAt: 0, groundY: p.y + 30,
-        life: 4500, maxLife: 4500, remote: true
-      });
-      break;
-    case 'turret':
-      W.remoteEffects().turrets.push({
-        x: p.x, y: p.y, vx: p.vx, vy: p.vy, groundY: p.y + 30,
-        rot: 0, rotSpeed: p.rotSpeed || .2, landed: false, landedAt: 0, life: 10000,
-        radius: p.radius || 18, color: p.color || '#888', team: 'enemy',
-        elite: !!p.elite, mega: !!p.mega, remote: true,
-        snapshotX: p.x, snapshotY: p.y, snapshotLife: 10000, kind: 'turret'
-      });
-      break;
-  }
-}
-
-onValue(ref(db, 'warsim/events_broadcast'), snap => {
-  const val = snap.val() || {};
-  const now = Date.now();
-  for (const [id, ev] of Object.entries(val)) {
-    if (!ev || !ev.ts) continue;
-    if (now - ev.ts > 10000) continue;
-    applyIncomingEvent({ ...ev, id });
-  }
-});
-
-function installBroadcastHooks() {
-  const hookArray = (getArr, type, mapper) => {
-    const arr = getArr();
-    if (!arr || arr.__hooked) return;
-    const orig = arr.push.bind(arr);
-    arr.push = function(...items) {
-      const r = orig(...items);
-      for (const item of items) {
-        if (item.remote) continue;
-        const payload = mapper(item);
-        if (payload) queueEvent(type, payload);
+function reconcile(players) {
+  const activeIds = new Set();
+  const remotes = {};
+  const buckets = {
+    soldiers: window.WarSim.soldiers(), atguns: window.WarSim.atguns(), artillery: window.WarSim.artillery(),
+    trucks: window.WarSim.trucks(), flags: window.WarSim.flags()
+  };
+  const remoteProjectiles = { bullets: [], shells: [], artilleryShells: [], ricochets: [], muzzleFlashes: [], explosions: [], shockwaves: [] };
+  const remoteEffectBuckets = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
+  for (const [otherUid, record] of Object.entries(players || {})) {
+    if (!record || otherUid === uid || Date.now() - (record.updatedAt || 0) > 25000) continue;
+    remotes[otherUid] = { ...record, uid: otherUid };
+    const storedUnits = record.units || {};
+    const unitData = Array.isArray(storedUnits) ? { soldiers: storedUnits } : storedUnits;
+    for (const [bucket, collection] of Object.entries(buckets)) {
+      const list = toList(unitData[bucket]);
+      for (const data of list) {
+        if (!data || typeof data !== 'object' || !Number.isFinite(data.x) || !Number.isFinite(data.y) || data.hp <= 0 || data.destroyed) continue;
+        const key = `${otherUid}:${bucket}:${data.id}`;
+        activeIds.add(key);
+        let entity = remoteUnitByKey.get(key);
+        if (!entity) {
+          const nowMs = Date.now();
+          entity = { ...data, unitId: data.id, remote: true, ownerUid: otherUid, team: 'enemy', spawnAnim: 0, hitFlash: 0,
+            netBuffer: [
+              { t: nowMs - 400, x: data.x, y: data.y, turretAngle: data.turretAngle, angle: data.angle, facing: data.facing },
+              { t: nowMs, x: data.x, y: data.y, turretAngle: data.turretAngle, angle: data.angle, facing: data.facing }
+            ] };
+          if (bucket === 'soldiers') Object.assign(entity, {
+            radius: Number.isFinite(data.radius) ? data.radius : 12, walkPhase: Number.isFinite(data.walkPhase) ? data.walkPhase : 0,
+            facing: data.facing === -1 ? -1 : 1, turretAngle: Number.isFinite(data.turretAngle) ? data.turretAngle : 0,
+            barrelPitch: Number.isFinite(data.barrelPitch) ? data.barrelPitch : 0, recoilOffset: Number.isFinite(data.recoilOffset) ? data.recoilOffset : 0
+          });
+          else entity.kind ||= bucket === 'atguns' ? 'atgun' : bucket === 'flags' ? 'buffflag' : bucket === 'trucks' ? 'truck' : 'artillery';
+          remoteUnitByKey.set(key, entity);
+          collection.push(entity);
+        } else {
+          const nowMs = Date.now();
+          const prev = entity.netBuffer[entity.netBuffer.length - 1];
+          if (!prev || nowMs - prev.t > 30) {
+            entity.netBuffer.push({ t: nowMs, x: data.x, y: data.y, turretAngle: data.turretAngle, angle: data.angle, facing: data.facing });
+            if (entity.netBuffer.length > 60) entity.netBuffer.shift();
+          }
+          Object.assign(entity, data, { unitId: data.id, remote: true, ownerUid: otherUid, team: 'enemy' });
+        }
       }
-      return r;
-    };
-    arr.__hooked = true;
-  };
-  hookArray(() => window.WarSim.bullets(), 'bullet', b => ({
-    x: Math.round(b.x), y: Math.round(b.y),
-    vx: +b.vx.toFixed(2), vy: +b.vy.toFixed(2),
-    damage: Math.round(b.damage || 10), life: b.life || 1500,
-    trailLength: b.trailLength || 5, elite: !!b.elite
-  }));
-  hookArray(() => window.WarSim.shells(), 'shell', sh => ({
-    x: Math.round(sh.x), y: Math.round(sh.y),
-    vx: +sh.vx.toFixed(2), vy: +sh.vy.toFixed(2),
-    damage: Math.round(sh.damage || 40), life: sh.life || 2800,
-    trailLength: sh.trailLength || 10, radius: sh.radius || 6,
-    elite: !!sh.elite, mega: !!sh.mega, splashRadius: sh.splashRadius || 80
-  }));
-  hookArray(() => window.WarSim.artilleryShells(), 'artillery_shell', a => ({
-    startX: Math.round(a.startX), startY: Math.round(a.startY),
-    endX: Math.round(a.endX), endY: Math.round(a.endY),
-    flightTime: a.flightTime || 1200, arcHeight: Math.round(a.arcHeight || 400),
-    damage: Math.round(a.damage || 100), splashRadius: a.splashRadius || 180
-  }));
-  hookArray(() => window.WarSim.muzzleFlashes(), 'muzzle_flash', m => ({
-    x: Math.round(m.x), y: Math.round(m.y),
-    angle: +m.angle.toFixed(3), size: m.size,
-    life: m.life, maxLife: m.maxLife
-  }));
-  hookArray(() => window.WarSim.explosions(), 'explosion', e => ({
-    x: Math.round(e.x), y: Math.round(e.y),
-    size: e.size || 1,
-    shockRadius: e.size > 2 ? 200 : 130,
-    color: e.size > 2.5 ? '#ffaa44' : '#ffcc66',
-    scorchSize: e.size || 1
-  }));
-  hookArray(() => window.WarSim.ricochets(), 'ricochet', r => ({
-    x: Math.round(r.x), y: Math.round(r.y),
-    vx: +r.vx.toFixed(2), vy: +r.vy.toFixed(2)
-  }));
-  hookArray(() => window.WarSim.ragdolls(), 'ragdoll', r => ({
-    x: Math.round(r.x), y: Math.round(r.y),
-    vx: +(r.vx||0).toFixed(2), vy: +(r.vy||0).toFixed(2),
-    rotSpeed: +(r.rotSpeed||0).toFixed(3),
-    color: r.bodyColor, facing: r.facing, isElite: !!r.isElite
-  }));
-  hookArray(() => window.WarSim.turrets(), 'turret', t => ({
-    x: Math.round(t.x), y: Math.round(t.y),
-    vx: +(t.vx||0).toFixed(2), vy: +(t.vy||0).toFixed(2),
-    rotSpeed: +(t.rotSpeed||.2).toFixed(3),
-    radius: t.radius || 18, color: t.color || '#888',
-    elite: !!t.elite, mega: !!t.mega
-  }));
+    }
+    const storedProjectiles = record.projectiles || {};
+    for (const [bucket, out] of Object.entries(remoteProjectiles)) {
+      for (const data of toList(storedProjectiles[bucket])) {
+        if (Number.isFinite(data?.createdAt) && Date.now() - data.createdAt >= 5000) continue;
+        if (!data || typeof data !== 'object' || !Number.isFinite(data.x) || !Number.isFinite(data.y)) continue;
+        out.push({ ...data, team: 'enemy', remote: true, ownerUid: otherUid, netId: data.id,
+          receivedAt: performance.now(), snapshotX: data.x, snapshotY: data.y, snapshotT: data.t,
+          snapshotLife: data.life, snapshotRadius: data.radius, visualKind: bucket });
+      }
+    }
+    for (const [bucket, out] of Object.entries(remoteEffectBuckets)) {
+      for (const data of toList((record.effects || {})[bucket])) {
+        if (!data || typeof data !== 'object' || !Number.isFinite(data.x) || !Number.isFinite(data.y)) continue;
+        out.push({ ...data, team: 'enemy', remote: true, ownerUid: otherUid,
+          receivedAt: performance.now(), snapshotX: data.x, snapshotY: data.y,
+          snapshotLife: data.life, snapshotRot: data.rot, kind: bucket === 'turrets' ? 'turret' : bucket });
+      }
+    }
+  }
+  for (const [key, entity] of remoteUnitByKey) if (!activeIds.has(key)) {
+    for (const collection of Object.values(buckets)) {
+      const index = collection.indexOf(entity);
+      if (index >= 0) { collection.splice(index, 1); break; }
+    }
+    remoteUnitByKey.delete(key);
+    // Death feedback: remote units vanished without any effect before
+    if (entity.kind === 'tank') {
+      window.WarSim.fxExplosion(entity.x, entity.y, entity.mega ? 2.8 : entity.elite ? 2.2 : 1.8);
+      window.WarSim.fxShockwave(entity.x, entity.y, entity.mega ? 180 : 120, '#ff8844');
+      window.WarSim.fxScorch(entity.x, entity.y, 1.2);
+    } else if (entity.hp !== undefined) {
+      window.WarSim.fxExplosion(entity.x, entity.y, 0.8);
+    }
+  }
+  window.WarSim.setRemotePlayers(remotes);
+  window.WarSim.setRemoteProjectiles(remoteProjectiles);
+  window.WarSim.setRemoteEffects(remoteEffectBuckets);
+  if (uid && status.textContent.startsWith('Online')) status.textContent = `Online · ${Object.keys(remotes).length + 1} Spieler`;
 }
 
 Object.assign(window.WarSim, {
   advanceRemoteVisuals: () => {
     const now = performance.now();
+    const renderTime = now - NET_RENDER_DELAY;
     for (const entity of remoteUnitByKey.values()) {
-      const p = Math.max(0, Math.min(1, (now - entity.renderStartedAt) / 100));
-      entity.x = entity.renderFromX + (entity.renderToX - entity.renderFromX) * p;
-      entity.y = entity.renderFromY + (entity.renderToY - entity.renderFromY) * p;
-    }
-    const step = (list) => {
-      for (const p of list) {
-        if (!p.receivedAt) continue;
-        const age = Math.max(0, Math.min(2000, now - p.receivedAt));
-        const frames = age / 16.667;
-        if (Number.isFinite(p.vx) && Number.isFinite(p.vy)) {
-          p.x = (p.snapshotX ?? p.x) + p.vx * frames;
-          p.y = (p.snapshotY ?? p.y) + p.vy * frames;
-        }
-        if (Number.isFinite(p.snapshotLife)) p.life = Math.max(0, p.snapshotLife - age);
-        if (p.trail) {
-          p.trail.push({ x: p.x, y: p.y });
-          if (p.trail.length > (p.trailLength || 6)) p.trail.shift();
-        }
+      const buf = entity.netBuffer;
+      if (!buf || buf.length === 0) continue;
+      if (buf.length === 1) { entity.x = buf[0].x; entity.y = buf[0].y; continue; }
+      let i = buf.length - 2;
+      while (i > 0 && buf[i].t > renderTime) i--;
+      const a = buf[i], b = buf[i + 1];
+      if (renderTime >= b.t) {
+        // extrapolate slightly past the newest snapshot so motion never freezes
+        const dtb = Math.max(16, b.t - a.t);
+        const over = Math.min(renderTime - b.t, 120);
+        entity.x = b.x + (b.x - a.x) / dtb * over;
+        entity.y = b.y + (b.y - a.y) / dtb * over;
+        if (Number.isFinite(b.turretAngle)) entity.turretAngle = b.turretAngle;
+        if (Number.isFinite(b.angle)) entity.angle = b.angle;
+        if (b.facing) entity.facing = b.facing === -1 ? -1 : 1;
+      } else if (renderTime <= a.t) {
+        entity.x = a.x; entity.y = a.y;
+        if (Number.isFinite(a.turretAngle)) entity.turretAngle = a.turretAngle;
+        if (Number.isFinite(a.angle)) entity.angle = a.angle;
+        if (a.facing) entity.facing = a.facing === -1 ? -1 : 1;
+      } else {
+        const t = (renderTime - a.t) / Math.max(1, b.t - a.t);
+        entity.x = a.x + (b.x - a.x) * t;
+        entity.y = a.y + (b.y - a.y) * t;
+        if (Number.isFinite(a.turretAngle) && Number.isFinite(b.turretAngle)) entity.turretAngle = lerpAngle(a.turretAngle, b.turretAngle, t);
+        else if (Number.isFinite(b.turretAngle)) entity.turretAngle = b.turretAngle;
+        if (Number.isFinite(a.angle) && Number.isFinite(b.angle)) entity.angle = lerpAngle(a.angle, b.angle, t);
+        else if (Number.isFinite(b.angle)) entity.angle = b.angle;
+        if (a.facing && b.facing && a.facing !== b.facing) entity.facing = t < 0.5 ? (a.facing === -1 ? -1 : 1) : (b.facing === -1 ? -1 : 1);
       }
-    };
-    step(window.WarSim.remoteBullets());
-    step(window.WarSim.remoteShells());
-    step(window.WarSim.remoteRicochets());
-    for (const a of window.WarSim.remoteArtilleryShells()) {
-      const age = Math.max(0, Math.min(3000, now - (a.receivedAt || now)));
-      const t = Math.min(1, (a.snapshotT || 0) + age / (a.flightTime || 1200));
-      a.t = t;
-      const gx = a.startX + (a.endX - a.startX) * t;
-      const gy = a.startY + (a.endY - a.startY) * t;
-      a.x = gx;
-      a.y = gy - Math.sin(t * Math.PI) * (a.arcHeight || 400);
-      a.life = Math.max(0, (a.flightTime || 1200) - age);
-      a.trail.push({ x: a.x, y: a.y });
-      if (a.trail.length > 15) a.trail.shift();
+      // keep remote walk/tracks animation alive between snapshots
+      if (Number.isFinite(entity.walkPhase)) entity.walkPhase += 0.3;
     }
-    for (const list of [window.WarSim.remoteExplosions(), window.WarSim.remoteShockwaves(), window.WarSim.remoteMuzzleFlashes()]) {
-      for (let i = list.length - 1; i >= 0; i--) {
-        list[i].life -= 16.667;
-        if (list[i].life <= 0) list.splice(i, 1);
+    for (const list of Object.values(remoteEffects)) list.forEach(effect => {
+      const age = Math.max(0, Math.min(100, now - effect.receivedAt));
+      if (Number.isFinite(effect.snapshotLife)) effect.life = Math.max(0, effect.snapshotLife - age);
+      if (Number.isFinite(effect.vx) && Number.isFinite(effect.vy)) {
+        effect.x = effect.snapshotX + effect.vx * age / 16.667;
+        effect.y = effect.snapshotY + effect.vy * age / 16.667;
       }
-    }
-    for (const s of window.WarSim.remoteShockwaves()) {
-      const prog = 1 - s.life / s.maxLife;
-      s.radius = 5 + prog * s.maxRadius;
-    }
-    const physStep = (list) => {
-      if (!list) return;
-      for (let i = list.length - 1; i >= 0; i--) {
-        const r = list[i];
-        if (!r.landed) {
-          r.x += r.vx || 0;
-          r.y += (r.vy || 0);
-          r.vy = (r.vy || 0) + 0.5;
-          r.rot = (r.rot || 0) + (r.rotSpeed || 0);
-          if ((r.vy || 0) > 0 && r.y >= r.groundY) {
-            r.y = r.groundY;
-            r.landed = true;
-            r.landedAt = now;
-          }
-        }
-        if (r.landed && now - r.landedAt > 2800) {
-          r.life -= 16.667;
-          if (r.life <= 0) list.splice(i, 1);
-        }
+      if (Number.isFinite(effect.snapshotRot) && Number.isFinite(effect.rotSpeed)) effect.rot = effect.snapshotRot + effect.rotSpeed * age / 16.667;
+      if (effect.landed && effect.kind === 'turret') effect.landedAt = now - age;
+    });
+    const advance = list => list.forEach(projectile => {
+      const age = Math.max(0, Math.min(100, now - projectile.receivedAt));
+      if (Number.isFinite(projectile.snapshotLife)) projectile.life = Math.max(0, projectile.snapshotLife - age);
+      if (Number.isFinite(projectile.vx) && Number.isFinite(projectile.vy)) {
+        projectile.x = projectile.snapshotX + projectile.vx * age / 16.667;
+        projectile.y = projectile.snapshotY + projectile.vy * age / 16.667;
       }
-    };
-    physStep(window.WarSim.remoteEffects().ragdolls);
-    physStep(window.WarSim.remoteEffects().turrets);
-    const rp = window.WarSim.remoteEffects().particles;
-    if (rp) {
-      for (const p of rp) {
-        p.x += p.vx || 0; p.y += p.vy || 0;
-        p.vx = (p.vx || 0) * (p.drag || .94);
-        p.vy = (p.vy || 0) * (p.drag || .94) + (p.gravity || 0);
-        p.life -= 16.667;
+      if (Number.isFinite(projectile.snapshotT) && Number.isFinite(projectile.flightTime) && projectile.flightTime > 0) {
+        projectile.t = Math.min(1, projectile.snapshotT + age / projectile.flightTime);
+        const gx = projectile.startX + (projectile.endX - projectile.startX) * projectile.t;
+        const gy = projectile.startY + (projectile.endY - projectile.startY) * projectile.t;
+        projectile.x = gx; projectile.y = gy - Math.sin(projectile.t * Math.PI) * projectile.arcHeight;
       }
-      for (let i = rp.length - 1; i >= 0; i--) if (rp[i].life <= 0) rp.splice(i, 1);
-    }
+      if (projectile.visualKind === 'shockwaves' && Number.isFinite(projectile.maxRadius) && Number.isFinite(projectile.maxLife)) {
+        projectile.radius = 5 + (1 - projectile.life / projectile.maxLife) * projectile.maxRadius;
+      }
+    });
+    [remoteBullets, remoteShells, remoteRicochets].forEach(advance);
+    advance(remoteArtilleryShells);
   },
   refreshLocalState: dt => {
-    if (!playerRef) return;
-    if (dt && lastSync + 150 > performance.now()) return;
-    lastSync = performance.now();
-    if (syncInFlight) { syncQueued = true; return; }
-    syncInFlight = true;
-    set(playerRef, leanSnapshot())
-      .catch(err => console.warn('Sync:', err))
-      .finally(() => {
-        syncInFlight = false;
-        if (syncQueued) { syncQueued = false; window.WarSim.refreshLocalState(150); }
-      });
+    syncTimer += dt;
+    if (syncTimer >= NET_SEND_INTERVAL && playerRef) {
+      syncTimer %= NET_SEND_INTERVAL;
+      if (syncInFlight) syncQueued = true;
+      else {
+        syncInFlight = true;
+        update(playerRef, snapshot())
+          .catch(error => console.warn('Warsim Sync:', error))
+          .finally(() => {
+            syncInFlight = false;
+            if (syncQueued && playerRef) { syncQueued = false; window.WarSim.refreshLocalState(NET_SEND_INTERVAL); }
+          });
+      }
+    }
   },
   sendHit: (targetUid, unitId, damage, impact = null) => {
     const hit = push(ref(db, `warsim/hits/${targetUid}`));
@@ -4262,88 +4293,16 @@ Object.assign(window.WarSim, {
   }
 });
 
-function reconcile(players) {
-  const activeIds = new Set();
-  const remotes = {};
-  const buckets = {
-    s: window.WarSim.soldiers(),
-    a: window.WarSim.atguns(),
-    r: window.WarSim.artillery(),
-    t: window.WarSim.trucks(),
-    f: window.WarSim.flags()
-  };
-  for (const [otherUid, record] of Object.entries(players || {})) {
-    if (!record || otherUid === uid) continue;
-    if (Date.now() - (record.updatedAt || 0) > 30000) continue;
-    remotes[otherUid] = { uid: otherUid, base: record.base, name: `Commander-${otherUid.slice(0,4)}` };
-    const units = record.units || [];
-    for (const arr of units) {
-      if (!Array.isArray(arr) || arr.length < 4) continue;
-      const [bucket, unitId, x, y, hp, tankTier, facing, turretAngle, barrelPitch] = arr;
-      const collection = buckets[bucket];
-      if (!collection) continue;
-      if (hp <= 0) continue;
-      const key = `${otherUid}:${bucket}:${unitId}`;
-      activeIds.add(key);
-      let entity = remoteUnitByKey.get(key);
-      if (!entity) {
-        entity = {
-          remote: true, ownerUid: otherUid, team: 'enemy',
-          unitId, spawnAnim: 0, hitFlash: 0, hp, maxHp: hp,
-          renderFromX: x, renderFromY: y, renderToX: x, renderToY: y,
-          renderStartedAt: performance.now(), x, y,
-          kind: bucket === 's' ? 'soldier' : bucket === 't' ? 'truck' : bucket === 'a' ? 'atgun' : bucket === 'f' ? 'buffflag' : 'artillery',
-          radius: bucket === 's' ? (tankTier ? 24 : 12) : 20,
-          collisionRadius: 15, facing: 1, walkPhase: 0,
-          turretAngle: 0, barrelPitch: 0, recoilOffset: 0,
-          color: '#e74c3c', speed: 0, damage: 0, attackRange: 0,
-          attackCooldown: 0, attackInterval: 1000, isElite: false,
-          setupState: 'active', setupProgress: 1, setupTime: 1,
-          destroyed: false, elite: tankTier === 2, mega: tankTier === 3,
-          flagWave: Math.random() * Math.PI * 2,
-          atgunRole: null, assignedAtgun: null, assignedArtillery: null, moveTarget: null
-        };
-        remoteUnitByKey.set(key, entity);
-        collection.push(entity);
-      } else {
-        entity.renderFromX = entity.x; entity.renderFromY = entity.y;
-        entity.renderToX = x; entity.renderToY = y;
-        entity.renderStartedAt = performance.now();
-        entity.hp = hp;
-        entity.maxHp = Math.max(entity.maxHp || hp, hp);
-        entity.facing = facing / 100;
-        entity.turretAngle = turretAngle / 100;
-        entity.barrelPitch = barrelPitch / 100;
-      }
-    }
-  }
-  for (const [key, entity] of remoteUnitByKey) {
-    if (!activeIds.has(key)) {
-      for (const collection of Object.values(buckets)) {
-        const idx = collection.indexOf(entity);
-        if (idx >= 0) { collection.splice(idx, 1); break; }
-      }
-      remoteUnitByKey.delete(key);
-    }
-  }
-  window.WarSim.setRemotePlayers(remotes);
-  if (uid && status.textContent.startsWith('Online')) {
-    status.textContent = `Online · ${Object.keys(remotes).length + 1} Spieler`;
-  }
-}
-
 onValue(playerRoot, snap => reconcile(snap.val() || {}), error => {
   status.textContent = 'Firebase Fehler';
   status.style.color = '#ff7777';
   console.error('Warsim Spieler-Sync:', error);
 });
-
 let settingsListenerStarted = false;
 onAuthStateChanged(auth, async user => {
   if (!user) return;
   if (uid === user.uid && playerRef) return;
   uid = user.uid;
-  window.WarSim.setLocalPlayer(uid);
   if (!settingsListenerStarted) {
     settingsListenerStarted = true;
     onValue(settingsRef, snap => {
@@ -4351,17 +4310,13 @@ onAuthStateChanged(auth, async user => {
       if (settings) window.WarSim.setSettings(settings);
     }, error => console.warn('Warsim Einstellungen:', error));
   }
-  if (!window.__warHooksInstalled) {
-    window.__warHooksInstalled = true;
-    installBroadcastHooks();
-  }
+  window.WarSim.setLocalPlayer(uid);
   try {
     const spawn = await assignSpawn(uid);
-    const base = window.WarSim.base();
-    base.x = spawn.x; base.y = spawn.y;
+    const base = window.WarSim.base(); base.x = spawn.x; base.y = spawn.y;
     window.WarSim.centerCamera();
     playerRef = ref(db, `warsim/players/${uid}`);
-    await set(playerRef, leanSnapshot());
+    await set(playerRef, snapshot());
     onDisconnect(playerRef).remove();
     hitRef = ref(db, `warsim/hits/${uid}`);
     onChildAdded(hitRef, async snap => {
@@ -4371,44 +4326,42 @@ onAuthStateChanged(auth, async user => {
           base.hp = Math.max(0, base.hp - hit.damage);
           window.WarSim.checkBaseDestroyed(base);
         } else {
-          const target = [...window.WarSim.soldiers(), ...window.WarSim.atguns(), ...window.WarSim.artillery(),
-                          ...window.WarSim.trucks(), ...window.WarSim.flags()]
-                          .find(u => !u.remote && u.unitId === hit.unitId);
+          const target = [...window.WarSim.soldiers(), ...window.WarSim.atguns(), ...window.WarSim.artillery(), ...window.WarSim.trucks(), ...window.WarSim.flags()].find(u => !u.remote && u.unitId === hit.unitId);
           if (target) {
             target.hp = Math.max(0, target.hp - hit.damage);
-            if (target.hp <= 0 && target.kind === 'soldier' && !target.armored &&
-                Number.isFinite(hit.impactX) && Number.isFinite(hit.impactY)) {
+            if (target.hp <= 0 && target.kind === 'soldier' && !target.armored && Number.isFinite(hit.impactX) && Number.isFinite(hit.impactY)) {
               window.WarSim.launchRagdoll(target, hit.impactX, hit.impactY, hit.impactRadius || 42);
-            } else if (target.hp <= 0) target.destroyed = true;
+            } else if (target.hp <= 0) {
+              if (target.flagWave !== undefined) window.WarSim.destroyBuffFlag(target);
+              else if (target.type !== undefined) window.WarSim.destroyTruck(target);
+              else window.WarSim.destroyStatic(target);
+            }
           }
         }
       }
       if (snap.key) remove(ref(db, `warsim/hits/${uid}/${snap.key}`)).catch(() => {});
-      await remove(snap.ref).catch(() => {});
+      if (playerRef) update(playerRef, snapshot()).catch(() => {});
+      await remove(snap.ref);
     });
     const pingRef = ref(db, `warsim/players/${uid}/ping`);
     const measurePing = async () => {
-      const t0 = performance.now();
+      const startedAt = performance.now();
       try {
         await set(pingRef, Date.now());
-        document.getElementById('hudPing').textContent = Math.round(performance.now() - t0);
-      } catch { document.getElementById('hudPing').textContent = '--'; }
+        document.getElementById('hudPing').textContent = Math.round(performance.now() - startedAt);
+      } catch (error) {
+        document.getElementById('hudPing').textContent = '--';
+      }
     };
     await measurePing();
     if (pingInterval) clearInterval(pingInterval);
-    pingInterval = setInterval(measurePing, 4000);
-    status.textContent = 'Online · bereit'; status.style.color = '#7ee787';
-  } catch (err) {
-    status.textContent = 'Firebase Fehler';
-    status.style.color = '#ff7777';
-    console.error('Warsim Online:', err);
+    pingInterval = setInterval(measurePing, 3000);
+    status.textContent = 'Online · ' + Object.keys(remotePlayers).length + ' Spieler'; status.style.color = '#7ee787';
+  } catch (error) {
+    status.textContent = 'Firebase Fehler'; status.style.color = '#ff7777'; console.error('Warsim Online:', error);
   }
 });
-
-signInAnonymously(auth).catch(err => {
-  status.textContent = 'Anmeldung fehlgeschlagen';
-  console.error(err);
-});
+signInAnonymously(auth).catch(error => { status.textContent = 'Anmeldung fehlgeschlagen'; console.error(error); });
 </script>
 </body>
 </html>
