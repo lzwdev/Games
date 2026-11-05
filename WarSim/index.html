@@ -434,7 +434,6 @@
     #sidebar { border-top:1px solid #d6deea; }
   }
 </style>
-<base target="_blank">
 </head>
 <body>
 <div id="game">
@@ -552,10 +551,7 @@ function resize() {
   canvas.height = canvas.clientHeight * window.devicePixelRatio;
   canvas.style.width = canvas.clientWidth + 'px';
   canvas.style.height = canvas.clientHeight + 'px';
-  // FIX: never stack transforms on repeated resizes
-  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 }
 window.addEventListener('resize', resize);
 
@@ -1131,7 +1127,7 @@ const WORLD_WIDTH = 18000;
 const WORLD_HEIGHT = 12000;
 
 const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false };
-const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false, ownerUid: null };
+const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 280, hp: 0, maxHp: 5000, destroyed: true, ownerUid: null };
 
 const camera = {
   x: 0, y: 0, zoom: 1, targetZoom: 1,
@@ -1315,6 +1311,7 @@ canvas.addEventListener('wheel', (e) => {
   const sy = e.clientY - rect.top;
   const before = screenToWorld(sx, sy);
   camera.targetZoom = Math.max(0.08, Math.min(2.2, camera.targetZoom * (e.deltaY < 0 ? 1.15 : 0.87)));
+  camera.zoom = camera.targetZoom;
   const after = screenToWorld(sx, sy);
   camera.x += before.x - after.x;
   camera.y += before.y - after.y;
@@ -1387,7 +1384,6 @@ function trySpawn(wx, wy) {
 }
 
 function spawnParticles(x, y, color, count = 12) {
-  if (particles.length > 1400) count = Math.min(count, 3);
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 1 + Math.random() * 4;
@@ -1979,6 +1975,13 @@ function shootBase(shooter, base) {
 // ============ EXPLOSIONS ============
 function createExplosion(x, y, size = 1) {
   explosions.push({ x, y, life: 650, maxLife: 650, size });
+  spawnExplosionVisuals(x, y, size);
+  playExplosion();
+  screenShake(7 * size);
+}
+
+// Nur Partikel/Trümmer (auch für Explosionen anderer Spieler genutzt)
+function spawnExplosionVisuals(x, y, size = 1) {
   for (let i = 0; i < 35; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = (2 + Math.random() * 7) * size;
@@ -2017,8 +2020,6 @@ function createExplosion(x, y, size = 1) {
       size: 3 + Math.random() * 5, life: 5000, maxLife: 5000
     });
   }
-  playExplosion();
-  screenShake(7 * size);
 }
 
 function createShockwave(x, y, maxRadius, color = '#fff') {
@@ -2183,16 +2184,6 @@ function update(dt) {
     camera.shakeX = 0; camera.shakeY = 0;
   }
   
-  // FIX: enemies actually spawn (enemySpawnTimer was never advanced before)
-  if (enemyBase.hp > 0 && enemyCount < maxEnemies) {
-    enemySpawnTimer += dt;
-    const scaledInterval = Math.max(200, enemySpawnInterval - waveNumber * 15);
-    if (enemySpawnTimer >= scaledInterval) {
-      enemySpawnTimer = 0;
-      spawnEnemy();
-    }
-  }
-
   if (typeof window.WarSim?.refreshLocalState === 'function') {
     window.WarSim.refreshLocalState(dt);
   }
@@ -3918,10 +3909,6 @@ function loop(now) {
     fpsTimer = 0;
   }
   
-  if (Math.abs(camera.zoom - camera.targetZoom) > 0.0005) {
-    camera.zoom += (camera.targetZoom - camera.zoom) * Math.min(1, dt * 0.02);
-    clampCamera();
-  }
   update(dt);
   draw();
   requestAnimationFrame(loop);
@@ -3946,11 +3933,7 @@ window.WarSim = {
     const nearest = Object.values(players).filter(p => p.base && p.base.hp > 0)
       .sort((a, b) => Math.hypot(a.base.x - ownBase.x, a.base.y - ownBase.y) - Math.hypot(b.base.x - ownBase.x, b.base.y - ownBase.y))[0];
     if (nearest) Object.assign(enemyBase, nearest.base, { ownerUid: nearest.uid, destroyed: nearest.base.hp <= 0 });
-    else {
-      // Solo fallback: no remote opponent -> keep the AI base running
-      if (enemyBase.ownerUid) enemyBase.ownerUid = null;
-      if (!enemyBase.destroyed && enemyBase.hp <= 0) Object.assign(enemyBase, { hp: enemyBase.maxHp, destroyed: false });
-    }
+    else Object.assign(enemyBase, { hp: 0, destroyed: true, ownerUid: null });
   },
   setRemoteProjectiles: projectiles => {
     remoteBullets = projectiles.bullets;
@@ -3962,15 +3945,11 @@ window.WarSim = {
     remoteShockwaves = projectiles.shockwaves;
   },
   setRemoteEffects: effects => { remoteEffects = effects; },
+  spawnExplosionFx: (x, y, size) => spawnExplosionVisuals(x, y, size),
+  spawnScorch: (x, y, size) => createScorchMark(x, y, size),
   centerCamera: () => { centerCamera(); clampCamera(); },
   checkBaseDestroyed: base => checkBaseDestroyed(base),
-  launchRagdoll: (soldier, x, y, radius) => launchRagdoll(soldier, x, y, radius),
-  fxExplosion: (x, y, size) => createExplosion(x, y, size),
-  fxShockwave: (x, y, r, c) => createShockwave(x, y, r, c),
-  fxScorch: (x, y, s) => createScorchMark(x, y, s),
-  destroyStatic: a => destroyStatic(a),
-  destroyTruck: t => destroyTruck(t),
-  destroyBuffFlag: f => destroyBuffFlag(f)
+  launchRagdoll: (soldier, x, y, radius) => launchRagdoll(soldier, x, y, radius)
 };
 window.WarSim.setSettings = settings => {
   for (const key of Object.keys(GAME_SETTINGS)) {
@@ -3990,7 +3969,7 @@ window.WarSim.setSettings = settings => {
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getDatabase, ref, onValue, set, update, remove, push, onDisconnect, runTransaction, onChildAdded } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getDatabase, ref, onValue, set, update, remove, push, onDisconnect, runTransaction, onChildAdded, onChildChanged, onChildRemoved } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDQA4aAtKC-c0VJw1NC-Gau37zAb0h0LJY",
@@ -4003,39 +3982,42 @@ const firebaseConfig = {
   measurementId: "G-NPT4JHJ6NS"
 };
 
+/* ==========================================================================
+   NETZWERK-MODELL (v2)
+   - Einheiten ("tracked"): nur geänderte Felder werden gesendet (Delta), mit Zeitstempel.
+     Empfänger puffern Snapshots und spielen sie leicht verzögert interpoliert ab.
+   - Projektile/Effekte ("transient"): werden nur EINMAL gesendet (Startzustand + Zeit)
+     und beim Empfänger lokal weitersimuliert. Partikel/Trümmer/Spuren werden lokal erzeugt.
+   - Treffer werden gesammelt und gebündelt gesendet.
+   ========================================================================== */
+const ROOT = 'warsim/v2';
+const SEND_INTERVAL = 50;          // 20 Hz
+const T0 = 1.7e12;                 // kleine Zeitstempel
+const FRAME = 1000 / 60;
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 const status = document.getElementById('onlineStatus');
-const playerRoot = ref(db, 'warsim/players');
 const settingsRef = ref(db, 'warsim/settings/unitStats');
-let uid = null, playerRef = null, syncTimer = 0, hitRef = null;
-const remoteUnitByKey = new Map();
-let fallbackUnitId = 0;
-let syncInFlight = false, syncQueued = false;
-let pingInterval = null;
 
-// NETCODE: send at 10 Hz, render remote entities ~280 ms in the past and
-// interpolate (with capped extrapolation) between snapshot positions.
-// This removes the jerky "freeze then teleport" movement.
-const NET_SEND_INTERVAL = 100;
-const NET_RENDER_DELAY = 280;
+let uid = null, entsRef = null, playerRef = null, hitsRef = null;
+let syncTimer = 0, pending = 0, pingInterval = null, ready = false;
+let serverOffset = 0;
+const serverNow = () => Date.now() + serverOffset;
 
-function lerpAngle(a, b, t) {
-  let d = (b - a) % (Math.PI * 2);
-  if (d > Math.PI) d -= Math.PI * 2;
-  if (d < -Math.PI) d += Math.PI * 2;
-  return a + d * t;
-}
+let idCounter = 0;
+const sessionTag = Math.random().toString(36).slice(2, 5);
+const makeId = () => (++idCounter).toString(36) + sessionTag;
+const isNum = v => typeof v === 'number' && Number.isFinite(v);
 
-function makeUnitId() {
-  try {
-    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') return globalThis.crypto.randomUUID();
-  } catch (_) {}
-  fallbackUnitId += 1;
-  return `unit_${Date.now().toString(36)}_${fallbackUnitId.toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-}
+const UNIT_BUCKETS = [['s', 'soldiers'], ['a', 'atguns'], ['r', 'artillery'], ['t', 'trucks'], ['f', 'flags']];
+const TRANS_BUCKETS = [['B', 'bullets'], ['S', 'shells'], ['A', 'artilleryShells'], ['R', 'ricochets'],
+  ['M', 'muzzleFlashes'], ['X', 'explosions'], ['W', 'shockwaves'], ['g', 'ragdolls'], ['u', 'turrets']];
+const TRACKED = { s: 'soldiers', a: 'atguns', r: 'artillery', t: 'trucks', f: 'flags' };
+const TRANSIENT = Object.fromEntries(TRANS_BUCKETS);
 
+/* ---------- Spawn ---------- */
 function assignSpawn(uid) {
   const cols = 9, rows = 6, cellW = 2000, cellH = 2000;
   const cells = Array.from({length: cols * rows}, (_, i) => i).sort(() => Math.random() - .5);
@@ -4057,247 +4039,348 @@ function assignSpawn(uid) {
   })();
 }
 
-function toList(value) {
-  return Array.isArray(value) ? value : Object.values(value || {});
+/* ==========================================================================
+   SENDER
+   ========================================================================== */
+const SKIP = new Set(['unitId', 'netId', 'remote', 'ownerUid', 'assignedAtgun', 'assignedArtillery',
+  'moveTarget', 'trail', 'blobs', 'team', 'landedAt']);
+// Felder, die der Empfänger selbst animiert -> nur beim Erzeugen gesendet
+const VOLATILE = new Set(['hitFlash', 'spawnAnim', 'crouch', 'recoil', 'fireFlash', 'walkPhase', 'flagWave',
+  'attackCooldown', 'burstTimer', 'burstShots', 'burstCooldown', 'loadTimer', 'unloadTimer']);
+const q = (k, v) => (k === 'x' || k === 'y') ? Math.round(v * 10) / 10 : Math.round(v * 1000) / 1000;
+
+function pack(entity, skipVolatile) {
+  const out = {};
+  for (const k in entity) {
+    if (SKIP.has(k) || (skipVolatile && VOLATILE.has(k))) continue;
+    const v = entity[k];
+    if (typeof v === 'number') { if (Number.isFinite(v)) out[k] = q(k, v); }
+    else if (typeof v === 'string' || typeof v === 'boolean') out[k] = v;
+  }
+  return out;
 }
 
-function serializeEntities(entities, projectile = false) {
-  const now = Date.now();
-  return entities.filter(entity => !entity.remote && !entity.destroyed && (!projectile || (entity.life > 0 && (!entity.netCreatedAt || now - entity.netCreatedAt < Math.min(3000, (entity.maxLife || 500) + 400))))).slice(projectile ? -500 : -1200).map(entity => {
-    const idKey = projectile ? 'netId' : 'unitId';
-    if (!entity[idKey]) entity[idKey] = makeUnitId();
-    if (projectile && !entity.netCreatedAt) entity.netCreatedAt = now;
-    const packed = { id: entity[idKey] };
-    if (projectile) packed.createdAt = entity.netCreatedAt;
-    for (const [key, value] of Object.entries(entity)) {
-      if (['unitId', 'netId', 'remote', 'ownerUid', 'assignedAtgun', 'assignedArtillery'].includes(key)) continue;
-      if (typeof value === 'number' && Number.isFinite(value) || typeof value === 'string' || typeof value === 'boolean') packed[key] = value;
-      else if (key === 'moveTarget' && value && Number.isFinite(value.x) && Number.isFinite(value.y)) packed[key] = { x: value.x, y: value.y };
-      else if (Array.isArray(value)) packed[key] = value.slice(-16).map(item => {
-        if (typeof item === 'number' || typeof item === 'string' || typeof item === 'boolean') return item;
-        if (!item || typeof item !== 'object') return null;
-        const safeItem = {};
-        for (const [itemKey, itemValue] of Object.entries(item)) {
-          if (typeof itemValue === 'number' && Number.isFinite(itemValue) || typeof itemValue === 'string' || typeof itemValue === 'boolean') safeItem[itemKey] = itemValue;
-        }
-        return safeItem;
-      }).filter(Boolean);
+const sent = new Map();
+let lastBase = {}, lastHb = 0;
+
+function flushEntities() {
+  if (!entsRef || pending > 6) return;           // Backpressure: Baseline bleibt konsistent
+  const updates = {};
+  const seen = new Set();
+  const nowT = Math.round(serverNow() - T0);
+  for (const [code, name] of UNIT_BUCKETS) {
+    const list = window.WarSim[name]();
+    for (let i = Math.max(0, list.length - 1500); i < list.length; i++) {
+      const e = list[i];
+      if (e.remote || e.destroyed || (isNum(e.hp) && e.hp <= 0) || !isNum(e.x) || !isNum(e.y)) continue;
+      if (!e.unitId) e.unitId = makeId();
+      const key = code + '~' + e.unitId;
+      seen.add(key);
+      const prev = sent.get(key);
+      if (!prev) {
+        const full = pack(e, false); full.T = nowT;
+        updates[key] = full;
+        sent.set(key, pack(e, true));
+      } else {
+        const cur = pack(e, true);
+        let changed = false;
+        for (const k in cur) if (prev[k] !== cur[k]) { updates[key + '/' + k] = cur[k]; prev[k] = cur[k]; changed = true; }
+        for (const k in prev) if (!(k in cur)) { updates[key + '/' + k] = null; delete prev[k]; changed = true; }
+        if (changed) updates[key + '/T'] = nowT;
+      }
     }
-    return packed;
-  });
+  }
+  for (const [code, name] of TRANS_BUCKETS) {
+    const list = window.WarSim[name]();
+    for (let i = Math.max(0, list.length - 500); i < list.length; i++) {
+      const e = list[i];
+      if (e.remote || e.exploded || (isNum(e.life) && e.life <= 0) || !isNum(e.x) || !isNum(e.y)) continue;
+      if (!e.netId) e.netId = makeId();
+      const key = code + '~' + e.netId;
+      seen.add(key);
+      if (!sent.has(key)) {
+        const full = pack(e, false); full.T = nowT;
+        updates[key] = full;
+        sent.set(key, null);
+      }
+    }
+  }
+  for (const key of [...sent.keys()]) if (!seen.has(key)) { updates[key] = null; sent.delete(key); }
+  if (!Object.keys(updates).length) return;
+  pending++;
+  update(entsRef, updates).catch(e => console.warn('Warsim Sync:', e)).finally(() => { pending--; });
 }
 
-function snapshot() {
-  const base = window.WarSim.base();
-  const unitCollections = {
-    soldiers: window.WarSim.soldiers(), atguns: window.WarSim.atguns(), artillery: window.WarSim.artillery(),
-    trucks: window.WarSim.trucks(), flags: window.WarSim.flags()
-  };
-  const projectileCollections = {
-    bullets: window.WarSim.bullets(), shells: window.WarSim.shells(), artilleryShells: window.WarSim.artilleryShells(),
-    ricochets: window.WarSim.ricochets(), muzzleFlashes: window.WarSim.muzzleFlashes(),
-    explosions: window.WarSim.explosions(), shockwaves: window.WarSim.shockwaves()
-  };
-  // Bandwidth: skip short-lived cosmetic effects, sync durable ones only
-  const effectCollections = {
-    tracks: window.WarSim.tracks(),
-    scorchMarks: window.WarSim.scorchMarks(), ragdolls: window.WarSim.ragdolls(),
-    turrets: window.WarSim.turrets()
-  };
-  const units = {}, projectiles = {}, effects = {};
-  for (const [key, list] of Object.entries(unitCollections)) units[key] = serializeEntities(list);
-  for (const [key, list] of Object.entries(projectileCollections)) projectiles[key] = serializeEntities(list, true);
-  for (const [key, list] of Object.entries(effectCollections)) effects[key] = serializeEntities(list, true);
-  return { uid, name: `Commander-${uid.slice(0, 4)}`, base: { x: base.x, y: base.y, hp: base.hp, maxHp: base.maxHp, radius: base.radius }, units, projectiles, effects, updatedAt: Date.now() };
+function flushPlayer(force) {
+  if (!playerRef) return;
+  const b = window.WarSim.base();
+  const cur = { x: q('x', b.x), y: q('y', b.y), hp: Math.round(b.hp), maxHp: b.maxHp, radius: b.radius };
+  const up = {};
+  for (const k in cur) if (force || lastBase[k] !== cur[k]) up['base/' + k] = cur[k];
+  lastBase = cur;
+  if (force || performance.now() - lastHb > 4000) { up.hb = serverNow(); lastHb = performance.now(); }
+  if (Object.keys(up).length) update(playerRef, up).catch(() => {});
 }
 
-function reconcile(players) {
-  const activeIds = new Set();
+/* ---------- Treffer (gebündelt) ---------- */
+const pendingHits = new Map();
+let hitTimer = null;
+function flushHits() {
+  hitTimer = null;
+  const byTarget = {};
+  for (const h of pendingHits.values()) {
+    const rec = { from: uid, unitId: h.unitId, damage: Math.min(5000, Math.round(h.damage * 10) / 10), ts: serverNow() };
+    if (h.impact) Object.assign(rec, { impactX: h.impact.x, impactY: h.impact.y, impactRadius: h.impact.radius });
+    const k = push(ref(db, `${ROOT}/hits/${h.target}`)).key;
+    (byTarget[h.target] ||= {})[k] = rec;
+  }
+  pendingHits.clear();
+  for (const [t, ups] of Object.entries(byTarget)) update(ref(db, `${ROOT}/hits/${t}`), ups).catch(() => {});
+}
+function sendHit(targetUid, unitId, damage, impact = null) {
+  if (!uid) return;
+  const k = targetUid + '|' + unitId;
+  let h = pendingHits.get(k);
+  if (!h) pendingHits.set(k, h = { target: targetUid, unitId, damage: 0, impact: null });
+  h.damage += Math.max(0, damage);
+  if (impact && isNum(impact.x) && isNum(impact.y)) h.impact = { x: impact.x, y: impact.y, radius: Math.min(600, Math.max(12, impact.radius || 42)) };
+  if (!hitTimer) hitTimer = setTimeout(flushHits, 60);
+}
+
+/* ==========================================================================
+   EMPFÄNGER
+   ========================================================================== */
+const REMOTE = { bullets: [], shells: [], artilleryShells: [], ricochets: [], muzzleFlashes: [], explosions: [], shockwaves: [] };
+const REMOTE_FX = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
+const OUT = { B: REMOTE.bullets, S: REMOTE.shells, A: REMOTE.artilleryShells, R: REMOTE.ricochets, M: REMOTE.muzzleFlashes,
+  X: REMOTE.explosions, W: REMOTE.shockwaves, g: REMOTE_FX.ragdolls, u: REMOTE_FX.turrets };
+window.WarSim.setRemoteProjectiles(REMOTE);
+window.WarSim.setRemoteEffects(REMOTE_FX);
+
+const tracked = new Map();     // uid|key -> rec
+const transient = new Map();
+const peers = new Map();
+
+// Netzwerk-Qualität -> adaptive Interpolationsverzögerung
+let lat = 80, dev = 10, delay = 140;
+
+const ANGLE_FIELDS = ['turretAngle', 'angle'];
+const LERP_FIELDS = ['barrelPitch', 'recoilOffset', 'setupProgress'];
+const APPLY_SKIP = new Set(['T', 'x', 'y', 'team', ...ANGLE_FIELDS, ...LERP_FIELDS, ...VOLATILE]);
+const DEFAULT_RADIUS = { s: 12, a: 20, r: 24, t: 22, f: 20 };
+const lerpAngle = (a, b, k) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; else if (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
+
+function upsertTracked(pid, key, code, d, fromAdd) {
+  if (!isNum(d.x) || !isNum(d.y) || d.destroyed || d.hp <= 0) return;
+  const fk = pid + '|' + key;
+  const t = isNum(d.T) ? d.T + T0 : serverNow();
+  let rec = tracked.get(fk);
+  if (!rec) {
+    const ent = { ...d, unitId: key.slice(2), remote: true, ownerUid: pid, team: 'enemy', hitFlash: 0,
+      spawnAnim: isNum(d.spawnAnim) ? d.spawnAnim : 0,
+      radius: isNum(d.radius) ? d.radius : DEFAULT_RADIUS[code], facing: d.facing === -1 ? -1 : 1 };
+    if (code === 's') Object.assign(ent, { walkPhase: isNum(d.walkPhase) ? d.walkPhase : 0, turretAngle: d.turretAngle || 0,
+      barrelPitch: d.barrelPitch || 0, recoilOffset: d.recoilOffset || 0 });
+    else ent.kind ||= code === 'a' ? 'atgun' : code === 'f' ? 'buffflag' : code === 't' ? 'truck' : 'artillery';
+    rec = { ent, code, uid: pid, snaps: [], applied: null, removedAt: null };
+    tracked.set(fk, rec);
+    window.WarSim[TRACKED[code]]().push(ent);
+  } else if (!fromAdd && isNum(d.T)) {
+    const sample = Math.max(-200, Math.min(2000, serverNow() - t));
+    lat += (sample - lat) * 0.05;
+    dev += (Math.abs(sample - lat) - dev) * 0.05;
+  }
+  rec.removedAt = null;
+  const s = rec.snaps;
+  s.push({ t, d });
+  if (s.length > 1 && s[s.length - 2].t > t) s.sort((a, b) => a.t - b.t);
+  if (s.length > 10) s.shift();
+}
+
+function upsertTransient(pid, key, code, d) {
+  const fk = pid + '|' + key;
+  if (transient.has(fk)) return;
+  const ts = isNum(d.T) ? d.T + T0 : serverNow();
+  const o = { ...d, team: 'enemy', remote: true, ownerUid: pid, netId: key.slice(2), trail: [], visualKind: TRANSIENT[code] };
+  transient.set(fk, { code, uid: pid, d, o, ts, removedAt: null, visible: false, simT: ts, lastTrail: 0 });
+}
+
+function applyData(ent, d) {
+  for (const k in d) if (!APPLY_SKIP.has(k)) ent[k] = d[k];
+  if (d.burstState === 'reloading' && ent.__bs !== 'reloading') ent.burstTimer = d.burstReloadTime || 3000;
+  ent.__bs = d.burstState;
+}
+
+function removeFrom(list, item) { const i = list.indexOf(item); if (i >= 0) list.splice(i, 1); }
+function dropTracked(fk, rec) { removeFrom(window.WarSim[TRACKED[rec.code]](), rec.ent); tracked.delete(fk); }
+function dropTransient(fk, rec) { if (rec.visible) removeFrom(OUT[rec.code], rec.o); transient.delete(fk); }
+
+function entUpsert(pid, snap, fromAdd) {
+  const key = snap.key, code = key.charAt(0), d = snap.val();
+  if (!d || typeof d !== 'object' || key.charAt(1) !== '~') return;
+  if (TRACKED[code]) upsertTracked(pid, key, code, d, fromAdd);
+  else if (TRANSIENT[code] && fromAdd) upsertTransient(pid, key, code, d);
+}
+function entRemove(pid, key) {
+  const fk = pid + '|' + key;
+  const r = tracked.get(fk);
+  if (r) { r.removedAt = serverNow(); return; }
+  const t = transient.get(fk);
+  if (t) t.removedAt = serverNow() - 40;
+}
+
+function stepRagdoll(r, perf) {
+  r.life -= FRAME;
+  if (!r.landed) {
+    r.x += r.vx; r.y += r.vy; r.vy += 0.6; r.vx *= 0.99; r.rot += r.rotSpeed;
+    if (r.vy > 0 && r.y >= r.groundY) { r.y = r.groundY; r.landed = true; r.landedAt = perf; }
+  } else if (perf - r.landedAt > 3000 && r.life > 800) r.life = 800;
+}
+function stepTurret(t, perf) {
+  t.life -= FRAME;
+  if (!t.landed) {
+    t.x += t.vx; t.y += t.vy; t.vy += 0.5; t.rot += t.rotSpeed; t.rotSpeed *= 0.99;
+    if (t.vy > 0 && t.y >= t.groundY) { t.y = t.groundY; t.landed = true; t.landedAt = perf; }
+  }
+}
+function trailStep(rec, o, perf) {
+  if (perf - rec.lastTrail < 16) return;
+  rec.lastTrail = perf;
+  if (rec.moved) { o.trail.push({ x: o.x, y: o.y }); if (o.trail.length > (o.trailLength || 5)) o.trail.shift(); }
+  rec.moved = true;
+}
+
+let lastAdv = performance.now();
+function advanceRemoteVisuals() {
+  const perf = performance.now();
+  const dtms = Math.min(100, Math.max(0, perf - lastAdv));
+  lastAdv = perf;
+  const target = Math.min(400, Math.max(90, lat + SEND_INTERVAL + dev * 3 + 10));
+  delay += (target - delay) * (target > delay ? 0.1 : 0.01);
+  const sNow = serverNow();
+  const rt = sNow - delay;
+
+  for (const [fk, rec] of tracked) {
+    if (rec.removedAt !== null && rt >= rec.removedAt) { dropTracked(fk, rec); continue; }
+    const s = rec.snaps, ent = rec.ent;
+    if (!s.length) continue;
+    let i = s.length - 1;
+    while (i > 0 && s[i].t > rt) i--;
+    const A = s[i], B = s[i + 1];
+    if (rec.applied !== A) { applyData(ent, A.d); rec.applied = A; }
+    let k = 0;
+    if (B && rt > A.t) { const span = B.t - A.t; k = span > 0 ? Math.min(1, (rt - A.t) / span) : 1; }
+    const a = A.d, b = B ? B.d : a;
+    const px = ent.x, py = ent.y;
+    ent.x = a.x + (b.x - a.x) * k;
+    ent.y = a.y + (b.y - a.y) * k;
+    for (const f of ANGLE_FIELDS) if (isNum(a[f])) ent[f] = isNum(b[f]) ? lerpAngle(a[f], b[f], k) : a[f];
+    for (const f of LERP_FIELDS) if (isNum(a[f])) ent[f] = isNum(b[f]) ? a[f] + (b[f] - a[f]) * k : a[f];
+    if (ent.walkPhase !== undefined && Math.abs(ent.x - px) + Math.abs(ent.y - py) > 0.02)
+      ent.walkPhase += dtms * (ent.kind === 'tank' ? .0132 : ent.kind === 'truck' ? .025 : .022);
+    if (ent.hitFlash > 0) ent.hitFlash -= dtms;
+    if (ent.spawnAnim > 0) ent.spawnAnim -= dtms * 0.004;
+    if (ent.crouch > 0) ent.crouch -= dtms;
+    if (ent.attackCooldown > 0) ent.attackCooldown -= dtms;
+    if (ent.burstTimer > 0 && ent.burstState === 'reloading') ent.burstTimer -= dtms;
+    if (ent.recoil > 0) ent.recoil = Math.max(0, ent.recoil - dtms * 0.005);
+    if (ent.flagWave !== undefined) ent.flagWave += dtms * 0.005;
+  }
+
+  for (const [fk, rec] of transient) {
+    const { code, d, o } = rec;
+    if (rec.removedAt !== null && rt >= rec.removedAt) { dropTransient(fk, rec); continue; }
+    const age = rt - rec.ts;
+    if (age < 0) continue;
+    if (!rec.visible) {
+      rec.visible = true; OUT[code].push(o);
+      if (code === 'X') {
+        const size = o.size || 1;
+        window.WarSim.spawnExplosionFx(o.x, o.y, size);
+        if (size >= 1.4) window.WarSim.spawnScorch(o.x, o.y, Math.min(2.5, size * 0.75));
+      }
+    }
+    let dead = false;
+    switch (code) {
+      case 'B': case 'S': case 'R':
+        trailStep(rec, o, perf);
+        o.x = d.x + (d.vx || 0) * age / FRAME; o.y = d.y + (d.vy || 0) * age / FRAME;
+        o.life = (isNum(d.life) ? d.life : 1500) - age; dead = o.life <= 0; break;
+      case 'A': {
+        trailStep(rec, o, perf);
+        o.t = Math.min(1, (d.t || 0) + age / (d.flightTime || 1000));
+        o.x = d.startX + (d.endX - d.startX) * o.t;
+        o.y = d.startY + (d.endY - d.startY) * o.t - Math.sin(o.t * Math.PI) * (d.arcHeight || 0);
+        dead = o.t >= 1; break;
+      }
+      case 'M': case 'X':
+        o.life = d.life - age; dead = o.life <= 0; break;
+      case 'W':
+        o.life = d.life - age;
+        o.radius = 5 + (1 - o.life / d.maxLife) * (d.maxRadius || 100);
+        dead = o.life <= 0; break;
+      case 'g':
+        while (rec.simT + FRAME <= rt) { rec.simT += FRAME; stepRagdoll(o, perf); }
+        dead = o.life <= 0 || age > 12000; break;
+      case 'u':
+        while (rec.simT + FRAME <= rt) { rec.simT += FRAME; stepTurret(o, perf); }
+        dead = o.life <= 0 || (o.landed && perf - o.landedAt > 3500) || age > 15000; break;
+    }
+    if (dead) dropTransient(fk, rec);
+  }
+}
+
+/* ---------- Spieler / Peers ---------- */
+function attachPeer(pid) {
+  const r = ref(db, `${ROOT}/ents/${pid}`);
+  peers.set(pid, [
+    onChildAdded(r, s => entUpsert(pid, s, true)),
+    onChildChanged(r, s => entUpsert(pid, s, false)),
+    onChildRemoved(r, s => entRemove(pid, s.key))
+  ]);
+}
+function detachPeer(pid) {
+  (peers.get(pid) || []).forEach(u => u());
+  peers.delete(pid);
+  for (const [fk, rec] of tracked) if (rec.uid === pid) dropTracked(fk, rec);
+  for (const [fk, rec] of transient) if (rec.uid === pid) dropTransient(fk, rec);
+}
+
+let latestPlayers = {};
+function evalPlayers() {
+  if (!uid) return;
+  const now = serverNow();
   const remotes = {};
-  const buckets = {
-    soldiers: window.WarSim.soldiers(), atguns: window.WarSim.atguns(), artillery: window.WarSim.artillery(),
-    trucks: window.WarSim.trucks(), flags: window.WarSim.flags()
-  };
-  const remoteProjectiles = { bullets: [], shells: [], artilleryShells: [], ricochets: [], muzzleFlashes: [], explosions: [], shockwaves: [] };
-  const remoteEffectBuckets = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
-  for (const [otherUid, record] of Object.entries(players || {})) {
-    if (!record || otherUid === uid || Date.now() - (record.updatedAt || 0) > 25000) continue;
-    remotes[otherUid] = { ...record, uid: otherUid };
-    const storedUnits = record.units || {};
-    const unitData = Array.isArray(storedUnits) ? { soldiers: storedUnits } : storedUnits;
-    for (const [bucket, collection] of Object.entries(buckets)) {
-      const list = toList(unitData[bucket]);
-      for (const data of list) {
-        if (!data || typeof data !== 'object' || !Number.isFinite(data.x) || !Number.isFinite(data.y) || data.hp <= 0 || data.destroyed) continue;
-        const key = `${otherUid}:${bucket}:${data.id}`;
-        activeIds.add(key);
-        let entity = remoteUnitByKey.get(key);
-        if (!entity) {
-          const nowMs = Date.now();
-          entity = { ...data, unitId: data.id, remote: true, ownerUid: otherUid, team: 'enemy', spawnAnim: 0, hitFlash: 0,
-            netBuffer: [
-              { t: nowMs - 400, x: data.x, y: data.y, turretAngle: data.turretAngle, angle: data.angle, facing: data.facing },
-              { t: nowMs, x: data.x, y: data.y, turretAngle: data.turretAngle, angle: data.angle, facing: data.facing }
-            ] };
-          if (bucket === 'soldiers') Object.assign(entity, {
-            radius: Number.isFinite(data.radius) ? data.radius : 12, walkPhase: Number.isFinite(data.walkPhase) ? data.walkPhase : 0,
-            facing: data.facing === -1 ? -1 : 1, turretAngle: Number.isFinite(data.turretAngle) ? data.turretAngle : 0,
-            barrelPitch: Number.isFinite(data.barrelPitch) ? data.barrelPitch : 0, recoilOffset: Number.isFinite(data.recoilOffset) ? data.recoilOffset : 0
-          });
-          else entity.kind ||= bucket === 'atguns' ? 'atgun' : bucket === 'flags' ? 'buffflag' : bucket === 'trucks' ? 'truck' : 'artillery';
-          remoteUnitByKey.set(key, entity);
-          collection.push(entity);
-        } else {
-          const nowMs = Date.now();
-          const prev = entity.netBuffer[entity.netBuffer.length - 1];
-          if (!prev || nowMs - prev.t > 30) {
-            entity.netBuffer.push({ t: nowMs, x: data.x, y: data.y, turretAngle: data.turretAngle, angle: data.angle, facing: data.facing });
-            if (entity.netBuffer.length > 60) entity.netBuffer.shift();
-          }
-          Object.assign(entity, data, { unitId: data.id, remote: true, ownerUid: otherUid, team: 'enemy' });
-        }
-      }
-    }
-    const storedProjectiles = record.projectiles || {};
-    for (const [bucket, out] of Object.entries(remoteProjectiles)) {
-      for (const data of toList(storedProjectiles[bucket])) {
-        if (Number.isFinite(data?.createdAt) && Date.now() - data.createdAt >= 5000) continue;
-        if (!data || typeof data !== 'object' || !Number.isFinite(data.x) || !Number.isFinite(data.y)) continue;
-        out.push({ ...data, team: 'enemy', remote: true, ownerUid: otherUid, netId: data.id,
-          receivedAt: performance.now(), snapshotX: data.x, snapshotY: data.y, snapshotT: data.t,
-          snapshotLife: data.life, snapshotRadius: data.radius, visualKind: bucket });
-      }
-    }
-    for (const [bucket, out] of Object.entries(remoteEffectBuckets)) {
-      for (const data of toList((record.effects || {})[bucket])) {
-        if (!data || typeof data !== 'object' || !Number.isFinite(data.x) || !Number.isFinite(data.y)) continue;
-        out.push({ ...data, team: 'enemy', remote: true, ownerUid: otherUid,
-          receivedAt: performance.now(), snapshotX: data.x, snapshotY: data.y,
-          snapshotLife: data.life, snapshotRot: data.rot, kind: bucket === 'turrets' ? 'turret' : bucket });
-      }
-    }
+  for (const [pid, rec] of Object.entries(latestPlayers)) {
+    if (pid === uid || !rec || !rec.base || now - (rec.hb || 0) > 20000) continue;
+    remotes[pid] = { ...rec, uid: pid };
   }
-  for (const [key, entity] of remoteUnitByKey) if (!activeIds.has(key)) {
-    for (const collection of Object.values(buckets)) {
-      const index = collection.indexOf(entity);
-      if (index >= 0) { collection.splice(index, 1); break; }
-    }
-    remoteUnitByKey.delete(key);
-    // Death feedback: remote units vanished without any effect before
-    if (entity.kind === 'tank') {
-      window.WarSim.fxExplosion(entity.x, entity.y, entity.mega ? 2.8 : entity.elite ? 2.2 : 1.8);
-      window.WarSim.fxShockwave(entity.x, entity.y, entity.mega ? 180 : 120, '#ff8844');
-      window.WarSim.fxScorch(entity.x, entity.y, 1.2);
-    } else if (entity.hp !== undefined) {
-      window.WarSim.fxExplosion(entity.x, entity.y, 0.8);
-    }
-  }
+  for (const pid of Object.keys(remotes)) if (!peers.has(pid)) attachPeer(pid);
+  for (const pid of [...peers.keys()]) if (!remotes[pid]) detachPeer(pid);
   window.WarSim.setRemotePlayers(remotes);
-  window.WarSim.setRemoteProjectiles(remoteProjectiles);
-  window.WarSim.setRemoteEffects(remoteEffectBuckets);
-  if (uid && status.textContent.startsWith('Online')) status.textContent = `Online · ${Object.keys(remotes).length + 1} Spieler`;
+  if (status.textContent.startsWith('Online')) status.textContent = `Online · ${Object.keys(remotes).length + 1} Spieler`;
 }
 
 Object.assign(window.WarSim, {
-  advanceRemoteVisuals: () => {
-    const now = performance.now();
-    const renderTime = now - NET_RENDER_DELAY;
-    for (const entity of remoteUnitByKey.values()) {
-      const buf = entity.netBuffer;
-      if (!buf || buf.length === 0) continue;
-      if (buf.length === 1) { entity.x = buf[0].x; entity.y = buf[0].y; continue; }
-      let i = buf.length - 2;
-      while (i > 0 && buf[i].t > renderTime) i--;
-      const a = buf[i], b = buf[i + 1];
-      if (renderTime >= b.t) {
-        // extrapolate slightly past the newest snapshot so motion never freezes
-        const dtb = Math.max(16, b.t - a.t);
-        const over = Math.min(renderTime - b.t, 120);
-        entity.x = b.x + (b.x - a.x) / dtb * over;
-        entity.y = b.y + (b.y - a.y) / dtb * over;
-        if (Number.isFinite(b.turretAngle)) entity.turretAngle = b.turretAngle;
-        if (Number.isFinite(b.angle)) entity.angle = b.angle;
-        if (b.facing) entity.facing = b.facing === -1 ? -1 : 1;
-      } else if (renderTime <= a.t) {
-        entity.x = a.x; entity.y = a.y;
-        if (Number.isFinite(a.turretAngle)) entity.turretAngle = a.turretAngle;
-        if (Number.isFinite(a.angle)) entity.angle = a.angle;
-        if (a.facing) entity.facing = a.facing === -1 ? -1 : 1;
-      } else {
-        const t = (renderTime - a.t) / Math.max(1, b.t - a.t);
-        entity.x = a.x + (b.x - a.x) * t;
-        entity.y = a.y + (b.y - a.y) * t;
-        if (Number.isFinite(a.turretAngle) && Number.isFinite(b.turretAngle)) entity.turretAngle = lerpAngle(a.turretAngle, b.turretAngle, t);
-        else if (Number.isFinite(b.turretAngle)) entity.turretAngle = b.turretAngle;
-        if (Number.isFinite(a.angle) && Number.isFinite(b.angle)) entity.angle = lerpAngle(a.angle, b.angle, t);
-        else if (Number.isFinite(b.angle)) entity.angle = b.angle;
-        if (a.facing && b.facing && a.facing !== b.facing) entity.facing = t < 0.5 ? (a.facing === -1 ? -1 : 1) : (b.facing === -1 ? -1 : 1);
-      }
-      // keep remote walk/tracks animation alive between snapshots
-      if (Number.isFinite(entity.walkPhase)) entity.walkPhase += 0.3;
-    }
-    for (const list of Object.values(remoteEffects)) list.forEach(effect => {
-      const age = Math.max(0, Math.min(100, now - effect.receivedAt));
-      if (Number.isFinite(effect.snapshotLife)) effect.life = Math.max(0, effect.snapshotLife - age);
-      if (Number.isFinite(effect.vx) && Number.isFinite(effect.vy)) {
-        effect.x = effect.snapshotX + effect.vx * age / 16.667;
-        effect.y = effect.snapshotY + effect.vy * age / 16.667;
-      }
-      if (Number.isFinite(effect.snapshotRot) && Number.isFinite(effect.rotSpeed)) effect.rot = effect.snapshotRot + effect.rotSpeed * age / 16.667;
-      if (effect.landed && effect.kind === 'turret') effect.landedAt = now - age;
-    });
-    const advance = list => list.forEach(projectile => {
-      const age = Math.max(0, Math.min(100, now - projectile.receivedAt));
-      if (Number.isFinite(projectile.snapshotLife)) projectile.life = Math.max(0, projectile.snapshotLife - age);
-      if (Number.isFinite(projectile.vx) && Number.isFinite(projectile.vy)) {
-        projectile.x = projectile.snapshotX + projectile.vx * age / 16.667;
-        projectile.y = projectile.snapshotY + projectile.vy * age / 16.667;
-      }
-      if (Number.isFinite(projectile.snapshotT) && Number.isFinite(projectile.flightTime) && projectile.flightTime > 0) {
-        projectile.t = Math.min(1, projectile.snapshotT + age / projectile.flightTime);
-        const gx = projectile.startX + (projectile.endX - projectile.startX) * projectile.t;
-        const gy = projectile.startY + (projectile.endY - projectile.startY) * projectile.t;
-        projectile.x = gx; projectile.y = gy - Math.sin(projectile.t * Math.PI) * projectile.arcHeight;
-      }
-      if (projectile.visualKind === 'shockwaves' && Number.isFinite(projectile.maxRadius) && Number.isFinite(projectile.maxLife)) {
-        projectile.radius = 5 + (1 - projectile.life / projectile.maxLife) * projectile.maxRadius;
-      }
-    });
-    [remoteBullets, remoteShells, remoteRicochets].forEach(advance);
-    advance(remoteArtilleryShells);
-  },
+  advanceRemoteVisuals,
   refreshLocalState: dt => {
     syncTimer += dt;
-    if (syncTimer >= NET_SEND_INTERVAL && playerRef) {
-      syncTimer %= NET_SEND_INTERVAL;
-      if (syncInFlight) syncQueued = true;
-      else {
-        syncInFlight = true;
-        update(playerRef, snapshot())
-          .catch(error => console.warn('Warsim Sync:', error))
-          .finally(() => {
-            syncInFlight = false;
-            if (syncQueued && playerRef) { syncQueued = false; window.WarSim.refreshLocalState(NET_SEND_INTERVAL); }
-          });
-      }
+    if (syncTimer >= SEND_INTERVAL && playerRef) {
+      syncTimer %= SEND_INTERVAL;
+      flushEntities();
+      flushPlayer(false);
     }
   },
-  sendHit: (targetUid, unitId, damage, impact = null) => {
-    const hit = push(ref(db, `warsim/hits/${targetUid}`));
-    set(hit, {
-      from: uid, unitId, damage: Math.min(1000, Math.max(0, damage)), ts: Date.now(),
-      ...(impact && Number.isFinite(impact.x) && Number.isFinite(impact.y)
-        ? { impactX: impact.x, impactY: impact.y, impactRadius: Math.min(600, Math.max(12, impact.radius || 42)) }
-        : {})
-    }).catch(() => {});
-  }
+  sendHit,
+  netDebug: () => ({ delay: Math.round(delay), latency: Math.round(lat), jitter: Math.round(dev), tracked: tracked.size, transient: transient.size, peers: peers.size })
 });
 
-onValue(playerRoot, snap => reconcile(snap.val() || {}), error => {
-  status.textContent = 'Firebase Fehler';
-  status.style.color = '#ff7777';
-  console.error('Warsim Spieler-Sync:', error);
+onValue(ref(db, '.info/serverTimeOffset'), s => { serverOffset = Number(s.val()) || 0; evalPlayers(); });
+onValue(ref(db, `${ROOT}/players`), s => { latestPlayers = s.val() || {}; evalPlayers(); }, error => {
+  status.textContent = 'Firebase Fehler'; status.style.color = '#ff7777'; console.error('Warsim Spieler-Sync:', error);
 });
+setInterval(evalPlayers, 5000);
+
 let settingsListenerStarted = false;
 onAuthStateChanged(auth, async user => {
   if (!user) return;
@@ -4305,23 +4388,28 @@ onAuthStateChanged(auth, async user => {
   uid = user.uid;
   if (!settingsListenerStarted) {
     settingsListenerStarted = true;
-    onValue(settingsRef, snap => {
-      const settings = snap.val();
-      if (settings) window.WarSim.setSettings(settings);
-    }, error => console.warn('Warsim Einstellungen:', error));
+    onValue(settingsRef, snap => { const st = snap.val(); if (st) window.WarSim.setSettings(st); },
+      error => console.warn('Warsim Einstellungen:', error));
   }
   window.WarSim.setLocalPlayer(uid);
   try {
     const spawn = await assignSpawn(uid);
     const base = window.WarSim.base(); base.x = spawn.x; base.y = spawn.y;
     window.WarSim.centerCamera();
-    playerRef = ref(db, `warsim/players/${uid}`);
-    await set(playerRef, snapshot());
-    onDisconnect(playerRef).remove();
-    hitRef = ref(db, `warsim/hits/${uid}`);
-    onChildAdded(hitRef, async snap => {
+    entsRef = ref(db, `${ROOT}/ents/${uid}`);
+    hitsRef = ref(db, `${ROOT}/hits/${uid}`);
+    const pingRef = ref(db, `${ROOT}/ping/${uid}`);
+    const registerDisconnect = () => {
+      onDisconnect(playerRef).remove(); onDisconnect(entsRef).remove(); onDisconnect(pingRef).remove();
+    };
+    playerRef = ref(db, `${ROOT}/players/${uid}`);
+    await Promise.all([remove(entsRef), remove(hitsRef)]);
+    await set(playerRef, { name: `Commander-${uid.slice(0, 4)}`, base: { x: base.x, y: base.y, hp: Math.round(base.hp), maxHp: base.maxHp, radius: base.radius }, hb: serverNow() });
+    registerDisconnect();
+
+    onChildAdded(hitsRef, async snap => {
       const hit = snap.val();
-      if (hit?.from !== uid && Number.isFinite(hit?.damage)) {
+      if (hit?.from !== uid && isNum(hit?.damage)) {
         if (hit.unitId === 'base') {
           base.hp = Math.max(0, base.hp - hit.damage);
           window.WarSim.checkBaseDestroyed(base);
@@ -4329,34 +4417,34 @@ onAuthStateChanged(auth, async user => {
           const target = [...window.WarSim.soldiers(), ...window.WarSim.atguns(), ...window.WarSim.artillery(), ...window.WarSim.trucks(), ...window.WarSim.flags()].find(u => !u.remote && u.unitId === hit.unitId);
           if (target) {
             target.hp = Math.max(0, target.hp - hit.damage);
-            if (target.hp <= 0 && target.kind === 'soldier' && !target.armored && Number.isFinite(hit.impactX) && Number.isFinite(hit.impactY)) {
+            if (target.hp <= 0 && target.kind === 'soldier' && !target.armored && isNum(hit.impactX) && isNum(hit.impactY)) {
               window.WarSim.launchRagdoll(target, hit.impactX, hit.impactY, hit.impactRadius || 42);
-            } else if (target.hp <= 0) {
-              if (target.flagWave !== undefined) window.WarSim.destroyBuffFlag(target);
-              else if (target.type !== undefined) window.WarSim.destroyTruck(target);
-              else window.WarSim.destroyStatic(target);
-            }
+            } else if (target.hp <= 0) target.destroyed = true;
           }
         }
       }
-      if (snap.key) remove(ref(db, `warsim/hits/${uid}/${snap.key}`)).catch(() => {});
-      if (playerRef) update(playerRef, snapshot()).catch(() => {});
-      await remove(snap.ref);
+      remove(snap.ref).catch(() => {});
     });
-    const pingRef = ref(db, `warsim/players/${uid}/ping`);
+
+    // Nach Verbindungsabbruch: Server hat unsere Knoten gelöscht -> alles neu senden
+    onValue(ref(db, '.info/connected'), s => {
+      if (!s.val()) return;
+      sent.clear(); lastBase = {};
+      registerDisconnect();
+      flushPlayer(true);
+    });
+
     const measurePing = async () => {
       const startedAt = performance.now();
-      try {
-        await set(pingRef, Date.now());
-        document.getElementById('hudPing').textContent = Math.round(performance.now() - startedAt);
-      } catch (error) {
-        document.getElementById('hudPing').textContent = '--';
-      }
+      try { await set(pingRef, Date.now()); document.getElementById('hudPing').textContent = Math.round(performance.now() - startedAt); }
+      catch (error) { document.getElementById('hudPing').textContent = '--'; }
     };
     await measurePing();
     if (pingInterval) clearInterval(pingInterval);
     pingInterval = setInterval(measurePing, 3000);
-    status.textContent = 'Online · ' + Object.keys(remotePlayers).length + ' Spieler'; status.style.color = '#7ee787';
+    ready = true;
+    status.textContent = 'Online · 1 Spieler'; status.style.color = '#7ee787';
+    evalPlayers();
   } catch (error) {
     status.textContent = 'Firebase Fehler'; status.style.color = '#ff7777'; console.error('Warsim Online:', error);
   }
