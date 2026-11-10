@@ -460,7 +460,7 @@
       <div class="hud-item hud-fps"><span id="hudFps">60</span> FPS</div>
       <div class="hud-item hud-ping">PING <span id="hudPing">--</span> ms</div>
       <div class="hud-item" id="onlineStatus" style="color:#ffd166">Verbinde…</div>
-      <a class="hud-item" href="vehicle-settings.html" target="_blank" rel="noopener">Fahrzeugwerte</a>
+      <a class="hud-item" href="vehicle-settings.html" target="_blank" rel="noopener">Einheitenwerte</a>
     </div>
     <div id="wave-notification"></div>
   </div>
@@ -1198,6 +1198,8 @@ let remoteExplosions = [];
 let remoteShockwaves = [];
 let remoteEffects = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
 const GAME_SETTINGS = {
+  soldierRange: 340, soldierDamage: 16, soldierSpeed: 1.6, soldierHealth: 100, soldierAttackInterval: 720,
+  eliteSoldierRange: 400, eliteSoldierDamage: 9, eliteSoldierSpeed: 1.5, eliteSoldierHealth: 160, eliteSoldierAttackInterval: 95,
   tankRange: 588, eliteTankRange: 868, megaTankRange: 1050, artilleryRange: 3499.5,
   tankDamage: 78, eliteTankDamage: 98, megaTankDamage: 140, artilleryDamage: 180,
   tankSplashRadius: 95, eliteTankSplashRadius: 105, megaTankSplashRadius: 130, artillerySplashRadius: 180,
@@ -1205,11 +1207,13 @@ const GAME_SETTINGS = {
   tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280
 };
 // Erlaubte Bereiche je Wert (Endung des Schlüssels)
-const SETTING_LIMITS = { Range: [50, 10000], Damage: [1, 5000], SplashRadius: [10, 800], Speed: [0.05, 10], Health: [10, 20000] };
+const SETTING_LIMITS = { Range: [50, 10000], Damage: [1, 5000], SplashRadius: [10, 800], Speed: [0.05, 10], Health: [10, 20000], AttackInterval: [50, 10000] };
 const settingLimit = key => SETTING_LIMITS[Object.keys(SETTING_LIMITS).find(k => key.endsWith(k))];
 // Gegner-Faktoren (wie bisher): Gegner sind etwas langsamer / haben etwas weniger Reichweite
-const ENEMY_RANGE_FACTOR = { tank: 380 / 420, eliteTank: 570 / 620, megaTank: 700 / 750 };
-const ENEMY_SPEED_FACTOR = { tank: 0.85 / 0.95, eliteTank: 0.5 / 0.55, megaTank: 0.35 / 0.4 };
+const ENEMY_RANGE_FACTOR = { soldier: 300 / 340, eliteSoldier: 360 / 400, tank: 380 / 420, eliteTank: 570 / 620, megaTank: 700 / 750 };
+const ENEMY_SPEED_FACTOR = { soldier: 1.4 / 1.6, eliteSoldier: 1.3 / 1.5, tank: 0.85 / 0.95, eliteTank: 0.5 / 0.55, megaTank: 0.35 / 0.4 };
+const ENEMY_DAMAGE_FACTOR = { soldier: 11 / 16, eliteSoldier: 1 };
+const ENEMY_ATTACK_INTERVAL_FACTOR = { soldier: 950 / 720, eliteSoldier: 1 };
 function tankSettingKey(u) { return u.mega ? 'megaTank' : u.elite ? 'eliteTank' : 'tank'; }
 
 let enemySpawnTimer = 0;
@@ -1590,14 +1594,16 @@ function moveDirectly(unit, targetX, targetY, dt) {
 
 // ============ SPAWN UNITS ============
 function spawnSoldier(team, x, y, options = {}) {
+  const statKey = 'soldier';
+  const own = team === 'own';
   const s = {
     kind: 'soldier', team, x, y,
-    hp: 100, maxHp: 100,
-    speed: team === 'own' ? 1.6 : 1.4,
-    damage: team === 'own' ? 16 : 11,
+    hp: GAME_SETTINGS[statKey + 'Health'], maxHp: GAME_SETTINGS[statKey + 'Health'],
+    speed: GAME_SETTINGS[statKey + 'Speed'] * (own ? 1 : ENEMY_SPEED_FACTOR[statKey]),
+    damage: GAME_SETTINGS[statKey + 'Damage'] * (own ? 1 : ENEMY_DAMAGE_FACTOR[statKey]),
     attackCooldown: Math.random() * 300,
-    attackInterval: team === 'own' ? 720 : 950,
-    attackRange: team === 'own' ? 340 : 300,
+    attackInterval: GAME_SETTINGS[statKey + 'AttackInterval'] * (own ? 1 : ENEMY_ATTACK_INTERVAL_FACTOR[statKey]),
+    attackRange: GAME_SETTINGS[statKey + 'Range'] * (own ? 1 : ENEMY_RANGE_FACTOR[statKey]),
     radius: 12,
     facing: team === 'own' ? 1 : -1,
     walkPhase: Math.random() * Math.PI * 2,
@@ -1615,12 +1621,15 @@ function spawnSoldier(team, x, y, options = {}) {
 }
 
 function spawnEliteSoldier(team, x, y) {
+  const statKey = 'eliteSoldier';
+  const own = team === 'own';
   const s = {
     kind: 'soldier', isElite: true, team, x, y,
-    hp: 160, maxHp: 160,
-    speed: team === 'own' ? 1.5 : 1.3,
-    damage: 9, attackCooldown: 0, attackInterval: 95,
-    attackRange: team === 'own' ? 400 : 360,
+    hp: GAME_SETTINGS[statKey + 'Health'], maxHp: GAME_SETTINGS[statKey + 'Health'],
+    speed: GAME_SETTINGS[statKey + 'Speed'] * (own ? 1 : ENEMY_SPEED_FACTOR[statKey]),
+    damage: GAME_SETTINGS[statKey + 'Damage'] * (own ? 1 : ENEMY_DAMAGE_FACTOR[statKey]),
+    attackCooldown: 0, attackInterval: GAME_SETTINGS[statKey + 'AttackInterval'] * (own ? 1 : ENEMY_ATTACK_INTERVAL_FACTOR[statKey]),
+    attackRange: GAME_SETTINGS[statKey + 'Range'] * (own ? 1 : ENEMY_RANGE_FACTOR[statKey]),
     burstCount: 18, burstShots: 0, burstReloadTime: 3000,
     burstState: 'ready', burstTimer: 0,
     radius: 14,
@@ -4031,7 +4040,17 @@ window.WarSim.setSettings = settings => {
     unit.maxHp = newMax;
   };
   soldiers.forEach(unit => {
-    if (unit.kind !== 'tank' || unit.remote) return;
+    if (unit.remote) return;
+    if (unit.kind !== 'tank') {
+      const k = unit.isElite ? 'eliteSoldier' : 'soldier';
+      const own = unit.team === 'own';
+      unit.attackRange = GAME_SETTINGS[k + 'Range'] * (own ? 1 : ENEMY_RANGE_FACTOR[k]);
+      unit.damage = GAME_SETTINGS[k + 'Damage'] * (own ? 1 : ENEMY_DAMAGE_FACTOR[k]);
+      unit.speed = GAME_SETTINGS[k + 'Speed'] * (own ? 1 : ENEMY_SPEED_FACTOR[k]);
+      unit.attackInterval = GAME_SETTINGS[k + 'AttackInterval'] * (own ? 1 : ENEMY_ATTACK_INTERVAL_FACTOR[k]);
+      if (unit.hp > 0) rescaleHp(unit, GAME_SETTINGS[k + 'Health']);
+      return;
+    }
     const k = tankSettingKey(unit), own = unit.team === 'own';
     unit.attackRange = GAME_SETTINGS[k + 'Range'] * (own ? 1 : ENEMY_RANGE_FACTOR[k]);
     unit.damage = GAME_SETTINGS[k + 'Damage'];
