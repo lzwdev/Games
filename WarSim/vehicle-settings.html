@@ -107,6 +107,7 @@
     const $save = document.getElementById('saveButton');
     const $reset = document.getElementById('resetButton');
     const $root = document.getElementById('vehiclesRoot');
+    let formDirty = false;
     const displayStatus = (msg, kind = '') => { $status.textContent = msg; $status.dataset.kind = kind; };
 
     function renderForms() {
@@ -143,6 +144,7 @@
       }
     }
     renderForms();
+    $form.addEventListener('input', () => { formDirty = true; });
 
     const readValues = () => {
       const out = {};
@@ -170,17 +172,24 @@
       const settingsRef = ref(getDatabase(app), 'warsim/settings/unitStats');
       onValue(settingsRef, snap => {
         const stored = snap.val();
-        if (!stored) {
-          writeValues(DEFAULTS);
-          displayStatus('Noch keine Werte gespeichert – Standard geladen.', '');
+        if (!formDirty) {
+          if (!stored) {
+            writeValues(DEFAULTS);
+            displayStatus('Noch keine Werte gespeichert – Standard geladen.', '');
+          } else {
+            const merged = { ...DEFAULTS };
+            for (const k of Object.keys(DEFAULTS)) if (stored[k] != null) merged[k] = stored[k];
+            writeValues(merged);
+            displayStatus('Verbunden · Werte live synchronisiert.', 'ok');
+          }
         } else {
-          const merged = { ...DEFAULTS };
-          for (const k of Object.keys(DEFAULTS)) if (stored[k] != null) merged[k] = stored[k];
-          writeValues(merged);
-          displayStatus('Verbunden · Werte live synchronisiert.', 'ok');
+          displayStatus('Neue Serverwerte verfügbar. Deine Eingaben bleiben erhalten; speichere, um sie zu übernehmen.', '');
         }
         $save.disabled = false;
-      }, err => displayStatus(`Firebase-Lesefehler: ${err.message}`, 'error'));
+      }, err => {
+        displayStatus(`Firebase-Lesefehler: ${err.message} Du kannst Standardwerte bearbeiten und das Speichern versuchen.`, 'error');
+        $save.disabled = false;
+      });
 
       $form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -197,6 +206,7 @@
         displayStatus('Speichere …');
         try {
           await set(settingsRef, { ...values, updatedAt: Date.now(), updatedBy: auth.currentUser.uid });
+          formDirty = false;
           displayStatus('✅ Gespeichert · Alle laufenden Spiele übernehmen die Werte.', 'ok');
         } catch (err) {
           displayStatus(`Firebase-Schreibfehler: ${err.message}`, 'error');
@@ -207,6 +217,7 @@
 
       $reset.addEventListener('click', () => {
         writeValues(DEFAULTS);
+        formDirty = true;
         displayStatus('Standardwerte geladen – zum Übernehmen speichern klicken.', '');
       });
 
