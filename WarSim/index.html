@@ -3972,13 +3972,30 @@ function draw() {
 }
 
 // ============ LOOP ============
-let lastTime = performance.now();
-function loop(now) {
-  const dt = Math.min(now - lastTime, 100);
-  lastTime = now;
-  
+let simulationAccumulator = 0;
+let lastSimulationTime = performance.now();
+let lastRenderTime = lastSimulationTime;
+const FIXED_STEP = 1000 / 60;
+function simulateUntil(now) {
+  if (document.hidden) {
+    lastSimulationTime = now;
+    return;
+  }
+  simulationAccumulator += Math.max(0, now - lastSimulationTime);
+  lastSimulationTime = now;
+  // Never discard elapsed simulation time: a slow render can delay this callback,
+  // then all due math-only updates are processed to bring gameplay back to wall time.
+  while (simulationAccumulator >= FIXED_STEP) {
+    update(FIXED_STEP);
+    simulationAccumulator -= FIXED_STEP;
+  }
+}
+
+function render(now) {
+  const frameTime = Math.max(0, now - lastRenderTime);
+  lastRenderTime = now;
   frameCount++;
-  fpsTimer += dt;
+  fpsTimer += frameTime;
   if (fpsTimer > 500) {
     currentFps = Math.round(frameCount * 1000 / fpsTimer);
     document.getElementById('hudFps').textContent = currentFps;
@@ -3986,14 +4003,18 @@ function loop(now) {
     fpsTimer = 0;
   }
   
-  update(dt);
+  // Rendering runs at the display refresh rate and never owns the simulation clock.
   draw();
-  requestAnimationFrame(loop);
+  requestAnimationFrame(render);
 }
 
 resize();
 centerCamera();
-requestAnimationFrame(loop);
+setInterval(() => simulateUntil(performance.now()), 8);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) lastSimulationTime = performance.now();
+});
+requestAnimationFrame(render);
 
 window.__warsimState = { soldiers, atguns, artillery, trucks, flags: buffFlags, base: ownBase, remotePlayers, centerCamera, checkBaseDestroyed };
 window.WarSim = {
