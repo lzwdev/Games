@@ -430,6 +430,17 @@
   .go-stat { background:rgba(255,255,255,.85); border-color:#d5deea; box-shadow:0 8px 28px rgba(35,53,78,.1); }
   .go-stat-label { color:#68788e; }
   #gameover button { background:linear-gradient(135deg,#5da0e5,#337fc7); color:#fff; box-shadow:0 6px 20px rgba(51,127,199,.25); }
+  #serverDown { position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(9,14,22,.72); backdrop-filter:blur(7px); }
+  #serverDown.show { display:flex; }
+  .server-down-card { position:relative; width:min(440px,100%); padding:34px 32px 30px; text-align:center; border:1px solid #ffffff; border-radius:26px; background:radial-gradient(ellipse at 50% -10%,#fff1f2 0,transparent 52%),linear-gradient(145deg,#fff,#f3f6fb); color:#253247; box-shadow:0 32px 100px #0009,0 0 0 1px #e84f5c22; animation:serverPop .24s cubic-bezier(.2,.8,.2,1); }
+  .server-down-card::before { content:""; position:absolute; inset:0 18% auto; height:3px; border-radius:0 0 99px 99px; background:linear-gradient(90deg,transparent,#e65762,transparent); }
+  .server-down-icon { display:grid; place-items:center; width:68px; height:68px; margin:0 auto 19px; border:1px solid #ffd0d3; border-radius:22px; color:#c83c45; background:linear-gradient(145deg,#fff3f3,#ffe2e4); box-shadow:0 8px 22px #d947501c; font-size:30px; font-weight:900; }
+  .server-down-card h2 { margin:0 0 10px; font-size:28px; letter-spacing:-.045em; }
+  .server-down-card p { margin:0 auto; max-width:340px; color:#66758b; line-height:1.6; }
+  .server-down-card button { margin-top:24px; padding:12px 20px; border:0; border-radius:12px; color:white; background:linear-gradient(135deg,#e05a60,#bc3541); box-shadow:0 8px 18px #ca414733; font-weight:800; cursor:pointer; transition:transform .18s ease,box-shadow .18s ease; }
+  .server-down-card button:hover { filter:brightness(1.06); }
+  .server-down-card button:hover { transform:translateY(-2px); box-shadow:0 11px 24px #ca414744; }
+  @keyframes serverPop { from { opacity:0; transform:translateY(8px) scale(.98) } to { opacity:1; transform:none } }
   @media (max-width:700px) {
     #sidebar { border-top:1px solid #d6deea; }
   }
@@ -525,6 +536,14 @@
     </div>
   </div>
 </div>
+<div id="serverDown" role="alertdialog" aria-modal="true" aria-labelledby="serverDownTitle" aria-describedby="serverDownMessage">
+  <section class="server-down-card">
+    <div class="server-down-icon" aria-hidden="true">!</div>
+    <h2 id="serverDownTitle">Server is down</h2>
+    <p id="serverDownMessage">Die Verbindung zum Spielserver ist fehlgeschlagen. Bitte prüfe deine Internetverbindung und versuche es erneut.</p>
+    <button type="button" onclick="location.reload()">Erneut versuchen</button>
+  </section>
+</div>
 <div id="gameover">
   <div id="gameoverText"></div>
   <div id="gameoverStats">
@@ -542,16 +561,19 @@
 
 <script>
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = true;
-ctx.imageSmoothingQuality = 'high';
+const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+let renderScale = 1;
 
 function resize() {
-  canvas.width = canvas.clientWidth * window.devicePixelRatio;
-  canvas.height = canvas.clientHeight * window.devicePixelRatio;
+  // Keep Retina displays sharp while avoiding a 4x pixel workload at devicePixelRatio 2.
+  renderScale = Math.min(window.devicePixelRatio || 1, 1.5);
+  canvas.width = Math.round(canvas.clientWidth * renderScale);
+  canvas.height = Math.round(canvas.clientHeight * renderScale);
   canvas.style.width = canvas.clientWidth + 'px';
   canvas.style.height = canvas.clientHeight + 'px';
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'medium';
 }
 window.addEventListener('resize', resize);
 
@@ -1438,29 +1460,66 @@ function isOverlapping(x, y, radius, ignore = null) {
   return false;
 }
 
+function findNearestEnemy(unit, refreshEvery = 180) {
+  const now = performance.now();
+  const cached = unit._targetCache;
+  if (cached && (cached.hp <= 0 || cached.team === unit.team)) unit._targetCache = null;
+  if (!unit._targetCache || now >= (unit._targetSearchAt || 0)) {
+    let nearest = null, nearestDistance = Infinity;
+    for (const other of soldiers) {
+      if (other === unit || other.team === unit.team || other.hp <= 0) continue;
+      const dx = other.x - unit.x, dy = other.y - unit.y;
+      const distanceSquared = dx * dx + dy * dy;
+      if (distanceSquared < nearestDistance) { nearestDistance = distanceSquared; nearest = other; }
+    }
+    unit._targetCache = nearest;
+    unit._targetSearchAt = now + refreshEvery;
+  }
+  const target = unit._targetCache;
+  if (!target) return { target: null, distance: Infinity };
+  return { target, distance: Math.hypot(target.x - unit.x, target.y - unit.y) };
+}
+
 function resolveCollisions() {
   const pushStrength = 0.5;
+  const cellSize = 128;
+  const soldierCells = new Map();
+  const cellKey = (x, y) => `${x},${y}`;
+  for (let i = 0; i < soldiers.length; i++) {
+    const s = soldiers[i];
+    if (s.hp <= 0 || s.remote) continue;
+    const key = cellKey(Math.floor(s.x / cellSize), Math.floor(s.y / cellSize));
+    let bucket = soldierCells.get(key);
+    if (!bucket) soldierCells.set(key, bucket = []);
+    bucket.push(i);
+  }
   for (let i = 0; i < soldiers.length; i++) {
     const a = soldiers[i];
     if (a.hp <= 0 || a.remote) continue;
-    for (let j = i + 1; j < soldiers.length; j++) {
-      const b = soldiers[j];
-      if (b.hp <= 0 || b.remote) continue;
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const dist = Math.hypot(dx, dy);
-      const minDist = getCollisionRadius(a) + getCollisionRadius(b);
-      if (dist < minDist && dist > 0.001) {
-        const overlap = minDist - dist;
-        const nx = dx / dist, ny = dy / dist;
-        const push = (overlap / 2) * pushStrength;
-        a.x -= nx * push; a.y -= ny * push;
-        b.x += nx * push; b.y += ny * push;
+    const cx = Math.floor(a.x / cellSize), cy = Math.floor(a.y / cellSize);
+    for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) {
+      const nearby = soldierCells.get(cellKey(cx + ox, cy + oy));
+      if (!nearby) continue;
+      for (const j of nearby) {
+        if (j <= i) continue;
+        const b = soldiers[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = getCollisionRadius(a) + getCollisionRadius(b);
+        if (dist < minDist && dist > 0.001) {
+          const overlap = minDist - dist;
+          const nx = dx / dist, ny = dy / dist;
+          const push = (overlap / 2) * pushStrength;
+          a.x -= nx * push; a.y -= ny * push;
+          b.x += nx * push; b.y += ny * push;
+        }
       }
     }
   }
+  const statics = [...atguns, ...artillery, ...buffFlags];
   soldiers.forEach(s => {
     if (s.hp <= 0 || s.remote) return;
-    [...atguns, ...artillery, ...buffFlags].forEach(a => {
+    statics.forEach(a => {
       if (a.destroyed || a.remote) return;
       const d = Math.hypot(s.x - a.x, s.y - a.y);
       const minDist = getCollisionRadius(s) + getCollisionRadius(a);
@@ -1480,7 +1539,6 @@ function resolveCollisions() {
       }
     });
   });
-  const statics = [...atguns, ...artillery, ...buffFlags];
   for (let i = 0; i < statics.length; i++) {
     const a = statics[i];
     if (a.destroyed || a.remote) continue;
@@ -2175,6 +2233,8 @@ function tryRicochet(shell, target) {
 function updateSoldierBehavior() { return false; }
 
 // ============ UPDATE ============
+let collisionRefresh = 0;
+let hudRefresh = 0;
 function update(dt) {
   if (gameOver) return;
   gameTime += dt;
@@ -2243,12 +2303,7 @@ function update(dt) {
       }
     } else {
       atgun.attackCooldown -= dt;
-      let closest = null, closestDist = Infinity;
-      soldiers.forEach(other => {
-        if (other.team === atgun.team || other.hp <= 0) return;
-        const d = Math.hypot(other.x - atgun.x, other.y - atgun.y);
-        if (d < closestDist) { closestDist = d; closest = other; }
-      });
+      const { target: closest, distance: closestDist } = findNearestEnemy(atgun, 260);
       if (closest && closestDist < atgun.range) {
         atgun.angle = Math.atan2(closest.y - atgun.y, closest.x - atgun.x);
         const dist = closestDist;
@@ -2292,13 +2347,7 @@ function update(dt) {
       if (art.burstActive) {
         art.burstCooldown -= dt;
         if (art.burstCooldown <= 0 && art.burstShotsLeft > 0) {
-          let target = null;
-          let closestDist = Infinity;
-          soldiers.forEach(other => {
-            if (other.team === art.team || other.hp <= 0) return;
-            const d = Math.hypot(other.x - art.x, other.y - art.y);
-            if (d < closestDist) { closestDist = d; target = other; }
-          });
+          const { target, distance: closestDist } = findNearestEnemy(art, 260);
           const oppBase = art.team === 'own' ? enemyBase : ownBase;
           if (!target && oppBase && oppBase.hp > 0) {
             const distToBase = Math.hypot(oppBase.x - art.x, oppBase.y - art.y);
@@ -2323,13 +2372,7 @@ function update(dt) {
         art.loadingState = 'loading';
         art.ammoCount = Math.max(0, 1 - (art.attackCooldown / art.attackInterval));
         if (art.attackCooldown <= 0) {
-          let target = null;
-          let closestDist = Infinity;
-          soldiers.forEach(other => {
-            if (other.team === art.team || other.hp <= 0) return;
-            const d = Math.hypot(other.x - art.x, other.y - art.y);
-            if (d < closestDist) { closestDist = d; target = other; }
-          });
+          const { target, distance: closestDist } = findNearestEnemy(art, 260);
           const oppBase = art.team === 'own' ? enemyBase : ownBase;
           if (!target && oppBase && oppBase.hp > 0) {
             const distToBase = Math.hypot(oppBase.x - art.x, oppBase.y - art.y);
@@ -2389,12 +2432,7 @@ function update(dt) {
       }
     }
     
-    let closest = null, closestDist = Infinity;
-    soldiers.forEach(other => {
-      if (other === s || other.team === s.team || other.hp <= 0) return;
-      const d = Math.hypot(other.x - s.x, other.y - s.y);
-      if (d < closestDist) { closestDist = d; closest = other; }
-    });
+    const { target: closest, distance: closestDist } = findNearestEnemy(s);
     
     const oppBase = s.team === 'own' ? enemyBase : ownBase;
     const baseAlive = oppBase && oppBase.hp > 0;
@@ -2436,7 +2474,11 @@ function update(dt) {
     if (s.recoil) s.recoil = Math.max(0, s.recoil - dt * 0.005);
   });
   
-  resolveCollisions();
+  collisionRefresh += dt;
+  if (collisionRefresh >= 100) {
+    resolveCollisions();
+    collisionRefresh %= 100;
+  }
   
   // Bullets
   bullets = bullets.filter(b => {
@@ -2726,18 +2768,22 @@ function update(dt) {
     return true;
   });
   
-  ownCount = soldiers.filter(s => s.hp > 0 && s.team === 'own' && !s.remote).length;
-  enemyCount = soldiers.filter(s => s.hp > 0 && s.team === 'enemy').length;
-  document.getElementById('ownCount').textContent = ownCount;
-  document.getElementById('enemyCount').textContent = enemyCount;
-  document.getElementById('hudOwn').textContent = ownCount;
-  document.getElementById('hudEnemy').textContent = enemyCount;
-  document.getElementById('deathCount').textContent = totalDeaths;
-  document.getElementById('hudDeaths').textContent = totalDeaths;
-  const buffCount = buffFlags.filter(f => !f.destroyed && f.team === 'own').length;
-  document.getElementById('buffCount').textContent = buffCount;
-  document.getElementById('hudBuff').textContent = buffCount;
-  updateHpBars();
+  hudRefresh += dt;
+  if (hudRefresh >= 150) {
+    hudRefresh %= 150;
+    ownCount = soldiers.filter(s => s.hp > 0 && s.team === 'own' && !s.remote).length;
+    enemyCount = soldiers.filter(s => s.hp > 0 && s.team === 'enemy').length;
+    document.getElementById('ownCount').textContent = ownCount;
+    document.getElementById('enemyCount').textContent = enemyCount;
+    document.getElementById('hudOwn').textContent = ownCount;
+    document.getElementById('hudEnemy').textContent = enemyCount;
+    document.getElementById('deathCount').textContent = totalDeaths;
+    document.getElementById('hudDeaths').textContent = totalDeaths;
+    const buffCount = buffFlags.filter(f => !f.destroyed && f.team === 'own').length;
+    document.getElementById('buffCount').textContent = buffCount;
+    document.getElementById('hudBuff').textContent = buffCount;
+    updateHpBars();
+  }
 }
 
 function leaveTrack(s) {
@@ -3785,14 +3831,18 @@ function drawMinimap() {
 
 function draw() {
   if (typeof window.WarSim?.advanceRemoteVisuals === 'function') window.WarSim.advanceRemoteVisuals();
-  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  const margin = 140 / camera.zoom;
+  const viewRight = camera.x + canvas.clientWidth / camera.zoom;
+  const viewBottom = camera.y + canvas.clientHeight / camera.zoom;
+  const onScreen = (o, extra = 0) => o.x + margin + extra >= camera.x && o.x - margin - extra <= viewRight && o.y + margin + extra >= camera.y && o.y - margin - extra <= viewBottom;
+  // The opaque context and this full-frame fill make clearRect redundant.
   ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
   ctx.save();
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-camera.x + camera.shakeX, -camera.y + camera.shakeY);
   
   buffFlags.forEach(f => {
-    if (f.destroyed) return;
+    if (f.destroyed || !onScreen(f, BUFF_RADIUS)) return;
     const pulse = 0.85 + Math.sin(gameTime * 0.002) * 0.15;
     const auraGrad = ctx.createRadialGradient(f.x, f.y, 20, f.x, f.y, BUFF_RADIUS);
     auraGrad.addColorStop(0, 'rgba(255,136,255,' + (0.2 * pulse) + ')');
@@ -3809,30 +3859,34 @@ function draw() {
   drawGround();
   drawScorchMarks();
   drawScorchMarks(remoteEffects.scorchMarks);
-  drawBase(ownBase, '#4a9eff', 'EIGENE BASIS', true);
+  if (onScreen(ownBase, ownBase.radius)) drawBase(ownBase, '#4a9eff', 'EIGENE BASIS', true);
   Object.values(remotePlayers).forEach(player => {
-    if (player.uid !== onlineUid && player.base) drawBase(player.base, '#ff5a4a', player.name || 'SPIELER', false);
+    if (player.uid !== onlineUid && player.base && onScreen(player.base, player.base.radius)) drawBase(player.base, '#ff5a4a', player.name || 'SPIELER', false);
   });
-  if (!Object.keys(remotePlayers).length) drawBase(enemyBase, '#ff5a4a', 'FEIND-BASIS', false);
+  if (!Object.keys(remotePlayers).length && onScreen(enemyBase, enemyBase.radius)) drawBase(enemyBase, '#ff5a4a', 'FEIND-BASIS', false);
   
   tracks.forEach(t => {
+    if (!onScreen(t, t.size)) return;
     const alpha = (t.life / t.maxLife) * 0.4;
     ctx.globalAlpha = alpha; ctx.fillStyle = '#222';
     ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
   });
   remoteEffects.tracks.forEach(t => {
+    if (!onScreen(t, t.size)) return;
     ctx.globalAlpha = (t.life / t.maxLife) * 0.4; ctx.fillStyle = '#222';
     ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
   
   particles.forEach(p => {
+    if (!onScreen(p, p.size || 3)) return;
     const alpha = p.life / p.maxLife;
     ctx.globalAlpha = alpha; ctx.fillStyle = p.color;
     const size = p.size || 3;
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill();
   });
   remoteEffects.particles.forEach(p => {
+    if (!onScreen(p, p.size || 3)) return;
     ctx.globalAlpha = p.life / p.maxLife; ctx.fillStyle = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, (p.size || 3) / 2, 0, Math.PI * 2); ctx.fill();
   });
@@ -3876,32 +3930,33 @@ function draw() {
     drawRagdoll(r); ctx.globalAlpha = 1;
   });
   
-  atguns.forEach(a => drawAtgun(a));
-  artillery.forEach(a => drawArtillery(a));
-  buffFlags.forEach(f => drawBuffFlag(f));
-  trucks.forEach(t => drawTruck(t));
+  atguns.forEach(a => { if (onScreen(a, a.radius)) drawAtgun(a); });
+  artillery.forEach(a => { if (onScreen(a, a.radius)) drawArtillery(a); });
+  buffFlags.forEach(f => { if (onScreen(f, f.radius)) drawBuffFlag(f); });
+  trucks.forEach(t => { if (onScreen(t, t.radius)) drawTruck(t); });
   
   soldiers.forEach(s => {
+    if (!onScreen(s, s.radius)) return;
     if (s.kind === 'tank') drawTank(s);
     else drawSoldier(s);
   });
   
-  turrets.forEach(t => drawTurret(t));
-  remoteEffects.turrets.forEach(t => drawTurret(t));
-  bullets.forEach(b => drawBullet(b));
-  remoteBullets.forEach(b => drawBullet(b));
-  shells.forEach(sh => drawShell(sh));
-  remoteShells.forEach(sh => drawShell(sh));
-  artilleryShells.forEach(ash => drawArtilleryShell(ash));
-  remoteArtilleryShells.forEach(ash => drawArtilleryShell(ash));
-  ricochets.forEach(r => drawRicochet(r));
-  remoteRicochets.forEach(r => drawRicochet(r));
-  explosions.forEach(e => drawExplosion(e));
-  remoteExplosions.forEach(e => drawExplosion(e));
-  shockwaves.forEach(s => drawShockwave(s));
-  remoteShockwaves.forEach(s => drawShockwave(s));
-  muzzleFlashes.forEach(m => drawMuzzleFlash(m));
-  remoteMuzzleFlashes.forEach(m => drawMuzzleFlash(m));
+  turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
+  remoteEffects.turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
+  bullets.forEach(b => { if (onScreen(b, 30)) drawBullet(b); });
+  remoteBullets.forEach(b => { if (onScreen(b, 30)) drawBullet(b); });
+  shells.forEach(sh => { if (onScreen(sh, sh.splashRadius)) drawShell(sh); });
+  remoteShells.forEach(sh => { if (onScreen(sh, sh.splashRadius)) drawShell(sh); });
+  artilleryShells.forEach(ash => { if (onScreen(ash, ash.arcHeight || 0)) drawArtilleryShell(ash); });
+  remoteArtilleryShells.forEach(ash => { if (onScreen(ash, ash.arcHeight || 0)) drawArtilleryShell(ash); });
+  ricochets.forEach(r => { if (onScreen(r, 30)) drawRicochet(r); });
+  remoteRicochets.forEach(r => { if (onScreen(r, 30)) drawRicochet(r); });
+  explosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
+  remoteExplosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
+  shockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
+  remoteShockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
+  muzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
+  remoteMuzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
   
   ctx.restore();
   drawMinimap();
@@ -4028,6 +4083,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 const status = document.getElementById('onlineStatus');
+const serverDownPopup = document.getElementById('serverDown');
+function showServerDown(error, source) {
+  status.textContent = 'Server is down'; status.style.color = '#ff7777';
+  serverDownPopup.classList.add('show');
+  console.error(source, error);
+}
+function hideServerDown() { serverDownPopup.classList.remove('show'); }
 const settingsRef = ref(db, 'warsim/settings/unitStats');
 
 let uid = null, entsRef = null, playerRef = null, hitsRef = null;
@@ -4406,7 +4468,7 @@ Object.assign(window.WarSim, {
 
 onValue(ref(db, '.info/serverTimeOffset'), s => { serverOffset = Number(s.val()) || 0; evalPlayers(); });
 onValue(ref(db, `${ROOT}/players`), s => { latestPlayers = s.val() || {}; evalPlayers(); }, error => {
-  status.textContent = 'Firebase Fehler'; status.style.color = '#ff7777'; console.error('Warsim Spieler-Sync:', error);
+  showServerDown(error, 'Warsim Spieler-Sync:');
 });
 setInterval(evalPlayers, 5000);
 
@@ -4457,7 +4519,11 @@ onAuthStateChanged(auth, async user => {
 
     // Nach Verbindungsabbruch: Server hat unsere Knoten gelöscht -> alles neu senden
     onValue(ref(db, '.info/connected'), s => {
-      if (!s.val()) return;
+      if (!s.val()) {
+        showServerDown(new Error('Firebase Realtime Database connection lost'), 'Warsim Verbindung:');
+        return;
+      }
+      hideServerDown();
       sent.clear(); lastBase = {};
       registerDisconnect();
       flushPlayer(true);
@@ -4475,10 +4541,10 @@ onAuthStateChanged(auth, async user => {
     status.textContent = 'Online · 1 Spieler'; status.style.color = '#7ee787';
     evalPlayers();
   } catch (error) {
-    status.textContent = 'Firebase Fehler'; status.style.color = '#ff7777'; console.error('Warsim Online:', error);
+    showServerDown(error, 'Warsim Online:');
   }
 });
-signInAnonymously(auth).catch(error => { status.textContent = 'Anmeldung fehlgeschlagen'; console.error(error); });
+signInAnonymously(auth).catch(error => showServerDown(error, 'Warsim Anmeldung:'));
 </script>
 </body>
 </html>
