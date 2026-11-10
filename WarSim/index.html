@@ -524,6 +524,10 @@
     <div class="settings-section">
       <div class="settings-title">⚙ EINSTELLUNGEN</div>
       <div class="toggle-row">
+        <span>⚡ Fast Mode</span>
+        <div class="toggle-btn" id="toggle-fast-mode" role="switch" aria-checked="false" tabindex="0"></div>
+      </div>
+      <div class="toggle-row">
         <span>📳 Camera Shake</span>
         <div class="toggle-btn on" id="toggle-shake"></div>
       </div>
@@ -791,6 +795,18 @@ function resize() {
 window.addEventListener('resize', resize);
 
 let cameraShakeEnabled = true;
+let fastMode = false;
+const fastModeToggle = document.getElementById('toggle-fast-mode');
+function setFastMode(enabled) {
+  fastMode = Boolean(enabled);
+  fastModeToggle.classList.toggle('on', fastMode);
+  fastModeToggle.setAttribute('aria-checked', String(fastMode));
+  fastModeToggle.title = fastMode ? 'Reduzierte Grafik aktiv' : 'Detaillierte Grafik aktiv';
+}
+fastModeToggle.addEventListener('click', () => setFastMode(!fastMode));
+fastModeToggle.addEventListener('keydown', event => {
+  if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setFastMode(!fastMode); }
+});
 document.getElementById('toggle-shake').addEventListener('click', (e) => {
   cameraShakeEnabled = !cameraShakeEnabled;
   e.target.classList.toggle('on', cameraShakeEnabled);
@@ -1361,8 +1377,8 @@ document.addEventListener('click', () => initAudio(), { once: true });
 const WORLD_WIDTH = 18000;
 const WORLD_HEIGHT = 12000;
 
-const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false, team: 'own' };
-const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 280, hp: 0, maxHp: 5000, destroyed: true, ownerUid: null };
+const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 460, hp: 5000, maxHp: 5000, destroyed: false, team: 'own' };
+const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 460, hp: 0, maxHp: 5000, destroyed: true, ownerUid: null };
 
 const camera = {
   x: 0, y: 0, zoom: 1, targetZoom: 1,
@@ -1398,7 +1414,7 @@ function placeBotBase() {
     const y = 900 + Math.random() * (WORLD_HEIGHT - 1800);
     if (Math.hypot(x - ownBase.x, y - ownBase.y) < 2600) continue;
     if (activeBotBases().some(bot => Math.hypot(x - bot.base.x, y - bot.base.y) < 2200)) continue;
-    return { x, y, radius: 280, hp: 5000, maxHp: 5000, destroyed: false, ownerUid: null, team: null };
+    return { x, y, radius: 460, hp: 5000, maxHp: 5000, destroyed: false, ownerUid: null, team: null };
   }
   return null;
 }
@@ -1992,7 +2008,10 @@ function spawnEnemy(botId = null) {
   if (tries >= 25) return null;
   const roll = Math.random();
   const waveBonus = Math.min(waveNumber * 0.02, 0.2);
-  if (roll < 0.08) {
+  const botArtilleryCount = botId
+    ? artillery.filter(unit => unit.botId === botId && !unit.destroyed).length + trucks.filter(unit => unit.botId === botId && unit.type === 'artillery' && !unit.destroyed).length
+    : 0;
+  if (roll < 0.08 && botArtilleryCount < 4) {
     spawnTruck(botId || 'enemy', ex, ey, 'artillery');
     trucks[trucks.length - 1].botId = botId;
     spawnParticles(ex, ey, '#ff9933', 16);
@@ -2050,7 +2069,7 @@ function tickBot(dt) {
   for (const bot of botPlayers) {
     if (!bot.active) continue;
     bot.elapsed += dt;
-    if (bot.elapsed >= bot.duration || bot.base.hp <= 0) { finishBot('wurde besiegt', bot); continue; }
+    if (bot.base.hp <= 0) { finishBot('wurde besiegt', bot); continue; }
     bot.spawnTimer += dt;
     if (bot.spawnTimer < bot.spawnInterval || enemyCount >= maxEnemies) continue;
     bot.spawnTimer = 0;
@@ -2559,9 +2578,6 @@ function tryRicochet(shell, target) {
   return false;
 }
 
-// ============ SOLDATEN-VERHALTEN ============
-function updateSoldierBehavior() { return false; }
-
 // ============ UPDATE ============
 let collisionRefresh = 0;
 let hudRefresh = 0;
@@ -2735,8 +2751,6 @@ function update(dt) {
     if (s.hitFlash > 0) s.hitFlash -= dt;
     if (s.spawnAnim > 0) s.spawnAnim -= dt * 0.004;
     if (s.crouch > 0) s.crouch -= dt;
-    
-    if (updateSoldierBehavior(s, dt)) return;
     
     if (s.kind === 'tank' && s.recoilOffset) {
       s.recoilOffset = Math.max(0, s.recoilOffset - dt * 0.008);
@@ -3540,6 +3554,12 @@ function drawAtgun(atgun) {
     ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(atgun.x - width / 2 - 1, atgun.y - atgun.radius - 10, width + 2, 5);
     ctx.fillStyle = hpPercent > 0.5 ? '#4caf50' : hpPercent > 0.25 ? '#ff9800' : '#f44336';
     ctx.fillRect(atgun.x - width / 2, atgun.y - atgun.radius - 9, width * hpPercent, 3);
+    const reloadPct = Math.max(0, 1 - atgun.attackCooldown / atgun.attackInterval);
+    ctx.fillStyle = 'rgba(0,0,0,.8)'; ctx.fillRect(atgun.x - width / 2 - 1, atgun.y + atgun.radius + 4, width + 2, 6);
+    ctx.fillStyle = reloadPct >= 1 ? '#00e889' : '#ffb52e';
+    ctx.fillRect(atgun.x - width / 2, atgun.y + atgun.radius + 5, width * reloadPct, 4);
+    ctx.fillStyle = '#f4f1dc'; ctx.font = 'bold 8px Arial';
+    ctx.fillText(reloadPct >= 1 ? 'BEREIT' : 'NACHLADEN', atgun.x, atgun.y + atgun.radius + 20);
   }
 }
 
@@ -3568,12 +3588,19 @@ function drawArtillery(art) {
     ctx.fillStyle = tire; ctx.beginPath(); ctx.ellipse(wx, wy, 9, 6.5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#222927'; ctx.lineWidth = 1.3; ctx.stroke();
     ctx.fillStyle = '#b4b49e'; ctx.beginPath(); ctx.arc(wx, wy, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(220,218,191,.72)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(wx - 5, wy); ctx.lineTo(wx + 5, wy); ctx.moveTo(wx, wy - 4); ctx.lineTo(wx, wy + 4); ctx.stroke();
     ctx.fillStyle = '#4a4c41'; ctx.beginPath(); ctx.moveTo(-43, side * 30); ctx.lineTo(-51, side * 34); ctx.lineTo(-47, side * 26); ctx.closePath(); ctx.fill();
   }
   const carriage = ctx.createLinearGradient(0, -17, 0, 17);
   carriage.addColorStop(0, '#8c9480'); carriage.addColorStop(.42, '#59635b'); carriage.addColorStop(1, '#343d39');
   ctx.fillStyle = carriage; ctx.beginPath(); ctx.roundRect(-24, -13, 49, 26, 6); ctx.fill();
   ctx.strokeStyle = '#202725'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = 'rgba(214,215,188,.35)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-18, -8); ctx.lineTo(-8, -8); ctx.moveTo(-18, 8); ctx.lineTo(-8, 8); ctx.stroke();
+  for (const rivet of [[-19,-9],[-19,9],[20,-9],[20,9]]) {
+    ctx.fillStyle = '#c1bea3'; ctx.beginPath(); ctx.arc(rivet[0], rivet[1], 1.6, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.fillStyle = '#282f2d'; ctx.beginPath(); ctx.roundRect(-18, -8, 24, 16, 4); ctx.fill();
   ctx.fillStyle = '#6e786d'; ctx.beginPath(); ctx.arc(1, 0, 11, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#242b29'; ctx.lineWidth = 2; ctx.stroke();
@@ -3584,6 +3611,12 @@ function drawArtillery(art) {
   ctx.strokeStyle = '#252d2a'; ctx.lineWidth = 2.4; ctx.stroke();
   ctx.strokeStyle = 'rgba(227,226,197,.45)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(5, -14); ctx.lineTo(13, -11); ctx.lineTo(15, -6); ctx.moveTo(5, 14); ctx.lineTo(13, 11); ctx.lineTo(15, 6); ctx.stroke();
+  ctx.fillStyle = '#d0cdb4';
+  for (const rivet of [[2,-15],[13,-10],[16,0],[13,10],[2,15]]) {
+    ctx.beginPath(); ctx.arc(rivet[0], rivet[1], 1.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(20,27,25,.65)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(-22, -17); ctx.lineTo(-12, -13); ctx.moveTo(-22, 17); ctx.lineTo(-12, 13); ctx.stroke();
   ctx.fillStyle = teamMark; ctx.fillRect(-2, -2, 3, 4);
   const recoil = art.recoilOffset ? art.recoilOffset * 9 : 0;
   const barrelLen = 73 * Math.cos(art.barrelPitch || .22);
@@ -3702,8 +3735,14 @@ function drawBuffFlag(flag) {
 }
 
 function drawReloadBar(s, bob) {
-  if (s.attackCooldown <= 0 || s.isElite) return;
-  const progress = 1 - (s.attackCooldown / s.attackInterval);
+  let progress;
+  if (s.isElite) {
+    if (s.burstState !== 'reloading') return;
+    progress = 1 - (s.burstTimer / s.burstReloadTime);
+  } else {
+    if (s.attackCooldown <= 0) return;
+    progress = 1 - (s.attackCooldown / s.attackInterval);
+  }
   const width = s.radius * 2.4;
   const x = s.x - width / 2;
   const y = s.y - (s.kind === 'tank' ? s.radius * .72 + 13 : s.radius + 24) + bob;
@@ -3911,6 +3950,23 @@ function drawBase(base, color, label, isOwn) {
   const { x, y, radius } = base;
   const hpPct = Math.max(0, base.hp / base.maxHp);
   const destroyed = base.hp <= 0;
+  if (fastMode) {
+    ctx.fillStyle = destroyed ? '#343434' : 'rgba(29,39,35,.9)';
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = destroyed ? '#555' : color; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+    if (!destroyed) {
+      ctx.fillStyle = '#59635a'; ctx.fillRect(x - 48, y - 32, 96, 64);
+      ctx.fillStyle = '#27312e'; ctx.fillRect(x - 14, y - 18, 28, 36);
+      ctx.fillStyle = color; ctx.fillRect(x - 10, y - 8, 20, 5);
+      ctx.fillStyle = '#111'; ctx.fillRect(x - 62, y - radius - 22, 124, 10);
+      ctx.fillStyle = hpPct > .5 ? '#58c96b' : hpPct > .25 ? '#f3a42e' : '#ef5147';
+      ctx.fillRect(x - 60, y - radius - 20, 120 * hpPct, 6);
+    }
+    ctx.fillStyle = color; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(destroyed ? `${label} · ZERSTÖRT` : label, x, y + radius + 28);
+    return;
+  }
   if (!destroyed) {
     ctx.strokeStyle = color + '66'; ctx.lineWidth = 4; ctx.setLineDash([12, 10]);
     ctx.beginPath(); ctx.arc(x, y, radius + 5, 0, Math.PI * 2); ctx.stroke();
@@ -4191,9 +4247,12 @@ function draw() {
     ctx.setLineDash([]);
   });
   
-  drawGround();
-  drawScorchMarks();
-  drawScorchMarks(remoteEffects.scorchMarks);
+  if (fastMode) { ctx.fillStyle = '#647153'; ctx.fillRect(camera.x, camera.y, canvas.clientWidth / camera.zoom, canvas.clientHeight / camera.zoom); }
+  else {
+    drawGround();
+    drawScorchMarks();
+    drawScorchMarks(remoteEffects.scorchMarks);
+  }
   if (onScreen(ownBase, ownBase.radius)) drawBase(ownBase, '#4a9eff', 'EIGENE BASIS', true);
   Object.values(remotePlayers).forEach(player => {
     if (player.uid !== onlineUid && player.base && onScreen(player.base, player.base.radius)) drawBase(player.base, '#ff5a4a', player.name || 'SPIELER', false);
@@ -4204,59 +4263,59 @@ function draw() {
   if (!activeBotBases().length && !Object.keys(remotePlayers).length && onScreen(enemyBase, enemyBase.radius))
     drawBase(enemyBase, '#ff5a4a', 'FEIND-BASIS', false);
   
-  tracks.forEach(t => {
+  if (!fastMode) tracks.forEach(t => {
     if (!onScreen(t, t.size)) return;
     const alpha = (t.life / t.maxLife) * 0.4;
     ctx.globalAlpha = alpha; ctx.fillStyle = '#222';
     ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
   });
-  remoteEffects.tracks.forEach(t => {
+  if (!fastMode) remoteEffects.tracks.forEach(t => {
     if (!onScreen(t, t.size)) return;
     ctx.globalAlpha = (t.life / t.maxLife) * 0.4; ctx.fillStyle = '#222';
     ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
   
-  particles.forEach(p => {
+  if (!fastMode) particles.forEach(p => {
     if (!onScreen(p, p.size || 3)) return;
     const alpha = p.life / p.maxLife;
     ctx.globalAlpha = alpha; ctx.fillStyle = p.color;
     const size = p.size || 3;
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill();
   });
-  remoteEffects.particles.forEach(p => {
+  if (!fastMode) remoteEffects.particles.forEach(p => {
     if (!onScreen(p, p.size || 3)) return;
     ctx.globalAlpha = p.life / p.maxLife; ctx.fillStyle = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, (p.size || 3) / 2, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
   
-  shellCasings.forEach(c => {
+  if (!fastMode) shellCasings.forEach(c => {
     const alpha = Math.min(1, c.life / 500);
     ctx.globalAlpha = alpha * 0.8;
     ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot);
     ctx.fillStyle = '#b8860b'; ctx.fillRect(-2, -1, 4, 2);
     ctx.restore(); ctx.globalAlpha = 1;
   });
-  remoteEffects.shellCasings.forEach(c => {
+  if (!fastMode) remoteEffects.shellCasings.forEach(c => {
     ctx.globalAlpha = Math.min(1, c.life / 500) * 0.8;
     ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.fillStyle = '#b8860b';
     ctx.fillRect(-2, -1, 4, 2); ctx.restore(); ctx.globalAlpha = 1;
   });
   
-  debris.forEach(d => {
+  if (!fastMode) debris.forEach(d => {
     ctx.globalAlpha = Math.min(1, d.life / 1000);
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
     ctx.fillStyle = '#333'; ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
     ctx.restore(); ctx.globalAlpha = 1;
   });
-  remoteEffects.debris.forEach(d => {
+  if (!fastMode) remoteEffects.debris.forEach(d => {
     ctx.globalAlpha = Math.min(1, d.life / 1000);
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = '#333';
     ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size); ctx.restore(); ctx.globalAlpha = 1;
   });
   
-  ragdolls.forEach(r => {
+  if (!fastMode) ragdolls.forEach(r => {
     if (r.landed) {
       const fadeAlpha = r.life < 800 ? r.life / 800 : 1;
       ctx.globalAlpha = fadeAlpha;
@@ -4264,7 +4323,7 @@ function draw() {
     drawRagdoll(r);
     ctx.globalAlpha = 1;
   });
-  remoteEffects.ragdolls.forEach(r => {
+  if (!fastMode) remoteEffects.ragdolls.forEach(r => {
     if (r.landed) ctx.globalAlpha = r.life < 800 ? r.life / 800 : 1;
     drawRagdoll(r); ctx.globalAlpha = 1;
   });
@@ -4287,12 +4346,20 @@ function draw() {
   }
   // Keep the detailed Canvas wreck art over the batched active-unit layer.
   if (renderedUnitsWithWebGL) {
-    atguns.forEach(a => { if (a.destroyed && onScreen(a, a.radius)) drawAtgun(a); });
-    artillery.forEach(a => { if (a.destroyed && onScreen(a, a.radius)) drawArtillery(a); });
+    soldiers.forEach(s => {
+      if (s.hp <= 0 || !onScreen(s, s.radius)) return;
+      const bob = Math.sin(s.walkPhase || 0) * (s.kind === 'tank' ? 0.4 : 1.2);
+      drawReloadBar(s, bob);
+      drawHealthBar(s, bob);
+    });
+    atguns.forEach(a => { if (onScreen(a, a.radius)) drawAtgun(a); });
+    artillery.forEach(a => { if (onScreen(a, a.radius)) drawArtillery(a); });
   }
   
-  turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
-  remoteEffects.turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
+  if (!fastMode) {
+    turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
+    remoteEffects.turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
+  }
   bullets.forEach(b => { if (onScreen(b, 30)) drawBullet(b); });
   remoteBullets.forEach(b => { if (onScreen(b, 30)) drawBullet(b); });
   shells.forEach(sh => { if (onScreen(sh, sh.splashRadius)) drawShell(sh); });
@@ -4301,12 +4368,14 @@ function draw() {
   remoteArtilleryShells.forEach(ash => { if (onScreen(ash, ash.arcHeight || 0)) drawArtilleryShell(ash); });
   ricochets.forEach(r => { if (onScreen(r, 30)) drawRicochet(r); });
   remoteRicochets.forEach(r => { if (onScreen(r, 30)) drawRicochet(r); });
-  explosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
-  remoteExplosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
-  shockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
-  remoteShockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
-  muzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
-  remoteMuzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
+  if (!fastMode) {
+    explosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
+    remoteExplosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
+    shockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
+    remoteShockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
+    muzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
+    remoteMuzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
+  }
   
   ctx.restore();
   drawMinimap();
@@ -4372,7 +4441,7 @@ window.WarSim = {
     const nearest = Object.values(players).filter(p => p.base && p.base.hp > 0)
       .sort((a, b) => Math.hypot(a.base.x - ownBase.x, a.base.y - ownBase.y) - Math.hypot(b.base.x - ownBase.x, b.base.y - ownBase.y))[0];
     if (nearest) {
-      Object.assign(enemyBase, nearest.base, { ownerUid: nearest.uid, destroyed: nearest.base.hp <= 0 });
+      Object.assign(enemyBase, nearest.base, { radius: Math.max(460, Number(nearest.base.radius) || 0), ownerUid: nearest.uid, destroyed: nearest.base.hp <= 0 });
     } else if (!botPlayer?.active) Object.assign(enemyBase, { hp: 0, destroyed: true, ownerUid: null });
   },
   setRemoteProjectiles: projectiles => {
