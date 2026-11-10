@@ -1361,7 +1361,7 @@ document.addEventListener('click', () => initAudio(), { once: true });
 const WORLD_WIDTH = 18000;
 const WORLD_HEIGHT = 12000;
 
-const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false };
+const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 280, hp: 5000, maxHp: 5000, destroyed: false, team: 'own' };
 const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 280, hp: 0, maxHp: 5000, destroyed: true, ownerUid: null };
 
 const camera = {
@@ -1382,6 +1382,42 @@ let onlineUid = null;
 let onlineName = 'Commander';
 let remotePlayers = {};
 let botPlayer = null;
+const botPlayers = [];
+const MAX_BOT_BASES = 5;
+let botJoinTimer = 0;
+function activeBotBases() { return botPlayers.filter(bot => bot.active && bot.base?.hp > 0); }
+function nearestHostileBase(unit) {
+  const bases = [ownBase, ...activeBotBases().map(bot => bot.base)];
+  if (enemyBase.hp > 0 && !bases.includes(enemyBase)) bases.push(enemyBase);
+  return bases.filter(base => base.hp > 0 && base.team !== unit.team && !(unit.team === 'own' && base === ownBase))
+    .sort((a, b) => Math.hypot(a.x - unit.x, a.y - unit.y) - Math.hypot(b.x - unit.x, b.y - unit.y))[0] || null;
+}
+function placeBotBase() {
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const x = 900 + Math.random() * (WORLD_WIDTH - 1800);
+    const y = 900 + Math.random() * (WORLD_HEIGHT - 1800);
+    if (Math.hypot(x - ownBase.x, y - ownBase.y) < 2600) continue;
+    if (activeBotBases().some(bot => Math.hypot(x - bot.base.x, y - bot.base.y) < 2200)) continue;
+    return { x, y, radius: 280, hp: 5000, maxHp: 5000, destroyed: false, ownerUid: null, team: null };
+  }
+  return null;
+}
+function spawnBotPlayer() {
+  if (activeBotBases().length >= MAX_BOT_BASES) return false;
+  const name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+  const base = placeBotBase();
+  if (!base) return false;
+  const duration = 300000 + Math.random() * 300000;
+  const bot = { id: `bot-${Math.random().toString(36).slice(2, 8)}`, name, active: true,
+    base, duration, elapsed: 0, spawnTimer: 0, spawnInterval: 450 + Math.random() * 350 };
+  base.team = bot.id;
+  botPlayers.push(bot);
+  botPlayer = bot;
+  showBotNotice(`${name} ist dem Spiel beigetreten`);
+  const statusLabel = document.getElementById('onlineStatus');
+  if (statusLabel?.textContent.startsWith('Online')) statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 1 + activeBotBases().length} Spieler`;
+  return true;
+}
 let botJoinResolved = false;
 let remoteUnits = new Map();
 let nextUnitId = 1;
@@ -1434,7 +1470,7 @@ function tankSettingKey(u) { return u.mega ? 'megaTank' : u.elite ? 'eliteTank' 
 let enemySpawnTimer = 0;
 const enemySpawnInterval = 450;
 let ownCount = 0, enemyCount = 0;
-const maxEnemies = 60;
+const maxEnemies = 180;
 let gameOver = false;
 
 let waveNumber = 1;
@@ -1942,23 +1978,38 @@ function spawnTruck(team, x, y, type = 'atgun') {
 }
 
 function spawnEnemy(botId = null) {
-  if (enemyBase.hp <= 0) return null;
+  const bot = botPlayers.find(item => item.id === botId);
+  const sourceBase = bot?.base || enemyBase;
+  if (sourceBase.hp <= 0) return null;
   let ex, ey, tries = 0;
   do {
     const angle = Math.random() * Math.PI * 2;
-    const r = Math.random() * (enemyBase.radius - 20);
-    ex = enemyBase.x + Math.cos(angle) * r;
-    ey = enemyBase.y + Math.sin(angle) * r;
+    const r = Math.random() * (sourceBase.radius - 20);
+    ex = sourceBase.x + Math.cos(angle) * r;
+    ey = sourceBase.y + Math.sin(angle) * r;
     tries++;
   } while (isOverlapping(ex, ey, 12) && tries < 25);
   if (tries >= 25) return null;
   const roll = Math.random();
   const waveBonus = Math.min(waveNumber * 0.02, 0.2);
-  if (roll < 0.05 + waveBonus * 0.5) spawnMegaTank('enemy', ex, ey);
-  else if (roll < 0.10 + waveBonus) spawnEliteTank('enemy', ex, ey);
-  else if (roll < 0.30 + waveBonus) spawnTank('enemy', ex, ey);
-  else if (roll < 0.55 + waveBonus) spawnEliteSoldier('enemy', ex, ey);
-  else spawnSoldier('enemy', ex, ey);
+  if (roll < 0.08) {
+    spawnTruck(botId || 'enemy', ex, ey, 'artillery');
+    trucks[trucks.length - 1].botId = botId;
+    spawnParticles(ex, ey, '#ff9933', 16);
+    return trucks[trucks.length - 1];
+  }
+  if (roll < 0.20) {
+    spawnTruck(botId || 'enemy', ex, ey, 'atgun');
+    trucks[trucks.length - 1].botId = botId;
+    spawnParticles(ex, ey, '#7ca8d8', 14);
+    return trucks[trucks.length - 1];
+  }
+  const team = botId || 'enemy';
+  if (roll < 0.25 + waveBonus * 0.5) spawnMegaTank(team, ex, ey);
+  else if (roll < 0.30 + waveBonus) spawnEliteTank(team, ex, ey);
+  else if (roll < 0.50 + waveBonus) spawnTank(team, ex, ey);
+  else if (roll < 0.70 + waveBonus) spawnEliteSoldier(team, ex, ey);
+  else spawnSoldier(team, ex, ey);
   const unit = soldiers[soldiers.length - 1];
   if (botId && unit) unit.botId = botId;
   spawnParticles(ex, ey, '#e74c3c', 8);
@@ -1969,47 +2020,44 @@ const BOT_NAMES = ['Raven', 'Iron Fox', 'Viper', 'Ghost', 'Red Wolf', 'Falcon'];
 function tryStartBot() {
   if (botJoinResolved) return;
   botJoinResolved = true;
-  if (Object.keys(remotePlayers).length || Math.random() >= 0.99) return;
-  const name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-  const direction = ownBase.x < WORLD_WIDTH / 2 ? 1 : -1;
-  const baseX = Math.max(700, Math.min(WORLD_WIDTH - 700, ownBase.x + direction * 1750));
-  const baseY = Math.max(700, Math.min(WORLD_HEIGHT - 700, ownBase.y + (Math.random() - .5) * 1000));
-  const duration = 300000 + Math.random() * 300000;
-  botPlayer = { id: `bot-${Math.random().toString(36).slice(2, 8)}`, name, active: true,
-    base: enemyBase, duration, elapsed: 0, spawnTimer: 0, spawnInterval: 900 + Math.random() * 700 };
-  Object.assign(enemyBase, { x: baseX, y: baseY, hp: 5000, maxHp: 5000, radius: 280, destroyed: false, ownerUid: null });
-  showBotNotice(`${name} ist dem Spiel beigetreten`);
+  while (activeBotBases().length < MAX_BOT_BASES && Math.random() < 0.99)
+    if (!spawnBotPlayer()) break;
   const statusLabel = document.getElementById('onlineStatus');
-  if (statusLabel?.textContent.startsWith('Online')) statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 2} Spieler`;
+  if (statusLabel?.textContent.startsWith('Online')) statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 1 + botPlayers.length} Spieler`;
 }
 
-function finishBot(reason = 'hat das Spiel verlassen') {
-  if (!botPlayer?.active) return;
-  const id = botPlayer.id;
-  botPlayer.active = false;
+function finishBot(reason = 'hat das Spiel verlassen', targetBot = botPlayer) {
+  if (!targetBot?.active) return;
+  const id = targetBot.id;
+  targetBot.active = false;
   soldiers = soldiers.filter(u => u.botId !== id);
   atguns = atguns.filter(u => u.botId !== id);
   artillery = artillery.filter(u => u.botId !== id);
   trucks = trucks.filter(u => u.botId !== id);
   buffFlags = buffFlags.filter(u => u.botId !== id);
-  Object.assign(enemyBase, { hp: 0, destroyed: true, ownerUid: null });
-  showBotNotice(`${botPlayer.name} ${reason}`);
+  Object.assign(targetBot.base, { hp: 0, destroyed: true, ownerUid: null });
+  showBotNotice(`${targetBot.name} ${reason}`);
   const statusLabel = document.getElementById('onlineStatus');
-  if (statusLabel?.textContent.startsWith('Online')) statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 1} Spieler`;
+  if (statusLabel?.textContent.startsWith('Online')) statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 1 + activeBotBases().length} Spieler`;
 }
 
 function tickBot(dt) {
-  if (!botPlayer?.active) return;
-  botPlayer.elapsed += dt;
-  if (botPlayer.elapsed >= botPlayer.duration) {
-    finishBot();
-    return;
+  botJoinTimer += dt;
+  if (botJoinTimer >= 3000) {
+    botJoinTimer %= 3000;
+    if (activeBotBases().length < MAX_BOT_BASES && Math.random() < 0.10) spawnBotPlayer();
   }
-  botPlayer.spawnTimer += dt;
-  if (botPlayer.spawnTimer < botPlayer.spawnInterval || enemyCount >= maxEnemies || enemyBase.hp <= 0) return;
-  botPlayer.spawnTimer = 0;
-  spawnEnemy(botPlayer.id);
-  botPlayer.spawnInterval = 900 + Math.random() * 900;
+  for (const bot of botPlayers) {
+    if (!bot.active) continue;
+    bot.elapsed += dt;
+    if (bot.elapsed >= bot.duration || bot.base.hp <= 0) { finishBot('wurde besiegt', bot); continue; }
+    bot.spawnTimer += dt;
+    if (bot.spawnTimer < bot.spawnInterval || enemyCount >= maxEnemies) continue;
+    bot.spawnTimer = 0;
+    const batchSize = Math.random() < 0.7 ? 2 : 1;
+    for (let i = 0; i < batchSize && enemyCount < maxEnemies; i++) spawnEnemy(bot.id);
+    bot.spawnInterval = 350 + Math.random() * 350;
+  }
 }
 
 function showBotNotice(message) {
@@ -2023,7 +2071,7 @@ function showBotNotice(message) {
 // ============ AT-GUN SETUP ============
 function spawnAtgunSetup(team, truck) {
   const atgun = {
-    team, x: truck.x, y: truck.y,
+    team, botId: truck.botId || null, x: truck.x, y: truck.y,
     radius: 20, collisionRadius: 13, hp: 220, maxHp: 220,
     setupState: 'setting_up',
     setupProgress: 0, setupTime: 2000,
@@ -2045,7 +2093,7 @@ function spawnAtgunSetup(team, truck) {
 // ============ ARTILLERIE SETUP ============
 function spawnArtillerySetup(team, truck) {
   const art = {
-    team, x: truck.x, y: truck.y,
+    team, botId: truck.botId || null, x: truck.x, y: truck.y,
     radius: 24, collisionRadius: 15, hp: GAME_SETTINGS.artilleryHealth, maxHp: GAME_SETTINGS.artilleryHealth,
     setupState: 'setting_up',
     setupProgress: 0, setupTime: 2800,
@@ -2596,7 +2644,7 @@ function update(dt) {
           atgun.attackCooldown = atgun.attackInterval;
         }
       } else {
-        const oppBase = atgun.team === 'own' ? enemyBase : ownBase;
+        const oppBase = nearestHostileBase(atgun);
         if (oppBase && oppBase.hp > 0) {
           const distToBase = Math.hypot(oppBase.x - atgun.x, oppBase.y - atgun.y);
           if (distToBase < atgun.range + oppBase.radius) {
@@ -2631,7 +2679,7 @@ function update(dt) {
         art.burstCooldown -= dt;
         if (art.burstCooldown <= 0 && art.burstShotsLeft > 0) {
           const { target, distance: closestDist } = findNearestEnemy(art, 260);
-          const oppBase = art.team === 'own' ? enemyBase : ownBase;
+          const oppBase = nearestHostileBase(art);
           if (!target && oppBase && oppBase.hp > 0) {
             const distToBase = Math.hypot(oppBase.x - art.x, oppBase.y - art.y);
             if (distToBase < art.range + oppBase.radius) target = oppBase;
@@ -2656,7 +2704,7 @@ function update(dt) {
         art.ammoCount = Math.max(0, 1 - (art.attackCooldown / art.attackInterval));
         if (art.attackCooldown <= 0) {
           const { target, distance: closestDist } = findNearestEnemy(art, 260);
-          const oppBase = art.team === 'own' ? enemyBase : ownBase;
+          const oppBase = nearestHostileBase(art);
           if (!target && oppBase && oppBase.hp > 0) {
             const distToBase = Math.hypot(oppBase.x - art.x, oppBase.y - art.y);
             if (distToBase < art.range + oppBase.radius) target = oppBase;
@@ -2694,7 +2742,7 @@ function update(dt) {
       s.recoilOffset = Math.max(0, s.recoilOffset - dt * 0.008);
     }
     if (s.kind === 'tank') {
-      const oppBase = s.team === 'own' ? enemyBase : ownBase;
+      const oppBase = nearestHostileBase(s);
       if (oppBase && oppBase.hp > 0) {
         const distToBase = Math.hypot(oppBase.x - s.x, oppBase.y - s.y);
         s.barrelPitch = Math.min(0.15, distToBase / 500 * 0.15);
@@ -2717,7 +2765,7 @@ function update(dt) {
     
     const { target: closest, distance: closestDist } = findNearestEnemy(s);
     
-    const oppBase = s.team === 'own' ? enemyBase : ownBase;
+    const oppBase = nearestHostileBase(s);
     const baseAlive = oppBase && oppBase.hp > 0;
     let attackSoldier = false;
     if (closest) {
@@ -2814,7 +2862,7 @@ function update(dt) {
         return false;
       }
     }
-    const oppBase = b.team === 'own' ? enemyBase : ownBase;
+    const oppBase = nearestHostileBase(b);
     if (oppBase && oppBase.hp > 0) {
       const d = Math.hypot(oppBase.x - b.x, oppBase.y - b.y);
       if (d < oppBase.radius) {
@@ -2867,7 +2915,7 @@ function update(dt) {
       }
     }
     if (!explode && !ricocheted) {
-      const oppBase = sh.team === 'own' ? enemyBase : ownBase;
+      const oppBase = nearestHostileBase(sh);
       if (oppBase && oppBase.hp > 0) {
         const d = Math.hypot(oppBase.x - sh.x, oppBase.y - sh.y);
         if (d < oppBase.radius) {
@@ -3055,7 +3103,7 @@ function update(dt) {
   if (hudRefresh >= 150) {
     hudRefresh %= 150;
     ownCount = soldiers.filter(s => s.hp > 0 && s.team === 'own' && !s.remote).length;
-    enemyCount = soldiers.filter(s => s.hp > 0 && s.team === 'enemy').length;
+    enemyCount = soldiers.filter(s => s.hp > 0 && s.team !== 'own' && !s.remote).length;
     document.getElementById('ownCount').textContent = ownCount;
     document.getElementById('enemyCount').textContent = enemyCount;
     document.getElementById('hudOwn').textContent = ownCount;
@@ -3090,7 +3138,7 @@ function checkBaseDestroyed(base) {
     }
     createShockwave(base.x, base.y, 350, '#ffcc00');
     if (base === ownBase) showGameOver('VERLOREN', '#e74c3c');
-    else if (!base.ownerUid) showGameOver('GEWONNEN', '#4caf50');
+    else if (base === enemyBase && !base.ownerUid && activeBotBases().length === 0) showGameOver('GEWONNEN', '#4caf50');
   }
 }
 
@@ -4076,6 +4124,10 @@ function drawMinimap() {
   ctx.beginPath(); ctx.arc(mx + ownBase.x * sx, my + ownBase.y * sy, 5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = enemyBase.hp > 0 ? '#ff5a4a' : '#333';
   ctx.beginPath(); ctx.arc(mx + enemyBase.x * sx, my + enemyBase.y * sy, 5, 0, Math.PI * 2); ctx.fill();
+  activeBotBases().forEach(bot => {
+    ctx.fillStyle = '#ff5a4a'; ctx.beginPath();
+    ctx.arc(mx + bot.base.x * sx, my + bot.base.y * sy, 5, 0, Math.PI * 2); ctx.fill();
+  });
   Object.values(remotePlayers).forEach(player => {
     if (!player.base || player.base.hp <= 0) return;
     ctx.fillStyle = '#ff5a4a'; ctx.beginPath();
@@ -4146,8 +4198,11 @@ function draw() {
   Object.values(remotePlayers).forEach(player => {
     if (player.uid !== onlineUid && player.base && onScreen(player.base, player.base.radius)) drawBase(player.base, '#ff5a4a', player.name || 'SPIELER', false);
   });
-  if (!Object.keys(remotePlayers).length && onScreen(enemyBase, enemyBase.radius))
-    drawBase(enemyBase, '#ff5a4a', botPlayer?.active ? `${botPlayer.name.toUpperCase()} · BOT` : 'FEIND-BASIS', false);
+  activeBotBases().forEach(bot => {
+    if (onScreen(bot.base, bot.base.radius)) drawBase(bot.base, '#ff5a4a', `${bot.name.toUpperCase()} · BOT`, false);
+  });
+  if (!activeBotBases().length && !Object.keys(remotePlayers).length && onScreen(enemyBase, enemyBase.radius))
+    drawBase(enemyBase, '#ff5a4a', 'FEIND-BASIS', false);
   
   tracks.forEach(t => {
     if (!onScreen(t, t.size)) return;
@@ -4317,7 +4372,6 @@ window.WarSim = {
     const nearest = Object.values(players).filter(p => p.base && p.base.hp > 0)
       .sort((a, b) => Math.hypot(a.base.x - ownBase.x, a.base.y - ownBase.y) - Math.hypot(b.base.x - ownBase.x, b.base.y - ownBase.y))[0];
     if (nearest) {
-      if (botPlayer?.active) finishBot('hat einen echten Spieler getroffen und ist gegangen');
       Object.assign(enemyBase, nearest.base, { ownerUid: nearest.uid, destroyed: nearest.base.hp <= 0 });
     } else if (!botPlayer?.active) Object.assign(enemyBase, { hp: 0, destroyed: true, ownerUid: null });
   },
