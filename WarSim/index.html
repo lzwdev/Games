@@ -1969,7 +1969,7 @@ const BOT_NAMES = ['Raven', 'Iron Fox', 'Viper', 'Ghost', 'Red Wolf', 'Falcon'];
 function tryStartBot() {
   if (botJoinResolved) return;
   botJoinResolved = true;
-  if (Object.keys(remotePlayers).length || Math.random() >= 0.32) return;
+  if (Object.keys(remotePlayers).length || Math.random() >= 0.99) return;
   const name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
   const direction = ownBase.x < WORLD_WIDTH / 2 ? 1 : -1;
   const baseX = Math.max(700, Math.min(WORLD_WIDTH - 700, ownBase.x + direction * 1750));
