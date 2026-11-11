@@ -3444,6 +3444,58 @@ function drawTankSprite(s) {
   return true;
 }
 
+function drawTankWreck(wreck) {
+  const kind = wreck.mega ? 'heavy' : wreck.elite ? 'middle' : 'light';
+  const image = tankSpriteImages[kind];
+  const width = wreck.length;
+  const height = image?.naturalWidth
+    ? width * image.naturalHeight / image.naturalWidth
+    : wreck.width;
+
+  ctx.save();
+  ctx.translate(wreck.x, wreck.y);
+  ctx.rotate(wreck.rotation);
+
+  // Keep the class PNG as the wreck's base silhouette, darkened by battle damage.
+  if (image?.complete && image.naturalWidth) {
+    ctx.globalAlpha = 0.76;
+    ctx.drawImage(image, -width / 2, -height / 2, width, height);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(20, 16, 12, .58)';
+    ctx.fillRect(-width / 2, -height / 2, width, height);
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    ctx.fillStyle = '#292722';
+    ctx.fillRect(-width / 2, -height / 2, width, height);
+  }
+
+  // Craters and cracks make the wreck readable even when its PNG is simple.
+  wreck.holes.forEach(hole => {
+    ctx.save();
+    ctx.translate(hole.x, hole.y);
+    ctx.rotate(hole.angle);
+    ctx.fillStyle = '#100f0d';
+    ctx.beginPath(); ctx.ellipse(0, 0, hole.radius * 1.35, hole.radius * .72, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(190, 105, 55, .75)'; ctx.lineWidth = Math.max(1.5, wreck.radius * .035);
+    ctx.beginPath(); ctx.moveTo(-hole.radius * 1.4, 0); ctx.lineTo(-hole.radius * .35, -hole.radius * .25);
+    ctx.lineTo(hole.radius * .2, hole.radius * .38); ctx.lineTo(hole.radius * 1.45, hole.radius * .1); ctx.stroke();
+    ctx.restore();
+  });
+
+  wreck.firePoints.forEach(point => {
+    const flicker = .82 + Math.sin(gameTime * .012 + point.phase + wreck.seed) * .18;
+    const flameSize = point.size * flicker;
+    const grad = ctx.createRadialGradient(point.x, point.y, 1, point.x, point.y, flameSize);
+    grad.addColorStop(0, 'rgba(255,245,170,.95)');
+    grad.addColorStop(.28, 'rgba(255,126,24,.86)');
+    grad.addColorStop(1, 'rgba(180,35,8,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(point.x, point.y, flameSize, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.restore();
+}
+
 function drawTank(s) {
   drawTankSprite(s);
   const bob = Math.sin(s.walkPhase || 0) * 1.2;
