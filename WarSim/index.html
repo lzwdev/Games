@@ -623,7 +623,7 @@ const tankSpriteImages = Object.fromEntries(['light', 'middle', 'heavy'].map(kin
 }));
 const tankWreckImages = Object.fromEntries(['light', 'middle', 'heavy'].map(kind => {
   const img = new Image();
-  img.src = `PanzerklassenPNGs/${kind}_side.png`;
+  img.src = `PanzerklassenPNGs/${kind}_wrecked.png`;
   return [kind, img];
 }));
 let resolveJoinName;
