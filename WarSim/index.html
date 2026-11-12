@@ -75,6 +75,8 @@
     font-size: 10px;
     animation: pulse 1.5s infinite;
   }
+  .loadout-item.locked { opacity:.48; filter:grayscale(.8); }
+  .loadout-item.unlocked-nuke { border-color:#e04b4b; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   .soldier-icon {
@@ -537,6 +539,11 @@
       <div class="label">Buff-Flag</div>
       <div class="cost">+20% Damage Aura</div>
     </div>
+    <div class="loadout-item locked" data-type="nuke">
+      <div class="soldier-icon" aria-hidden="true">☢️</div>
+      <div class="label">Atombombe 🔒</div>
+      <div class="cost">Nur mit Spielernamen „Nuke“</div>
+    </div>
     <div id="stats">
       <div class="stat-line"><span class="stat-own">🟦 Eigene</span><span id="ownCount">0</span></div>
       <div class="stat-line"><span class="stat-enemy">🟥 Feinde</span><span id="enemyCount">0</span></div>
@@ -567,7 +574,9 @@
     <div id="info">
       <kbd>Drag</kbd> Karte<br>
       <kbd>Scroll</kbd> Zoom<br>
-      <kbd>Click</kbd> Spawn
+      <kbd>Click</kbd> Spawn<br>
+      <kbd>Ziehen</kbd> Eigene Truppen markieren<br>
+      <kbd>Rechtsklick</kbd> Marschziel setzen
     </div>
   </div>
 </div>
@@ -1467,6 +1476,9 @@ centerCamera();
 let selectedType = null;
 let onlineUid = null;
 let onlineName = 'Commander';
+let nukeUnlocked = false;
+let selectedOwnTroops = new Set();
+let selectionBoxWorld = null;
 let remotePlayers = {};
 let botPlayer = null;
 const botPlayers = [];
@@ -1613,6 +1625,15 @@ function spawnBuffFlag(team, x, y) {
 document.querySelectorAll('.loadout-item').forEach(el => {
   el.addEventListener('click', () => {
     if (gameOver) return;
+    if (el.dataset.type === 'nuke' && !nukeUnlocked) {
+      showBotNotice('Die Atombombe ist nur mit dem Spielernamen Nuke verfügbar.');
+      return;
+    }
+    if (selectedType === el.dataset.type) {
+      selectedType = null;
+      el.classList.remove('selected');
+      return;
+    }
     document.querySelectorAll('.loadout-item').forEach(e => e.classList.remove('selected'));
     el.classList.add('selected');
     selectedType = el.dataset.type;
@@ -1632,19 +1653,55 @@ let isDragging = false;
 let dragStart = { x: 0, y: 0 };
 let cameraStart = { x: 0, y: 0 };
 let didDrag = false;
+let selectingTroops = false;
+let selectionStartWorld = null;
+function ownTroopAt(x, y) {
+  return soldiers.find(unit => unit.team === 'own' && !unit.remote && unit.hp > 0 &&
+    Math.hypot(unit.x - x, unit.y - y) <= Math.max(22, unit.radius * 1.4));
+}
+function issueMoveOrder(x, y) {
+  if (!selectedOwnTroops.size) return;
+  const units = [...selectedOwnTroops].filter(unit => unit.hp > 0 && unit.team === 'own' && !unit.remote);
+  const columns = Math.ceil(Math.sqrt(units.length));
+  units.forEach((unit, index) => {
+    const col = index % columns, row = Math.floor(index / columns);
+    unit.commandTarget = { x: x + (col - (columns - 1) / 2) * 36, y: y + (row - (Math.ceil(units.length / columns) - 1) / 2) * 36 };
+  });
+  showBotNotice(`${units.length} eigene Truppen rücken zum Ziel vor`);
+}
+canvas.addEventListener('contextmenu', event => event.preventDefault());
 
 canvas.addEventListener('pointerdown', (e) => {
-  if (e.button === 0 && !gameOver) {
+  if ((e.button === 0 || e.button === 2) && !gameOver) {
     e.preventDefault();
     const minimap = { x: canvas.clientWidth - 215, y: 57, w: 200, h: Math.round(200 * WORLD_HEIGHT / WORLD_WIDTH) };
     const rect = canvas.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
-    if (px >= minimap.x && px <= minimap.x + minimap.w && py >= minimap.y && py <= minimap.y + minimap.h) {
+    const onMinimap = px >= minimap.x && px <= minimap.x + minimap.w && py >= minimap.y && py <= minimap.y + minimap.h;
+    if (e.button === 0 && onMinimap) {
       const worldX = ((px - minimap.x) / minimap.w) * WORLD_WIDTH;
       const worldY = ((py - minimap.y) / minimap.h) * WORLD_HEIGHT;
       camera.x = worldX - canvas.clientWidth / (2 * camera.zoom);
       camera.y = worldY - canvas.clientHeight / (2 * camera.zoom);
       clampCamera();
+      return;
+    }
+    if (e.button === 2) {
+      if (!onMinimap) {
+        const world = screenToWorld(px, py);
+        issueMoveOrder(world.x, world.y);
+      }
+      return;
+    }
+    const world = screenToWorld(px, py);
+    if (!selectedType && ownTroopAt(world.x, world.y)) {
+      selectingTroops = true;
+      isDragging = true;
+      didDrag = false;
+      dragStart = { x: e.clientX, y: e.clientY };
+      selectionStartWorld = world;
+      selectionBoxWorld = { x: world.x, y: world.y, w: 0, h: 0 };
+      canvas.setPointerCapture(e.pointerId);
       return;
     }
     isDragging = true;
@@ -1661,6 +1718,15 @@ canvas.addEventListener('pointermove', (e) => {
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) didDrag = true;
+    if (selectingTroops) {
+      const rect = canvas.getBoundingClientRect();
+      const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      selectionBoxWorld = {
+        x: Math.min(selectionStartWorld.x, world.x), y: Math.min(selectionStartWorld.y, world.y),
+        w: Math.abs(world.x - selectionStartWorld.x), h: Math.abs(world.y - selectionStartWorld.y)
+      };
+      return;
+    }
     camera.x = cameraStart.x - dx / camera.zoom;
     camera.y = cameraStart.y - dy / camera.zoom;
     clampCamera();
@@ -1668,18 +1734,29 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 canvas.addEventListener('pointerup', (e) => {
-  if (isDragging && !didDrag) {
+  if (isDragging && selectingTroops) {
+    if (didDrag && selectionBoxWorld) {
+      selectedOwnTroops = new Set(soldiers.filter(unit => unit.team === 'own' && !unit.remote && unit.hp > 0 &&
+        unit.x >= selectionBoxWorld.x && unit.x <= selectionBoxWorld.x + selectionBoxWorld.w &&
+        unit.y >= selectionBoxWorld.y && unit.y <= selectionBoxWorld.y + selectionBoxWorld.h));
+      showBotNotice(`${selectedOwnTroops.size} eigene Truppen ausgewählt`);
+    }
+    selectionBoxWorld = null;
+  } else if (isDragging && !didDrag) {
     const rect = canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
     const w = screenToWorld(sx, sy);
     trySpawn(w.x, w.y);
   }
+  selectingTroops = false;
   isDragging = false;
   canvas.classList.remove('is-panning');
 });
 
 canvas.addEventListener('pointercancel', () => {
+  selectingTroops = false;
+  selectionBoxWorld = null;
   isDragging = false;
   canvas.classList.remove('is-panning');
 });
@@ -1739,6 +1816,22 @@ function findGridSpot(radius) {
 function trySpawn(wx, wy) {
   if (!selectedType || gameOver) return;
   if (ownBase.hp <= 0) return;
+  if (selectedType === 'nuke') {
+    if (!nukeUnlocked) return;
+    const targetX = Math.max(0, Math.min(WORLD_WIDTH, wx));
+    const targetY = Math.max(0, Math.min(WORLD_HEIGHT, wy));
+    artilleryShells.push({
+      kind: 'nuke', startX: targetX, startY: targetY, endX: targetX, endY: targetY,
+      x: targetX, y: targetY, t: 0, flightTime: 3200, arcHeight: 0,
+      team: 'own', damage: 0, splashRadius: 1900, life: 3200, maxLife: 3200,
+      trail: [], exploded: false
+    });
+    spawnParticles(targetX, targetY, '#c9c9b0', 22);
+    selectedType = null;
+    document.querySelectorAll('.loadout-item').forEach(el => el.classList.remove('selected'));
+    showBotNotice('Atombombe im Anflug …');
+    return;
+  }
   const localUnitCount = [...soldiers, ...atguns, ...artillery, ...trucks, ...buffFlags]
     .filter(unit => unit.team === 'own' && !unit.remote && !unit.destroyed && !(unit.hp <= 0)).length;
   if (localUnitCount >= MAX_LOCAL_UNITS) {
@@ -1767,6 +1860,48 @@ function trySpawn(wx, wy) {
   else if (selectedType === 'atgun') { spawnTruck('own', pos.x, pos.y, 'atgun'); spawnParticles(pos.x, pos.y, '#4a90e2', 20); }
   else if (selectedType === 'artillery') { spawnTruck('own', pos.x, pos.y, 'artillery'); spawnParticles(pos.x, pos.y, '#ff9933', 25); }
   else if (selectedType === 'buffflag') { spawnBuffFlag('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#ff88ff', 25); }
+}
+
+function detonateNuke(bomb) {
+  const { x, y } = bomb;
+  createExplosion(x, y, 12);
+  createShockwave(x, y, 2200, '#fff5c4');
+  createShockwave(x, y, 1550, '#ffb347');
+  createScorchMark(x, y, 8);
+  const radius = bomb.splashRadius || 1900;
+  const blastDamage = 1800;
+  const blastUnit = unit => {
+    if (!unit || unit.destroyed || unit.hp <= 0) return;
+    const dx = unit.x - x, dy = unit.y - y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > radius + (unit.radius || 0)) return;
+    const force = Math.max(0, 1 - distance / radius);
+    const damage = unit.kind === 'tank'
+      ? Math.min((unit.maxHp || blastDamage) * .65, 400 * force)
+      : blastDamage * force * force;
+    unit.hitFlash = 140;
+    let impact = { x, y, radius };
+    if (unit.kind === 'tank' && force > 0.04) {
+      const angle = distance > 1 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2;
+      unit.knockback = { vx: Math.cos(angle) * (30 * force), vy: Math.sin(angle) * (30 * force), life: 1000 };
+      impact = { ...impact, knockback: unit.knockback };
+    }
+    damageUnit(unit, damage, impact);
+    if (unit.kind === 'soldier' && !unit.armored && !unit.remote && damage >= unit.hp)
+      launchRagdoll(unit, x, y, radius);
+  };
+  soldiers.forEach(blastUnit);
+  [...atguns, ...artillery, ...trucks, ...buffFlags].forEach(blastUnit);
+
+  const bases = [ownBase, ...activeBotBases().map(bot => bot.base),
+    ...Object.values(remotePlayers).map(player => player.base).filter(Boolean)];
+  if (!Object.keys(remotePlayers).length && !activeBotBases().length && enemyBase.hp > 0) bases.push(enemyBase);
+  for (const base of new Set(bases)) {
+    if (base.hp <= 0 || Math.hypot(base.x - x, base.y - y) > radius + base.radius) continue;
+    const force = Math.max(0, 1 - Math.hypot(base.x - x, base.y - y) / radius);
+    damageBase(base, 4500 * force * force);
+  }
+  screenShake(30);
 }
 
 function spawnParticles(x, y, color, count = 12) {
@@ -2915,6 +3050,26 @@ function update(dt) {
         s.barrelPitch = Math.min(0.15, distToBase / 500 * 0.15);
       }
     }
+
+    if (s.knockback) {
+      const impulse = s.knockback;
+      s.x += impulse.vx * dt / 16.67;
+      s.y += impulse.vy * dt / 16.67;
+      impulse.life -= dt;
+      const damping = Math.pow(.9, dt / 16.67);
+      impulse.vx *= damping; impulse.vy *= damping;
+      if (impulse.life <= 0 || Math.hypot(impulse.vx, impulse.vy) < .25) s.knockback = null;
+      return;
+    }
+    if (s.commandTarget) {
+      const distance = Math.hypot(s.commandTarget.x - s.x, s.commandTarget.y - s.y);
+      if (distance <= Math.max(24, s.radius * .8)) s.commandTarget = null;
+      else {
+        if (s.kind === 'tank') s.turretAngle = Math.atan2(s.commandTarget.y - s.y, s.commandTarget.x - s.x);
+        moveDirectly(s, s.commandTarget.x, s.commandTarget.y, dt);
+        return;
+      }
+    }
     
     if (s.isElite) {
       if (s.burstState === 'reloading') {
@@ -3109,6 +3264,11 @@ function update(dt) {
     ash.t += dt / ash.flightTime;
     if (ash.t >= 1) {
       const x = ash.endX, y = ash.endY;
+      if (ash.kind === 'nuke') {
+        ash.x = x; ash.y = y; ash.exploded = true;
+        detonateNuke(ash);
+        return false;
+      }
       createExplosion(x, y, 3.2);
       createShockwave(x, y, ash.splashRadius * 2, '#ffaa33');
       createShockwave(x, y, ash.splashRadius * 1.2, '#fff');
@@ -3908,6 +4068,22 @@ function drawShell(sh) {
 }
 
 function drawArtilleryShell(ash) {
+  if (ash.kind === 'nuke') {
+    const height = (1 - Math.min(1, ash.t)) * 520;
+    ctx.fillStyle = 'rgba(0,0,0,.42)';
+    ctx.beginPath(); ctx.ellipse(ash.endX, ash.endY, 22, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.translate(ash.endX, ash.endY - height);
+    ctx.strokeStyle = 'rgba(235,235,220,.55)'; ctx.lineWidth = 9;
+    ctx.beginPath(); ctx.moveTo(0, -70); ctx.lineTo(0, -20); ctx.stroke();
+    ctx.fillStyle = '#292a28';
+    ctx.beginPath(); ctx.moveTo(-10, -24); ctx.lineTo(10, -24); ctx.lineTo(8, 18); ctx.lineTo(0, 31); ctx.lineTo(-8, 18); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#596052';
+    ctx.beginPath(); ctx.moveTo(-8, 10); ctx.lineTo(-19, 26); ctx.lineTo(-7, 23); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8, 10); ctx.lineTo(19, 26); ctx.lineTo(7, 23); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    return;
+  }
   const t = ash.t;
   ash.trail.forEach((p, i) => {
     const a = (i / ash.trail.length) * 0.7;
@@ -4490,6 +4666,17 @@ function draw() {
     muzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
     remoteMuzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
   }
+
+  for (const unit of [...selectedOwnTroops]) {
+    if (!soldiers.includes(unit) || unit.hp <= 0) { selectedOwnTroops.delete(unit); continue; }
+    ctx.strokeStyle = 'rgba(95,210,255,.95)'; ctx.lineWidth = 3 / camera.zoom;
+    ctx.beginPath(); ctx.arc(unit.x, unit.y, unit.radius + 10, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (selectionBoxWorld) {
+    ctx.fillStyle = 'rgba(80,190,255,.18)'; ctx.fillRect(selectionBoxWorld.x, selectionBoxWorld.y, selectionBoxWorld.w, selectionBoxWorld.h);
+    ctx.strokeStyle = 'rgba(120,220,255,.95)'; ctx.lineWidth = 2 / camera.zoom;
+    ctx.strokeRect(selectionBoxWorld.x, selectionBoxWorld.y, selectionBoxWorld.w, selectionBoxWorld.h);
+  }
   
   ctx.restore();
   drawMinimap();
@@ -4564,7 +4751,18 @@ window.WarSim = {
   shockwaves: () => shockwaves, particles: () => particles, debris: () => debris, tracks: () => tracks,
   scorchMarks: () => scorchMarks, ragdolls: () => ragdolls, shellCasings: () => shellCasings, turrets: () => turrets,
   base: () => ownBase,
-  setLocalPlayer: (id, name) => { onlineUid = id; onlineName = name || `Commander-${String(id).slice(0, 4)}`; },
+  setLocalPlayer: (id, name) => {
+    onlineUid = id;
+    onlineName = name || `Commander-${String(id).slice(0, 4)}`;
+    nukeUnlocked = onlineName.trim().toLowerCase() === 'nuke';
+    const nukeItem = document.querySelector('.loadout-item[data-type="nuke"]');
+    if (nukeItem) {
+      nukeItem.classList.toggle('locked', !nukeUnlocked);
+      nukeItem.classList.toggle('unlocked-nuke', nukeUnlocked);
+      nukeItem.querySelector('.label').textContent = nukeUnlocked ? 'Atombombe ☢️' : 'Atombombe 🔒';
+      nukeItem.querySelector('.cost').textContent = nukeUnlocked ? 'Freigeschaltet · großflächiger Einschlag' : 'Nur mit Spielernamen „Nuke“';
+    }
+  },
   setRemotePlayers: players => {
     remotePlayers = players;
     window.__warsimState.remotePlayers = players;
@@ -4844,7 +5042,12 @@ function flushHits() {
   const byTarget = {};
   for (const h of pendingHits.values()) {
     const rec = { from: uid, unitId: h.unitId, damage: Math.min(5000, Math.round(h.damage * 10) / 10), ts: serverNow() };
-    if (h.impact) Object.assign(rec, { impactX: h.impact.x, impactY: h.impact.y, impactRadius: h.impact.radius });
+    if (h.impact) {
+      Object.assign(rec, { impactX: h.impact.x, impactY: h.impact.y, impactRadius: h.impact.radius });
+      if (h.impact.knockback) Object.assign(rec, {
+        knockbackX: h.impact.knockback.vx, knockbackY: h.impact.knockback.vy, knockbackLife: h.impact.knockback.life
+      });
+    }
     const k = push(ref(db, `${ROOT}/hits/${h.target}`)).key;
     (byTarget[h.target] ||= {})[k] = rec;
   }
@@ -4857,7 +5060,11 @@ function sendHit(targetUid, unitId, damage, impact = null) {
   let h = pendingHits.get(k);
   if (!h) pendingHits.set(k, h = { target: targetUid, unitId, damage: 0, impact: null });
   h.damage += Math.max(0, damage);
-  if (impact && isNum(impact.x) && isNum(impact.y)) h.impact = { x: impact.x, y: impact.y, radius: Math.min(600, Math.max(12, impact.radius || 42)) };
+  if (impact && isNum(impact.x) && isNum(impact.y)) h.impact = {
+    x: impact.x, y: impact.y, radius: Math.min(600, Math.max(12, impact.radius || 42)),
+    ...(impact.knockback && isNum(impact.knockback.vx) && isNum(impact.knockback.vy)
+      ? { knockback: { vx: impact.knockback.vx, vy: impact.knockback.vy, life: 1000 } } : {})
+  };
   if (!hitTimer) hitTimer = setTimeout(flushHits, 60);
 }
 
@@ -5132,6 +5339,9 @@ onAuthStateChanged(auth, async user => {
         } else {
           const target = [...window.WarSim.soldiers(), ...window.WarSim.atguns(), ...window.WarSim.artillery(), ...window.WarSim.trucks(), ...window.WarSim.flags()].find(u => !u.remote && u.unitId === hit.unitId);
           if (target) {
+            if (target.kind === 'tank' && isNum(hit.knockbackX) && isNum(hit.knockbackY)) {
+              target.knockback = { vx: hit.knockbackX, vy: hit.knockbackY, life: isNum(hit.knockbackLife) ? hit.knockbackLife : 1000 };
+            }
             target.hp = Math.max(0, target.hp - hit.damage);
             if (target.hp <= 0 && target.kind === 'soldier' && !target.armored && isNum(hit.impactX) && isNum(hit.impactY)) {
               window.WarSim.launchRagdoll(target, hit.impactX, hit.impactY, hit.impactRadius || 42);
