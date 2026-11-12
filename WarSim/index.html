@@ -621,6 +621,11 @@ const tankSpriteImages = Object.fromEntries(['light', 'middle', 'heavy'].map(kin
   img.src = `PanzerklassenPNGs/${kind}.png`;
   return [kind, img];
 }));
+const tankWreckImages = Object.fromEntries(['light', 'middle', 'heavy'].map(kind => {
+  const img = new Image();
+  img.src = `PanzerklassenPNGs/${kind}_side.png`;
+  return [kind, img];
+}));
 let resolveJoinName;
 const joinNamePromise = new Promise(resolve => { resolveJoinName = resolve; });
 const joinScreen = document.getElementById('joinScreen');
@@ -1485,6 +1490,7 @@ function placeBotBase() {
   return null;
 }
 function spawnBotPlayer() {
+  if (Object.keys(remotePlayers).length > 0) return false;
   if (activeBotBases().length >= MAX_BOT_BASES) return false;
   const name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
   const base = placeBotBase();
@@ -2113,10 +2119,31 @@ const BOT_NAMES = ['Raven', 'Iron Fox', 'Viper', 'Ghost', 'Red Wolf', 'Falcon'];
 function tryStartBot() {
   if (botJoinResolved) return;
   botJoinResolved = true;
+  if (Object.keys(remotePlayers).length > 0) return;
   while (activeBotBases().length < MAX_BOT_BASES && Math.random() < 0.99)
     if (!spawnBotPlayer()) break;
   const statusLabel = document.getElementById('onlineStatus');
   if (statusLabel?.textContent.startsWith('Online')) statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 1 + botPlayers.length} Spieler`;
+}
+
+function despawnBotsForRealPlayer() {
+  const ids = new Set(botPlayers.filter(bot => bot.active).map(bot => bot.id));
+  if (!ids.size) return;
+  for (const bot of botPlayers) {
+    if (!bot.active) continue;
+    bot.active = false;
+    Object.assign(bot.base, { hp: 0, destroyed: true, ownerUid: null });
+  }
+  soldiers = soldiers.filter(unit => !ids.has(unit.botId));
+  atguns = atguns.filter(unit => !ids.has(unit.botId));
+  artillery = artillery.filter(unit => !ids.has(unit.botId));
+  trucks = trucks.filter(unit => !ids.has(unit.botId));
+  buffFlags = buffFlags.filter(unit => !ids.has(unit.botId));
+  turrets = turrets.filter(unit => !ids.has(unit.botId));
+  botPlayer = null;
+  const statusLabel = document.getElementById('onlineStatus');
+  if (statusLabel?.textContent.startsWith('Online'))
+    statusLabel.textContent = `Online · ${Object.keys(remotePlayers).length + 1} Spieler`;
 }
 
 function finishBot(reason = 'hat das Spiel verlassen', targetBot = botPlayer) {
@@ -2135,6 +2162,10 @@ function finishBot(reason = 'hat das Spiel verlassen', targetBot = botPlayer) {
 }
 
 function tickBot(dt) {
+  if (Object.keys(remotePlayers).length > 0) {
+    despawnBotsForRealPlayer();
+    return;
+  }
   botJoinTimer += dt;
   if (botJoinTimer >= 3000) {
     botJoinTimer %= 3000;
@@ -3446,7 +3477,7 @@ function drawTankSprite(s) {
 
 function drawTankWreck(wreck) {
   const kind = wreck.mega ? 'heavy' : wreck.elite ? 'middle' : 'light';
-  const image = tankSpriteImages[kind];
+  const image = tankWreckImages[kind];
   const width = wreck.length;
   const height = image?.naturalWidth
     ? width * image.naturalHeight / image.naturalWidth
@@ -4537,6 +4568,7 @@ window.WarSim = {
   setRemotePlayers: players => {
     remotePlayers = players;
     window.__warsimState.remotePlayers = players;
+    if (Object.keys(players).length > 0) despawnBotsForRealPlayer();
     const nearest = Object.values(players).filter(p => p.base && p.base.hp > 0)
       .sort((a, b) => Math.hypot(a.base.x - ownBase.x, a.base.y - ownBase.y) - Math.hypot(b.base.x - ownBase.x, b.base.y - ownBase.y))[0];
     if (nearest) {
