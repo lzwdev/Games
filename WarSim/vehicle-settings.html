@@ -23,6 +23,7 @@
     .vehicle.art .icon { background: #ff9933; }
     .vehicle.soldier .icon { background: #4a7f9f; }
     .vehicle.elite-soldier .icon { background: #765fba; }
+    .vehicle.nuke .icon { background: #bf3d38; }
     .section-title { margin: 30px 0 12px; color: #42566a; font-size: 1.1rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
     label { display: grid; gap: 4px; font-weight: 600; font-size: .9rem; }
@@ -74,7 +75,8 @@
       tankDamage: 78, eliteTankDamage: 98, megaTankDamage: 140, artilleryDamage: 180,
       tankSplashRadius: 95, eliteTankSplashRadius: 105, megaTankSplashRadius: 130, artillerySplashRadius: 180,
       tankSpeed: 0.95, eliteTankSpeed: 0.55, megaTankSpeed: 0.4, artillerySpeed: 1.6,
-      tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280
+      tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280,
+      nukeExplosionRadius: 1900, nukeExplosionDamage: 1999, nukeWaveDamage: 999
     };
 
     const SOLDIER_FIELDS = [
@@ -85,13 +87,20 @@
       { key: 'AttackInterval', label: 'Angriffsintervall', small: 'Zeit zwischen Angriffen', min: 50, max: 10000, step: 5, suffix: 'ms' }
     ];
 
+    const NUKE_FIELDS = [
+      { key: 'ExplosionRadius', label: 'Explosionsradius', small: 'Radius des direkten Schadens', min: 100, max: 20000, step: 100, suffix: 'px' },
+      { key: 'ExplosionDamage', label: 'Explosionsschaden', small: 'Maximalschaden im Zentrum', min: 1, max: 5000, step: 1, suffix: 'HP' },
+      { key: 'WaveDamage', label: 'Druckwellenschaden', small: 'Schaden beim Vorbeiziehen', min: 1, max: 5000, step: 1, suffix: 'HP' }
+    ];
+
     const UNIT_TYPES = [
       { key: 'soldier', title: 'Soldat', icon: '🪖', cls: 'soldier', category: 'Infanterie', fields: SOLDIER_FIELDS },
       { key: 'eliteSoldier', title: 'Elite-Soldat', icon: '🎖️', cls: 'elite-soldier', category: 'Infanterie', fields: SOLDIER_FIELDS },
       { key: 'tank',      title: 'Panzer',       icon: '🚜', cls: 'tank', category: 'Fahrzeuge' },
       { key: 'eliteTank', title: 'Elite-Panzer', icon: '🛡️', cls: 'elite', category: 'Fahrzeuge' },
       { key: 'megaTank',  title: 'Mega-Tank',    icon: '⚡', cls: 'mega', category: 'Fahrzeuge' },
-      { key: 'artillery', title: 'Artillerie',   icon: '🎯', cls: 'art', category: 'Fahrzeuge' }
+      { key: 'artillery', title: 'Artillerie',   icon: '🎯', cls: 'art', category: 'Fahrzeuge' },
+      { key: 'nuke',      title: 'Atombombe',    icon: '☢️', cls: 'nuke', category: 'Spezialwaffen', fields: NUKE_FIELDS }
     ];
 
     const FIELDS = [
