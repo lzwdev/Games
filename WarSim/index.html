@@ -275,26 +275,26 @@
 
   #wave-notification {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 72px;
-    font-weight: 900;
-    color: #ffcc00;
-    text-shadow: 0 0 40px rgba(255,204,0,0.8), 0 0 80px rgba(255,204,0,0.4);
+    top: 16px;
+    right: 16px;
+    max-width: min(390px, calc(100% - 32px));
+    padding: 12px 18px;
+    border: 1px solid rgba(255, 204, 90, .6);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(29, 36, 46, .96), rgba(11, 15, 21, .94));
+    color: #fff2c4;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, .42), inset 0 1px rgba(255,255,255,.08);
+    backdrop-filter: blur(10px);
+    font: 750 15px/1.4 system-ui, sans-serif;
+    letter-spacing: .2px;
+    text-shadow: 0 1px 8px rgba(255, 170, 30, .28);
     opacity: 0;
+    transform: translateY(-10px) scale(.98);
     pointer-events: none;
     z-index: 8;
-    letter-spacing: 8px;
+    transition: opacity .22s ease, transform .22s ease;
   }
-  #wave-notification.show { animation: waveIn 2s ease; }
-  @keyframes waveIn {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-    30% { transform: translate(-50%, -50%) scale(1); }
-    80% { opacity: 1; }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-  }
+  #wave-notification.show { opacity: 1; transform: translateY(0) scale(1); }
 
   #gameover {
     position: fixed;
@@ -383,7 +383,7 @@
     #stats .base-hp { grid-column:span 2; }
     .settings-section,#sound-toggle,#info { display:none; }
     #hud-top { top:7px; left:7px; right:7px; transform:none; justify-content:center; flex-wrap:wrap; gap:5px 10px; padding:6px 8px; font-size:10px; border-radius:12px; }
-    #wave-notification { font-size:clamp(34px,10vw,60px); letter-spacing:4px; }
+    #wave-notification { top:10px; right:10px; max-width:calc(100% - 20px); padding:10px 13px; font-size:13px; }
   }
   @media (max-width: 390px) {
     #sidebar { height:35vh; }
@@ -434,7 +434,7 @@
   .hud-fps { color:#218052; }
   .hud-ping { color:#2874bd; }
   #onlineStatus { color:#7b5b00 !important; }
-  #wave-notification { color:#966b00; text-shadow:0 2px 18px rgba(255,255,255,.9); }
+  #wave-notification { color:#fff2c4; text-shadow:0 1px 8px rgba(255,170,30,.28); }
   #gameover { background:radial-gradient(ellipse at center,rgba(255,255,255,.97),rgba(235,241,248,.98)); }
   .go-stat { background:rgba(255,255,255,.85); border-color:#d5deea; box-shadow:0 8px 28px rgba(35,53,78,.1); }
   .go-stat-label { color:#68788e; }
@@ -1557,10 +1557,11 @@ const GAME_SETTINGS = {
   tankDamage: 78, eliteTankDamage: 98, megaTankDamage: 140, artilleryDamage: 180,
   tankSplashRadius: 95, eliteTankSplashRadius: 105, megaTankSplashRadius: 130, artillerySplashRadius: 180,
   tankSpeed: 0.95, eliteTankSpeed: 0.55, megaTankSpeed: 0.4, artillerySpeed: 1.6,
-  tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280
+  tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280,
+  nukeExplosionRadius: 1900, nukeExplosionDamage: 1999, nukeWaveDamage: 999
 };
 // Erlaubte Bereiche je Wert (Endung des Schlüssels)
-const SETTING_LIMITS = { Range: [50, 10000], Damage: [1, 5000], SplashRadius: [10, 800], Speed: [0.05, 10], Health: [10, 20000], AttackInterval: [50, 10000] };
+const SETTING_LIMITS = { Range: [50, 10000], Damage: [1, 5000], SplashRadius: [10, 800], Speed: [0.05, 10], Health: [10, 20000], AttackInterval: [50, 10000], ExplosionRadius: [100, 20000] };
 const settingLimit = key => SETTING_LIMITS[Object.keys(SETTING_LIMITS).find(k => key.endsWith(k))];
 // Gegner-Faktoren (wie bisher): Gegner sind etwas langsamer / haben etwas weniger Reichweite
 const ENEMY_RANGE_FACTOR = { soldier: 300 / 340, eliteSoldier: 360 / 400, tank: 380 / 420, eliteTank: 570 / 620, megaTank: 700 / 750 };
@@ -1823,13 +1824,13 @@ function trySpawn(wx, wy) {
     artilleryShells.push({
       kind: 'nuke', startX: targetX, startY: targetY, endX: targetX, endY: targetY,
       x: targetX, y: targetY, t: 0, flightTime: 3200, arcHeight: 0,
-      team: 'own', damage: 0, splashRadius: 1900, life: 3200, maxLife: 3200,
+      team: 'own', damage: 0, splashRadius: GAME_SETTINGS.nukeExplosionRadius, life: 3200, maxLife: 3200,
       trail: [], exploded: false
     });
     spawnParticles(targetX, targetY, '#c9c9b0', 22);
     selectedType = null;
     document.querySelectorAll('.loadout-item').forEach(el => el.classList.remove('selected'));
-    showBotNotice('Atombombe im Anflug …');
+    showNotification('ATOMBOMBE IM ANFLUG', '☢️');
     return;
   }
   const localUnitCount = [...soldiers, ...atguns, ...artillery, ...trucks, ...buffFlags]
@@ -1864,26 +1865,24 @@ function trySpawn(wx, wy) {
 
 function detonateNuke(bomb) {
   const { x, y } = bomb;
-  createExplosion(x, y, 12);
-  createShockwave(x, y, 2200, '#fff5c4');
-  createShockwave(x, y, 1550, '#ffb347');
+  explosions.push({ x, y, life: 8000, maxLife: 8000, size: 120, nuke: true, explosionRadius: bomb.splashRadius });
+  const wave = createNukeShockwave(x, y, Math.hypot(WORLD_WIDTH, WORLD_HEIGHT));
+  spawnExplosionVisuals(x, y, 2.5);
   createScorchMark(x, y, 8);
   const radius = bomb.splashRadius || 1900;
-  const blastDamage = 1800;
+  const blastDamage = GAME_SETTINGS.nukeExplosionDamage;
   const blastUnit = unit => {
     if (!unit || unit.destroyed || unit.hp <= 0) return;
     const dx = unit.x - x, dy = unit.y - y;
     const distance = Math.hypot(dx, dy);
     if (distance > radius + (unit.radius || 0)) return;
     const force = Math.max(0, 1 - distance / radius);
-    const damage = unit.kind === 'tank'
-      ? Math.min((unit.maxHp || blastDamage) * .65, 400 * force)
-      : blastDamage * force * force;
+    const damage = blastDamage * force * force;
     unit.hitFlash = 140;
     let impact = { x, y, radius };
     if (unit.kind === 'tank' && force > 0.04) {
       const angle = distance > 1 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2;
-      unit.knockback = { vx: Math.cos(angle) * (30 * force), vy: Math.sin(angle) * (30 * force), life: 1000 };
+      unit.knockback = { vx: Math.cos(angle) * (330 * force), vy: Math.sin(angle) * (330 * force), life: 1500 };
       impact = { ...impact, knockback: unit.knockback };
     }
     damageUnit(unit, damage, impact);
@@ -1899,9 +1898,11 @@ function detonateNuke(bomb) {
   for (const base of new Set(bases)) {
     if (base.hp <= 0 || Math.hypot(base.x - x, base.y - y) > radius + base.radius) continue;
     const force = Math.max(0, 1 - Math.hypot(base.x - x, base.y - y) / radius);
-    damageBase(base, 4500 * force * force);
+    damageBase(base, GAME_SETTINGS.nukeExplosionDamage * force * force);
   }
-  screenShake(30);
+  screenShake(280);
+  playExplosion();
+  showNotification('ATOMBOMBE DETONIERT', '☢️');
 }
 
 function spawnParticles(x, y, color, count = 12) {
@@ -2320,11 +2321,17 @@ function tickBot(dt) {
 }
 
 function showBotNotice(message) {
+  showNotification(message, '⚔');
+}
+
+let notificationTimer = null;
+function showNotification(message, icon = '⚔') {
   const el = document.getElementById('wave-notification');
-  el.textContent = `⚔ ${message}`;
+  el.textContent = `${icon}  ${message}`;
   el.classList.remove('show');
-  void el.offsetWidth;
-  el.classList.add('show');
+  clearTimeout(notificationTimer);
+  requestAnimationFrame(() => el.classList.add('show'));
+  notificationTimer = setTimeout(() => el.classList.remove('show'), 3600);
 }
 
 // ============ AT-GUN SETUP ============
@@ -2418,6 +2425,8 @@ function createTankWreck(tank) {
   tankWrecks.push({
     x: tank.x, y: tank.y, radius: r, mega: !!tank.mega, elite: !!tank.elite,
     team: tank.team, rotation: (Math.random() - .5) * .3,
+    knockback: tank.knockback ? { ...tank.knockback } : null,
+    spin: tank.knockback ? (tank.knockback.vx < 0 ? -1 : 1) * .045 : 0,
     length: (tank.mega ? 3.05 : 2.8) * r, width: (tank.mega ? 1.52 : 1.38) * r,
     holes, firePoints, seed: Math.random() * 1000
   });
@@ -2708,6 +2717,46 @@ function spawnExplosionVisuals(x, y, size = 1) {
 
 function createShockwave(x, y, maxRadius, color = '#fff') {
   shockwaves.push({ x, y, radius: 5, maxRadius, life: 550, maxLife: 550, color });
+}
+
+function createNukeShockwave(x, y, maxRadius) {
+  const wave = { x, y, radius: 0, maxRadius, life: 9000, maxLife: 9000,
+    delay: 2000, fastStart: true, color: '#fff5c4', hitEntities: new Set() };
+  shockwaves.push(wave);
+  return wave;
+}
+
+function applyNukeWaveFront(wave, previousRadius, currentRadius) {
+  const thickness = Math.max(50, currentRadius - previousRadius + 45);
+  const hitUnit = unit => {
+    if (!unit || unit.destroyed || unit.hp <= 0 || wave.hitEntities.has(unit)) return;
+    const dx = unit.x - wave.x, dy = unit.y - wave.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < previousRadius - thickness || distance > currentRadius + (unit.radius || 0)) return;
+    wave.hitEntities.add(unit);
+    const intensity = 1 - .48 * Math.min(1, distance / wave.maxRadius);
+    const angle = distance > 1 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2;
+    const knockback = unit.kind === 'tank'
+      ? { vx: Math.cos(angle) * (255 * intensity), vy: Math.sin(angle) * (255 * intensity), life: 1400 }
+      : null;
+    if (knockback) unit.knockback = knockback;
+    const damage = GAME_SETTINGS.nukeWaveDamage * intensity;
+    damageUnit(unit, damage, { x: wave.x, y: wave.y, radius: 600, ...(knockback ? { knockback } : {}) });
+  };
+  soldiers.forEach(hitUnit);
+  [...atguns, ...artillery, ...trucks, ...buffFlags].forEach(hitUnit);
+
+  const bases = [ownBase, ...activeBotBases().map(bot => bot.base),
+    ...Object.values(remotePlayers).map(player => player.base).filter(Boolean)];
+  if (!Object.keys(remotePlayers).length && !activeBotBases().length && enemyBase.hp > 0) bases.push(enemyBase);
+  for (const base of new Set(bases)) {
+    if (base.hp <= 0 || wave.hitEntities.has(base)) continue;
+    const distance = Math.hypot(base.x - wave.x, base.y - wave.y);
+    if (distance < previousRadius - thickness || distance > currentRadius + base.radius) continue;
+    wave.hitEntities.add(base);
+    const intensity = 1 - .48 * Math.min(1, distance / wave.maxRadius);
+    damageBase(base, GAME_SETTINGS.nukeWaveDamage * intensity);
+  }
 }
 
 function applySplashDamage(x, y, radius, damage, attackerTeam, penetration = 0) {
@@ -3341,12 +3390,31 @@ function update(dt) {
     return d.life > 0;
   });
   tracks = tracks.filter(t => { t.life -= dt; return t.life > 0; });
+  tankWrecks.forEach(wreck => {
+    if (!wreck.knockback) return;
+    const impulse = wreck.knockback;
+    wreck.x = Math.max(wreck.radius, Math.min(WORLD_WIDTH - wreck.radius, wreck.x + impulse.vx * dt / 16.67));
+    wreck.y = Math.max(wreck.radius, Math.min(WORLD_HEIGHT - wreck.radius, wreck.y + impulse.vy * dt / 16.67));
+    wreck.rotation += wreck.spin * dt / 16.67;
+    impulse.life -= dt;
+    const damping = Math.pow(.9, dt / 16.67);
+    impulse.vx *= damping; impulse.vy *= damping;
+    if (impulse.life <= 0 || Math.hypot(impulse.vx, impulse.vy) < .25) wreck.knockback = null;
+  });
   explosions = explosions.filter(e => { e.life -= dt; return e.life > 0; });
   scorchMarks = scorchMarks.filter(s => { s.life -= dt; return s.life > 0; });
   shockwaves = shockwaves.filter(s => {
+    if (s.delay > 0) {
+      s.delay = Math.max(0, s.delay - dt);
+      s.radius = 0;
+      if (s.delay === 0) screenShake(110);
+      return true;
+    }
+    const previousRadius = s.radius;
     s.life -= dt;
     const t = 1 - s.life / s.maxLife;
-    s.radius = 5 + t * s.maxRadius;
+    s.radius = s.fastStart ? Math.sqrt(t) * s.maxRadius : 5 + t * s.maxRadius;
+    if (s.fastStart) applyNukeWaveFront(s, previousRadius, s.radius);
     return s.life > 0;
   });
   ragdolls = ragdolls.filter(r => {
@@ -3493,11 +3561,7 @@ function updateHpBars() {
 }
 
 function triggerWaveNotification() {
-  const el = document.getElementById('wave-notification');
-  el.textContent = 'WELLE ' + waveNumber;
-  el.classList.remove('show');
-  void el.offsetWidth;
-  el.classList.add('show');
+  showNotification('WELLE ' + waveNumber, '🌊');
 }
 
 // ============ RENDERING ============
@@ -4124,6 +4188,53 @@ function drawRicochet(r) {
 }
 
 function drawExplosion(e) {
+  if (e.nuke) {
+    const t = 1 - e.life / e.maxLife;
+    const growth = Math.min(1, t * 3.2);
+    const cloudAlpha = Math.min(.82, .18 + t * 2.4) * Math.pow(1 - t, .55);
+    const cloudScale = .3 + growth * .7;
+
+    // A blinding, fast-growing fireball that spreads across most of the battlefield.
+    const visualRadius = Math.min(Math.hypot(WORLD_WIDTH, WORLD_HEIGHT), (e.explosionRadius || GAME_SETTINGS.nukeExplosionRadius) * 6.6);
+    const fireRadius = visualRadius * (.14 + t * .86);
+    const fireAlpha = .88 * Math.pow(1 - t, .72);
+    ctx.globalAlpha = fireAlpha;
+    const fire = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, fireRadius);
+    fire.addColorStop(0, 'rgba(255,255,245,.98)');
+    fire.addColorStop(.12, 'rgba(255,248,190,.98)');
+    fire.addColorStop(.34, 'rgba(255,174,55,.9)');
+    fire.addColorStop(.68, 'rgba(220,48,12,.64)');
+    fire.addColorStop(1, 'rgba(55,12,8,0)');
+    ctx.fillStyle = fire; ctx.beginPath(); ctx.arc(e.x, e.y, fireRadius, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // The rising stem and boiling cap form a large mushroom cloud after the flash.
+    if (cloudAlpha > .01) {
+      const stemWidth = 520 * cloudScale;
+      const stemHeight = 2400 * cloudScale;
+      ctx.globalAlpha = cloudAlpha;
+      const stem = ctx.createLinearGradient(e.x, e.y - stemHeight, e.x, e.y + 80);
+      stem.addColorStop(0, 'rgba(70,66,59,0)');
+      stem.addColorStop(.28, 'rgba(103,91,73,.88)');
+      stem.addColorStop(1, 'rgba(44,39,34,.96)');
+      ctx.fillStyle = stem;
+      ctx.beginPath(); ctx.moveTo(e.x - stemWidth * .8, e.y + 80);
+      ctx.lineTo(e.x - stemWidth * .36, e.y - stemHeight);
+      ctx.lineTo(e.x + stemWidth * .36, e.y - stemHeight);
+      ctx.lineTo(e.x + stemWidth * .8, e.y + 80); ctx.closePath(); ctx.fill();
+
+      const capY = e.y - stemHeight * .82;
+      const cap = ctx.createRadialGradient(e.x, capY, 120 * cloudScale, e.x, capY, 3000 * cloudScale);
+      cap.addColorStop(0, 'rgba(255,184,80,.92)');
+      cap.addColorStop(.22, 'rgba(125,91,60,.96)');
+      cap.addColorStop(.7, 'rgba(65,59,53,.94)');
+      cap.addColorStop(1, 'rgba(36,34,32,0)');
+      ctx.fillStyle = cap;
+      ctx.beginPath(); ctx.ellipse(e.x, capY, 3000 * cloudScale, 1450 * cloudScale, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    return;
+  }
   const t = 1 - (e.life / e.maxLife);
   const size = 50 * e.size * (0.5 + t * 1.6);
   const alpha = 1 - t;
@@ -4142,6 +4253,7 @@ function drawExplosion(e) {
 }
 
 function drawShockwave(s) {
+  if (s.delay > 0) return;
   const t = 1 - (s.life / s.maxLife);
   const alpha = 1 - t;
   ctx.globalAlpha = alpha * 0.9;
@@ -4658,11 +4770,11 @@ function draw() {
   remoteArtilleryShells.forEach(ash => { if (onScreen(ash, ash.arcHeight || 0)) drawArtilleryShell(ash); });
   ricochets.forEach(r => { if (onScreen(r, 30)) drawRicochet(r); });
   remoteRicochets.forEach(r => { if (onScreen(r, 30)) drawRicochet(r); });
+  explosions.forEach(e => { if ((!fastMode || e.nuke) && onScreen(e, e.nuke ? Math.hypot(WORLD_WIDTH, WORLD_HEIGHT) : e.size * 70)) drawExplosion(e); });
+  remoteExplosions.forEach(e => { if ((!fastMode || e.nuke) && onScreen(e, e.nuke ? Math.hypot(WORLD_WIDTH, WORLD_HEIGHT) : e.size * 70)) drawExplosion(e); });
+  shockwaves.forEach(s => { if ((!fastMode || s.fastStart) && onScreen(s, s.maxRadius)) drawShockwave(s); });
+  remoteShockwaves.forEach(s => { if ((!fastMode || s.fastStart) && onScreen(s, s.maxRadius)) drawShockwave(s); });
   if (!fastMode) {
-    explosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
-    remoteExplosions.forEach(e => { if (onScreen(e, e.size * 70)) drawExplosion(e); });
-    shockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
-    remoteShockwaves.forEach(s => { if (onScreen(s, s.maxRadius)) drawShockwave(s); });
     muzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
     remoteMuzzleFlashes.forEach(m => { if (onScreen(m, 40)) drawMuzzleFlash(m); });
   }
@@ -5063,7 +5175,7 @@ function sendHit(targetUid, unitId, damage, impact = null) {
   if (impact && isNum(impact.x) && isNum(impact.y)) h.impact = {
     x: impact.x, y: impact.y, radius: Math.min(600, Math.max(12, impact.radius || 42)),
     ...(impact.knockback && isNum(impact.knockback.vx) && isNum(impact.knockback.vy)
-      ? { knockback: { vx: impact.knockback.vx, vy: impact.knockback.vy, life: 1000 } } : {})
+      ? { knockback: { vx: impact.knockback.vx, vy: impact.knockback.vy, life: isNum(impact.knockback.life) ? impact.knockback.life : 1000 } } : {})
   };
   if (!hitTimer) hitTimer = setTimeout(flushHits, 60);
 }
@@ -5216,9 +5328,13 @@ function advanceRemoteVisuals() {
     if (!rec.visible) {
       rec.visible = true; OUT[code].push(o);
       if (code === 'X') {
-        const size = o.size || 1;
+        const size = o.nuke ? 2.5 : (o.size || 1);
         window.WarSim.spawnExplosionFx(o.x, o.y, size);
-        if (size >= 1.4) window.WarSim.spawnScorch(o.x, o.y, Math.min(2.5, size * 0.75));
+        if (o.nuke) {
+          screenShake(280);
+          showNotification('ATOMBOMBE DETONIERT', '☢️');
+        }
+        if (size >= 1.4) window.WarSim.spawnScorch(o.x, o.y, o.nuke ? 2.5 : Math.min(2.5, size * 0.75));
       }
     }
     let dead = false;
@@ -5237,8 +5353,12 @@ function advanceRemoteVisuals() {
       case 'M': case 'X':
         o.life = d.life - age; dead = o.life <= 0; break;
       case 'W':
-        o.life = d.life - age;
-        o.radius = 5 + (1 - o.life / d.maxLife) * (d.maxRadius || 100);
+        o.delay = Math.max(0, (d.delay || 0) - age);
+        if (age < (d.delay || 0)) { o.life = d.maxLife || d.life; o.radius = 0; break; }
+        if (d.fastStart && !rec.waveStarted) { rec.waveStarted = true; screenShake(110); }
+        o.life = (d.maxLife || d.life) - (age - (d.delay || 0));
+        const waveProgress = Math.max(0, 1 - o.life / (d.maxLife || d.life));
+        o.radius = d.fastStart ? Math.sqrt(waveProgress) * (d.maxRadius || 100) : 5 + waveProgress * (d.maxRadius || 100);
         dead = o.life <= 0; break;
       case 'g':
         while (rec.simT + FRAME <= rt) { rec.simT += FRAME; stepRagdoll(o, perf); }
