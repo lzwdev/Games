@@ -123,6 +123,10 @@
   .stat-own { color: #4a9eff; }
   .stat-enemy { color: #ff5a4a; }
   .base-hp { margin-top: 6px; }
+  .base-upgrade-button { width:100%; margin-top:6px; padding:7px 8px; border:1px solid #527b9b; border-radius:8px; background:linear-gradient(135deg,#20364a,#162633); color:#e8f5ff; font:700 11px system-ui,sans-serif; cursor:pointer; }
+  .base-upgrade-button:hover:not(:disabled) { border-color:#81c5ff; background:linear-gradient(135deg,#294967,#1a3042); }
+  .base-upgrade-button:disabled { opacity:.55; cursor:default; }
+  .base-upgrade-status { margin-top:3px; color:#99afc0; font-size:9px; line-height:1.4; }
   .base-label {
     font-size: 9px;
     text-align: left;
@@ -494,7 +498,7 @@
       <div class="hud-item" id="onlineStatus" style="color:#ffd166">Verbinde…</div>
       <a class="hud-item" href="vehicle-settings.html" target="_blank" rel="noopener">Einheitenwerte</a>
     </div>
-    <div id="perfDetails" class="hidden" aria-live="polite"><div class="pd-title">Leistung · Ø letzte 0,5 s</div><div class="pd-row"><span>FPS</span><b><span id="perfFps">—</span></b></div><div class="pd-row"><span>Frame</span><b><span id="perfFrame">—</span> ms</b></div><div class="pd-section">CPU</div><div class="pd-row"><span>Spiel-Update</span><b><span id="perfUpdate">—</span> ms</b></div><div class="pd-row"><span>Physik / Kollision</span><b><span id="perfPhysics">—</span> ms</b></div><div class="pd-row"><span>AI</span><b><span id="perfAI">—</span> ms</b></div><div class="pd-row"><span>Firebase Ping</span><b><span id="perfFirebase">—</span> ms</b></div><div class="pd-section">Rendering · CPU-Zeit</div><div class="pd-row"><span>Canvas</span><b><span id="perfCanvas">—</span> ms</b></div><div class="pd-row"><span>WebGL</span><b><span id="perfWebGL">—</span> ms</b></div></div>
+    <div id="perfDetails" class="hidden" aria-live="polite"><div class="pd-title">Leistung · Ø letzte 0,5 s</div><div class="pd-row"><span>FPS</span><b><span id="perfFps">—</span></b></div><div class="pd-row"><span>Frame</span><b><span id="perfFrame">—</span> ms</b></div><div class="pd-section">CPU</div><div class="pd-row"><span>Spiel-Update</span><b><span id="perfUpdate">—</span> ms</b></div><div class="pd-row"><span>Physik / Kollision</span><b><span id="perfPhysics">—</span> ms</b></div><div class="pd-row"><span>AI</span><b><span id="perfAI">—</span> ms</b></div><div class="pd-row"><span>Firebase Ping</span><b><span id="perfFirebase">—</span> ms</b></div><div class="pd-section">Rendering · CPU-Zeit</div><div class="pd-row"><span>Canvas</span><b><span id="perfCanvas">—</span> ms</b></div><div class="pd-row"><span>WebGL</span><b><span id="perfWebgl">—</span> ms</b></div></div>
     <div id="wave-notification"></div>
   </div>
   <div id="sidebar">
@@ -553,6 +557,8 @@
       <div class="base-hp">
         <div class="base-label"><span style="color:#4a9eff">🏠 Deine Base</span><span id="ownHpText">5000</span></div>
         <div class="hp-bar-bg"><div class="hp-bar" id="ownHpBar" style="width:100%"></div></div>
+        <div id="baseUpgradeStatus" class="base-upgrade-status">Level 1/10 · Mauern: keine</div>
+        <button id="baseUpgradeButton" class="base-upgrade-button" type="button">Basis ausbauen · kostenlos</button>
       </div>
       <div class="base-hp">
         <div class="base-label"><span style="color:#ff5a4a">🏭 Nächste Feind-Base</span><span id="enemyHpText">0</span></div>
@@ -575,7 +581,7 @@
       <kbd>Drag</kbd> Karte<br>
       <kbd>Scroll</kbd> Zoom<br>
       <kbd>Click</kbd> Spawn<br>
-      <kbd>Ziehen</kbd> Eigene Truppen markieren<br>
+      <kbd>Rechts halten</kbd> Truppen markieren<br>
       <kbd>Rechtsklick</kbd> Marschziel setzen
     </div>
   </div>
@@ -659,7 +665,6 @@ window.WarSimJoin = {
 let renderScale = 1;
 
 // GPU troop layer: render the high-count infantry/tank field in one instanced draw.
-// The rest of the 2D scene is composited around this layer to preserve its current art.
 const troopCanvas = document.createElement('canvas');
 const troopGl = troopCanvas.getContext('webgl2', { alpha: true, antialias: false, premultipliedAlpha: true, preserveDrawingBuffer: true });
 let troopProgram = null, troopBuffer = null, troopGpuReady = false, troopCapacity = 0;
@@ -720,7 +725,6 @@ if (troopGl) {
       float d = 2.0;
       if (vKind < 0.5) {
         p.x *= facing;
-        // Shadow, moving legs, uniform, helmet, rifle and a small health bar.
         d = min(d, ellipse(p - vec2(0.0,.76), vec2(.53,.12)));
         float gait = sin(vAngle) * .08;
         d = min(d, roundedBox(p - vec2(-.17,.57+gait), vec2(.11,.31), .06));
@@ -741,7 +745,6 @@ if (troopGl) {
           outColor = vec4(color, .98); return;
         }
       } else if (vKind < 1.5) {
-        // Active tanks are drawn from the tank class PNG sprites on the Canvas layer.
         discard;
       } else if (vKind < 2.5) {
         d = min(d,roundedBox(p-vec2(0.0,.25),vec2(.78,.34),.1));
@@ -858,7 +861,6 @@ function drawTroopsWebGL(units, camera, viewWidth, viewHeight) {
 }
 
 function resize() {
-  // Keep Retina displays sharp while avoiding a 4x pixel workload at devicePixelRatio 2.
   renderScale = Math.min(window.devicePixelRatio || 1, 1.5);
   canvas.width = Math.round(canvas.clientWidth * renderScale);
   canvas.height = Math.round(canvas.clientHeight * renderScale);
@@ -1141,13 +1143,12 @@ function initAudio() {
     compressor.ratio.value = 6;
     compressor.attack.value = 0.002;
     compressor.release.value = 0.15;
-    
-    // Reverb für mehr Räumlichkeit
+
     reverbNode = audioCtx.createConvolver();
     reverbNode.buffer = createReverbImpulse(audioCtx, 1.8, 2.5);
     reverbGain = audioCtx.createGain();
     reverbGain.gain.value = 0.18;
-    
+
     masterGain.connect(compressor);
     compressor.connect(audioCtx.destination);
     masterGain.connect(reverbGain);
@@ -1179,7 +1180,6 @@ document.getElementById('sound-toggle').addEventListener('click', (e) => {
 function playShot(vol = 0.15) {
   if (!soundEnabled || !audioCtx) return;
   const t = audioCtx.currentTime;
-  // Schuss mit mehr Schichten für Realismus
   const bs = audioCtx.sampleRate * 0.08;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1193,7 +1193,7 @@ function playShot(vol = 0.15) {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
   noise.connect(f).connect(g).connect(masterGain);
   noise.start(t); noise.stop(t + 0.08);
-  
+
   const osc = audioCtx.createOscillator();
   osc.type = 'triangle';
   osc.frequency.setValueAtTime(240, t);
@@ -1208,7 +1208,6 @@ function playShot(vol = 0.15) {
 function playCannonShot() {
   if (!soundEnabled || !audioCtx) return;
   const t = audioCtx.currentTime;
-  // Tiefer Bass + Layer
   const osc1 = audioCtx.createOscillator();
   osc1.type = 'sine';
   osc1.frequency.setValueAtTime(160, t);
@@ -1218,8 +1217,7 @@ function playCannonShot() {
   g1.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
   osc1.connect(g1).connect(masterGain);
   osc1.start(t); osc1.stop(t + 0.45);
-  
-  // Mid-Range
+
   const osc2 = audioCtx.createOscillator();
   osc2.type = 'triangle';
   osc2.frequency.setValueAtTime(80, t);
@@ -1229,8 +1227,7 @@ function playCannonShot() {
   g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
   osc2.connect(g2).connect(masterGain);
   osc2.start(t); osc2.stop(t + 0.3);
-  
-  // Noise
+
   const bs = audioCtx.sampleRate * 0.3;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1260,7 +1257,7 @@ function playMegaShot() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 0.65);
-  
+
   const bs = audioCtx.sampleRate * 0.45;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1290,7 +1287,7 @@ function playArtilleryShot() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 1.2);
-  
+
   const osc2 = audioCtx.createOscillator();
   osc2.type = 'sawtooth';
   osc2.frequency.setValueAtTime(200, t);
@@ -1300,7 +1297,7 @@ function playArtilleryShot() {
   g2.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
   osc2.connect(g2).connect(masterGain);
   osc2.start(t); osc2.stop(t + 0.7);
-  
+
   const bs = audioCtx.sampleRate * 0.9;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1330,7 +1327,7 @@ function playExplosion() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 0.95);
-  
+
   const bs = audioCtx.sampleRate * 0.7;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1374,7 +1371,7 @@ function playMachineGun() {
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
   osc.connect(g).connect(masterGain);
   osc.start(t); osc.stop(t + 0.05);
-  
+
   const bs = audioCtx.sampleRate * 0.03;
   const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
   const d = buf.getChannelData(0);
@@ -1457,8 +1454,8 @@ const WORLD_WIDTH = 18000;
 const WORLD_HEIGHT = 12000;
 const MAX_LOCAL_UNITS = 750;
 
-const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 460, hp: 5000, maxHp: 5000, destroyed: false, team: 'own' };
-const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 460, hp: 0, maxHp: 5000, destroyed: true, ownerUid: null };
+const ownBase = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, radius: 460, hp: 5000, maxHp: 5000, level: 1, wallHp: 0, maxWallHp: 0, regenTimer: 0, destroyed: false, team: 'own' };
+const enemyBase = { x: WORLD_WIDTH / 2 + 1200, y: WORLD_HEIGHT / 2, radius: 460, hp: 0, maxHp: 5000, level: 1, wallHp: 0, maxWallHp: 0, destroyed: true, ownerUid: null };
 
 const camera = {
   x: 0, y: 0, zoom: 1, targetZoom: 1,
@@ -1484,6 +1481,42 @@ let botPlayer = null;
 const botPlayers = [];
 const MAX_BOT_BASES = 5;
 let botJoinTimer = 0;
+let botUpgradeTimer = 0;
+const MAX_BASE_LEVEL = 10;
+const BASE_HP_PER_LEVEL = 1250;
+const BASE_WALL_HP_PER_LEVEL = 600;
+function updateBaseUpgradeUI() {
+  const button = document.getElementById('baseUpgradeButton');
+  const status = document.getElementById('baseUpgradeStatus');
+  if (!button || !status) return;
+  const next = Math.min(MAX_BASE_LEVEL, ownBase.level + 1);
+  button.disabled = ownBase.level >= MAX_BASE_LEVEL || ownBase.hp <= 0;
+  button.textContent = ownBase.level >= MAX_BASE_LEVEL ? 'Maximallevel erreicht' : `Basis auf Level ${next} ausbauen · kostenlos`;
+  status.textContent = `Level ${ownBase.level}/${MAX_BASE_LEVEL} · Mauern: ${Math.ceil(ownBase.wallHp)}/${ownBase.maxWallHp || 0} · Reparatur aktiv`;
+}
+function upgradeBase(base, notify = false) {
+  if (!base || base.hp <= 0 || (base.level || 1) >= MAX_BASE_LEVEL) return false;
+  const nextLevel = (base.level || 1) + 1;
+  base.level = nextLevel;
+  base.maxHp = 5000 + (nextLevel - 1) * BASE_HP_PER_LEVEL;
+  base.hp = Math.min(base.maxHp, base.hp + BASE_HP_PER_LEVEL);
+  base.radius = 460 + (nextLevel - 1) * 12;
+  base.maxWallHp = Math.max(0, (nextLevel - 1) * BASE_WALL_HP_PER_LEVEL);
+  base.wallHp = Math.min(base.maxWallHp, (base.wallHp || 0) + BASE_WALL_HP_PER_LEVEL);
+  if (base === ownBase) updateBaseUpgradeUI();
+  if (notify) showBotNotice(`Deine Basis wurde auf Level ${nextLevel} ausgebaut`);
+  return true;
+}
+function regenerateBase(base, dt) {
+  if (!base || base.hp <= 0) return;
+  base.regenTimer = (base.regenTimer || 0) + dt;
+  while (base.regenTimer >= 1000) {
+    base.regenTimer -= 1000;
+    const level = base.level || 1;
+    base.hp = Math.min(base.maxHp, base.hp + 2 + level * 1.5);
+    if (base.wallHp < (base.maxWallHp || 0)) base.wallHp = Math.min(base.maxWallHp, base.wallHp + 1 + level);
+  }
+}
 function activeBotBases() { return botPlayers.filter(bot => bot.active && bot.base?.hp > 0); }
 function nearestHostileBase(unit) {
   const bases = [ownBase, ...activeBotBases().map(bot => bot.base)];
@@ -1497,7 +1530,7 @@ function placeBotBase() {
     const y = 900 + Math.random() * (WORLD_HEIGHT - 1800);
     if (Math.hypot(x - ownBase.x, y - ownBase.y) < 2600) continue;
     if (activeBotBases().some(bot => Math.hypot(x - bot.base.x, y - bot.base.y) < 2200)) continue;
-    return { x, y, radius: 460, hp: 5000, maxHp: 5000, destroyed: false, ownerUid: null, team: null };
+    return { x, y, radius: 460, hp: 5000, maxHp: 5000, level: 1, wallHp: 0, maxWallHp: 0, regenTimer: 0, destroyed: false, ownerUid: null, team: null };
   }
   return null;
 }
@@ -1509,7 +1542,7 @@ function spawnBotPlayer() {
   if (!base) return false;
   const duration = 300000 + Math.random() * 300000;
   const bot = { id: `bot-${Math.random().toString(36).slice(2, 8)}`, name, active: true,
-    base, duration, elapsed: 0, spawnTimer: 0, spawnInterval: 450 + Math.random() * 350 };
+    base, duration, elapsed: 0, spawnTimer: 0, upgradeTimer: 0, spawnInterval: 450 + Math.random() * 350 };
   base.team = bot.id;
   botPlayers.push(bot);
   botPlayer = bot;
@@ -1560,10 +1593,8 @@ const GAME_SETTINGS = {
   tankHealth: 420, eliteTankHealth: 640, megaTankHealth: 2000, artilleryHealth: 280,
   nukeExplosionRadius: 1900, nukeExplosionDamage: 1999, nukeWaveDamage: 999
 };
-// Erlaubte Bereiche je Wert (Endung des Schlüssels)
 const SETTING_LIMITS = { Range: [50, 10000], Damage: [1, 5000], SplashRadius: [10, 800], Speed: [0.05, 10], Health: [10, 20000], AttackInterval: [50, 10000], ExplosionRadius: [100, 20000] };
 const settingLimit = key => SETTING_LIMITS[Object.keys(SETTING_LIMITS).find(k => key.endsWith(k))];
-// Gegner-Faktoren (wie bisher): Gegner sind etwas langsamer / haben etwas weniger Reichweite
 const ENEMY_RANGE_FACTOR = { soldier: 300 / 340, eliteSoldier: 360 / 400, tank: 380 / 420, eliteTank: 570 / 620, megaTank: 700 / 750 };
 const ENEMY_SPEED_FACTOR = { soldier: 1.4 / 1.6, eliteSoldier: 1.3 / 1.5, tank: 0.85 / 0.95, eliteTank: 0.5 / 0.55, megaTank: 0.35 / 0.4 };
 const ENEMY_DAMAGE_FACTOR = { soldier: 11 / 16, eliteSoldier: 1 };
@@ -1645,6 +1676,8 @@ document.querySelectorAll('.loadout-item').forEach(el => {
   el.setAttribute('aria-label', el.querySelector('.label').textContent);
   el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
 });
+document.getElementById('baseUpgradeButton').addEventListener('click', () => upgradeBase(ownBase, true));
+updateBaseUpgradeUI();
 
 function screenToWorld(sx, sy) {
   return { x: (sx / camera.zoom) + camera.x, y: (sy / camera.zoom) + camera.y };
@@ -1656,10 +1689,6 @@ let cameraStart = { x: 0, y: 0 };
 let didDrag = false;
 let selectingTroops = false;
 let selectionStartWorld = null;
-function ownTroopAt(x, y) {
-  return soldiers.find(unit => unit.team === 'own' && !unit.remote && unit.hp > 0 &&
-    Math.hypot(unit.x - x, unit.y - y) <= Math.max(22, unit.radius * 1.4));
-}
 function issueMoveOrder(x, y) {
   if (!selectedOwnTroops.size) return;
   const units = [...selectedOwnTroops].filter(unit => unit.hp > 0 && unit.team === 'own' && !unit.remote);
@@ -1687,24 +1716,21 @@ canvas.addEventListener('pointerdown', (e) => {
       clampCamera();
       return;
     }
-    if (e.button === 2) {
-      if (!onMinimap) {
-        const world = screenToWorld(px, py);
-        issueMoveOrder(world.x, world.y);
-      }
+    if (e.button === 2 && onMinimap) {
+      issueMoveOrder(((px - minimap.x) / minimap.w) * WORLD_WIDTH, ((py - minimap.y) / minimap.h) * WORLD_HEIGHT);
       return;
     }
-    const world = screenToWorld(px, py);
-    if (!selectedType && ownTroopAt(world.x, world.y)) {
+    if (e.button === 2) {
       selectingTroops = true;
       isDragging = true;
       didDrag = false;
       dragStart = { x: e.clientX, y: e.clientY };
-      selectionStartWorld = world;
-      selectionBoxWorld = { x: world.x, y: world.y, w: 0, h: 0 };
+      selectionStartWorld = screenToWorld(px, py);
+      selectionBoxWorld = { x: selectionStartWorld.x, y: selectionStartWorld.y, w: 0, h: 0 };
       canvas.setPointerCapture(e.pointerId);
       return;
     }
+    const world = screenToWorld(px, py);
     isDragging = true;
     didDrag = false;
     dragStart = { x: e.clientX, y: e.clientY };
@@ -1741,6 +1767,10 @@ canvas.addEventListener('pointerup', (e) => {
         unit.x >= selectionBoxWorld.x && unit.x <= selectionBoxWorld.x + selectionBoxWorld.w &&
         unit.y >= selectionBoxWorld.y && unit.y <= selectionBoxWorld.y + selectionBoxWorld.h));
       showBotNotice(`${selectedOwnTroops.size} eigene Truppen ausgewählt`);
+    } else {
+      const rect = canvas.getBoundingClientRect();
+      const target = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      issueMoveOrder(target.x, target.y);
     }
     selectionBoxWorld = null;
   } else if (isDragging && !didDrag) {
@@ -1839,7 +1869,7 @@ function trySpawn(wx, wy) {
     showBotNotice(`Truppenlimit erreicht (${MAX_LOCAL_UNITS}). Reduziere erst deine Einheiten.`);
     return;
   }
-  
+
   let radius = 12;
   if (selectedType === 'soldier') radius = 12;
   else if (selectedType === 'elitesoldier') radius = 14;
@@ -1849,10 +1879,10 @@ function trySpawn(wx, wy) {
   else if (selectedType === 'atgun') radius = 32;
   else if (selectedType === 'artillery') radius = 36;
   else if (selectedType === 'buffflag') radius = 24;
-  
+
   const pos = findGridSpot(radius);
   if (!pos) return;
-  
+
   if (selectedType === 'soldier') { spawnSoldier('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#4a90e2', 15); }
   else if (selectedType === 'elitesoldier') { spawnEliteSoldier('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#6bb3ff', 18); }
   else if (selectedType === 'tank') { spawnTank('own', pos.x, pos.y); spawnParticles(pos.x, pos.y, '#4a90e2', 20); }
@@ -2302,6 +2332,9 @@ function tickBot(dt) {
     despawnBotsForRealPlayer();
     return;
   }
+  let upgradeRoll = false;
+  botUpgradeTimer += dt;
+  if (botUpgradeTimer >= 3000) { botUpgradeTimer %= 3000; upgradeRoll = true; }
   botJoinTimer += dt;
   if (botJoinTimer >= 3000) {
     botJoinTimer %= 3000;
@@ -2311,6 +2344,7 @@ function tickBot(dt) {
     if (!bot.active) continue;
     bot.elapsed += dt;
     if (bot.base.hp <= 0) { finishBot('wurde besiegt', bot); continue; }
+    if (upgradeRoll && bot.base.level < MAX_BASE_LEVEL && Math.random() < 0.015) upgradeBase(bot.base);
     bot.spawnTimer += dt;
     if (bot.spawnTimer < bot.spawnInterval || enemyCount >= maxEnemies) continue;
     bot.spawnTimer = 0;
@@ -2352,7 +2386,6 @@ function spawnAtgunSetup(team, truck) {
     range: 1880
   };
   atguns.push(atgun);
-  
   return atgun;
 }
 
@@ -2367,8 +2400,8 @@ function spawnArtillerySetup(team, truck) {
     angle: -Math.PI / 2,
     barrelPitch: 0.8, recoil: 0,
     recoilOffset: 0,
-    attackCooldown: 7500,  // 50% länger als 5000
-    attackInterval: 7500,  // 50% länger als 5000
+    attackCooldown: 7500,
+    attackInterval: 7500,
     burstInterval: 250,
     burstCount: 8,
     burstShotsLeft: 0,
@@ -2438,7 +2471,7 @@ function shoot(shooter, target) {
   const dy = target.y - shooter.y;
   const angle = Math.atan2(dy, dx);
   const damageMult = getDamageMultiplier(shooter);
-  
+
   if (shooter.isElite) {
     if (shooter.burstState === 'reloading') return;
     if (shooter.burstState === 'ready') shooter.burstState = 'firing';
@@ -2461,7 +2494,7 @@ function shoot(shooter, target) {
     }
     return;
   }
-  
+
   if (shooter.kind === 'tank') {
     const spread = shooter.accuracy;
     const a = angle + (Math.random() - 0.5) * spread;
@@ -2556,18 +2589,17 @@ function artilleryShootSingle(art, target) {
   const dy = target.y - art.y;
   const dist = Math.hypot(dx, dy);
   const flightTime = 800 + dist * 0.8;
-  
-  // GENAUIGKEIT WEITER VERRINGERT: 150-350 statt 80-200
+
   const spread = 150 + Math.random() * 200;
   const spreadAngle = Math.random() * Math.PI * 2;
   const finalX = target.x + Math.cos(spreadAngle) * spread;
   const finalY = target.y + Math.sin(spreadAngle) * spread;
   const damageMult = getDamageMultiplier(art);
-  
+
   const pitchCos = Math.cos(art.barrelPitch);
   const startX = art.x + Math.cos(art.angle) * 47 * pitchCos;
   const startY = art.y + Math.sin(art.angle) * 47 * pitchCos;
-  
+
   artilleryShells.push({
     startX, startY, endX: finalX, endY: finalY,
     x: startX, y: startY,
@@ -2580,18 +2612,18 @@ function artilleryShootSingle(art, target) {
     life: flightTime, maxLife: flightTime,
     trail: [], exploded: false
   });
-  
+
   art.recoil = 1;
   art.recoilOffset = 1;
   art.fireFlash = 500;
   playArtilleryShot();
   screenShake(10);
-  
+
   muzzleFlashes.push({
     x: startX, y: startY,
     angle: art.angle, size: 40, life: 180, maxLife: 180, team: art.team
   });
-  
+
   for (let i = 0; i < 20; i++) {
     const a = art.angle + (Math.random() - 0.5) * 1.5;
     particles.push({
@@ -2603,7 +2635,6 @@ function artilleryShootSingle(art, target) {
       size: 4 + Math.random() * 6, gravity: -0.1, drag: 0.94
     });
   }
-  
 }
 
 function shootBase(shooter, base) {
@@ -2613,7 +2644,7 @@ function shootBase(shooter, base) {
   const edgeX = base.x - Math.cos(angle) * base.radius;
   const edgeY = base.y - Math.sin(angle) * base.radius;
   const damageMult = getDamageMultiplier(shooter);
-  
+
   if (shooter.kind === 'tank') {
     const a = Math.atan2(edgeY - shooter.y, edgeX - shooter.x) + (Math.random() - 0.5) * shooter.accuracy;
     const speed = shooter.shellSpeed;
@@ -2673,7 +2704,6 @@ function createExplosion(x, y, size = 1) {
   screenShake(7 * size);
 }
 
-// Nur Partikel/Trümmer (auch für Explosionen anderer Spieler genutzt)
 function spawnExplosionVisuals(x, y, size = 1) {
   for (let i = 0; i < 35; i++) {
     const a = Math.random() * Math.PI * 2;
@@ -2800,13 +2830,37 @@ function applySplashDamage(x, y, radius, damage, attackerTeam, penetration = 0) 
   });
 }
 
+// ============ KILL COUNTING ============
+function recordKill(unit) {
+  if (!unit || unit.remote) return;
+  // Alles, was nicht "own" ist, zählt als Feind (Bots, Remote, alte enemyBase)
+  if (unit.team !== 'own') {
+    totalKills++;
+    const killCountEl = document.getElementById('killCount');
+    const hudKillsEl = document.getElementById('hudKills');
+    if (killCountEl) killCountEl.textContent = totalKills;
+    if (hudKillsEl) hudKillsEl.textContent = totalKills;
+  }
+}
+
 function damageUnit(unit, amount, impact = null) {
   if (unit.remote && unit.ownerUid) {
     unit.hitFlash = 100;
     window.WarSim?.sendHit(unit.ownerUid, unit.unitId, amount, impact);
     return;
   }
+  const wasAlive = unit.hp > 0;
   unit.hp -= amount;
+  if (wasAlive && unit.hp <= 0) {
+    recordKill(unit);
+    if (unit.team === 'own') {
+      totalDeaths++;
+      const deathCountEl = document.getElementById('deathCount');
+      const hudDeathsEl = document.getElementById('hudDeaths');
+      if (deathCountEl) deathCountEl.textContent = totalDeaths;
+      if (hudDeathsEl) hudDeathsEl.textContent = totalDeaths;
+    }
+  }
 }
 
 function damageBase(base, amount) {
@@ -2814,7 +2868,13 @@ function damageBase(base, amount) {
     window.WarSim?.sendHit(base.ownerUid, 'base', amount);
     return;
   }
-  base.hp -= amount;
+  let remainingDamage = Math.max(0, amount);
+  if (base.wallHp > 0 && remainingDamage > 0) {
+    const absorbed = Math.min(base.wallHp, remainingDamage);
+    base.wallHp -= absorbed;
+    remainingDamage -= absorbed;
+  }
+  if (remainingDamage > 0) base.hp -= remainingDamage;
   checkBaseDestroyed(base);
 }
 
@@ -2919,10 +2979,12 @@ function update(dt) {
   if (gameOver) return;
   const updateStarted = performance.now();
   gameTime += dt;
+  regenerateBase(ownBase, dt);
   const aiStarted = performance.now();
   tickBot(dt);
+  activeBotBases().forEach(bot => regenerateBase(bot.base, dt));
   recordPerf('ai', performance.now() - aiStarted);
-  
+
   waveTimer += dt;
   if (waveTimer > waveDuration) {
     waveTimer = 0;
@@ -2931,7 +2993,7 @@ function update(dt) {
     playWaveStart();
     document.getElementById('hudWave').textContent = 'Welle ' + waveNumber;
   }
-  
+
   if (camera.shakePower > 0) {
     camera.shakeX = (Math.random() - 0.5) * camera.shakePower * 2;
     camera.shakeY = (Math.random() - 0.5) * camera.shakePower * 2;
@@ -2940,11 +3002,11 @@ function update(dt) {
   } else {
     camera.shakeX = 0; camera.shakeY = 0;
   }
-  
+
   if (typeof window.WarSim?.refreshLocalState === 'function') {
     window.WarSim.refreshLocalState(dt);
   }
-  
+
   trucks = trucks.filter(t => {
     if (t.remote) return !t.destroyed;
     if (t.destroyed) return false;
@@ -2971,13 +3033,13 @@ function update(dt) {
     }
     return true;
   });
-  
+
   atguns.forEach(atgun => {
     if (atgun.destroyed || atgun.remote) return;
     if (atgun.hitFlash > 0) atgun.hitFlash -= dt;
     if (atgun.recoil) atgun.recoil = Math.max(0, atgun.recoil - dt * 0.005);
     if (atgun.recoilOffset) atgun.recoilOffset = Math.max(0, atgun.recoilOffset - dt * 0.008);
-    
+
     if (atgun.setupState === 'setting_up') {
       atgun.setupProgress += dt;
       if (atgun.setupProgress >= atgun.setupTime) {
@@ -3012,14 +3074,14 @@ function update(dt) {
       }
     }
   });
-  
+
   artillery.forEach(art => {
     if (art.destroyed || art.remote) return;
     if (art.hitFlash > 0) art.hitFlash -= dt;
     if (art.recoil) art.recoil = Math.max(0, art.recoil - dt * 0.005);
     if (art.recoilOffset) art.recoilOffset = Math.max(0, art.recoilOffset - dt * 0.008);
     if (art.fireFlash > 0) art.fireFlash -= dt;
-    
+
     if (art.setupState === 'setting_up') {
       art.setupProgress += dt;
       if (art.setupProgress >= art.setupTime) {
@@ -3074,21 +3136,21 @@ function update(dt) {
       }
     }
   });
-  
+
   buffFlags.forEach(flag => {
     if (flag.destroyed || flag.remote) return;
     if (flag.hitFlash > 0) flag.hitFlash -= dt;
     if (flag.spawnAnim > 0) flag.spawnAnim -= dt * 0.004;
     flag.flagWave += dt * 0.005;
   });
-  
+
   soldiers.forEach(s => {
     if (s.remote) return;
     if (s.hp <= 0) return;
     if (s.hitFlash > 0) s.hitFlash -= dt;
     if (s.spawnAnim > 0) s.spawnAnim -= dt * 0.004;
     if (s.crouch > 0) s.crouch -= dt;
-    
+
     if (s.kind === 'tank' && s.recoilOffset) {
       s.recoilOffset = Math.max(0, s.recoilOffset - dt * 0.008);
     }
@@ -3119,7 +3181,7 @@ function update(dt) {
         return;
       }
     }
-    
+
     if (s.isElite) {
       if (s.burstState === 'reloading') {
         s.burstTimer -= dt;
@@ -3133,9 +3195,9 @@ function update(dt) {
         playReload();
       }
     }
-    
+
     const { target: closest, distance: closestDist } = findNearestEnemy(s);
-    
+
     const oppBase = nearestHostileBase(s);
     const baseAlive = oppBase && oppBase.hp > 0;
     let attackSoldier = false;
@@ -3145,7 +3207,7 @@ function update(dt) {
         attackSoldier = closestDist < distToBaseEdge;
       } else attackSoldier = true;
     }
-    
+
     if (attackSoldier && closest) {
       const targetAngle = Math.atan2(closest.y - s.y, closest.x - s.x);
       if (s.kind === 'tank') s.turretAngle = targetAngle;
@@ -3175,7 +3237,7 @@ function update(dt) {
     s.attackCooldown -= dt;
     if (s.recoil) s.recoil = Math.max(0, s.recoil - dt * 0.005);
   });
-  
+
   collisionRefresh += dt;
   if (collisionRefresh >= 100) {
     const physicsStarted = performance.now();
@@ -3183,7 +3245,7 @@ function update(dt) {
     recordPerf('physics', performance.now() - physicsStarted);
     collisionRefresh %= 100;
   }
-  
+
   // Bullets
   bullets = bullets.filter(b => {
     b.life -= dt;
@@ -3200,11 +3262,6 @@ function update(dt) {
         damageUnit(s, b.damage, { x: b.x, y: b.y, radius: 42 });
         s.hitFlash = 80;
         playHit();
-        if (s.hp <= 0 && s.team === 'enemy') {
-          totalKills++;
-          document.getElementById('killCount').textContent = totalKills;
-          document.getElementById('hudKills').textContent = totalKills;
-        }
         return false;
       }
     }
@@ -3245,7 +3302,7 @@ function update(dt) {
     }
     return true;
   });
-  
+
   shells = shells.filter(sh => {
     sh.life -= dt;
     if (sh.life <= 0) return false;
@@ -3308,7 +3365,7 @@ function update(dt) {
     }
     return true;
   });
-  
+
   artilleryShells = artilleryShells.filter(ash => {
     ash.t += dt / ash.flightTime;
     if (ash.t >= 1) {
@@ -3348,7 +3405,7 @@ function update(dt) {
     if (ash.trail.length > 15) ash.trail.shift();
     return true;
   });
-  
+
   ricochets = ricochets.filter(r => {
     r.life -= dt;
     r.trail.push({ x: r.x, y: r.y });
@@ -3361,10 +3418,10 @@ function update(dt) {
     }
     return r.life > 0;
   });
-  
+
   checkBaseDestroyed(ownBase);
   checkBaseDestroyed(enemyBase);
-  
+
   particles = particles.filter(p => {
     p.life -= dt;
     p.x += p.vx; p.y += p.vy;
@@ -3463,8 +3520,6 @@ function update(dt) {
   });
   soldiers = soldiers.filter(s => {
     if (s.hp <= 0) {
-      if (s.team === 'own') { ownCount--; totalDeaths++; }
-      else { enemyCount--; }
       if (s.kind === 'tank') {
         createTankWreck(s);
         const explSize = s.mega ? 3.5 : (s.elite ? 2.6 : 2.0);
@@ -3496,7 +3551,7 @@ function update(dt) {
     }
     return true;
   });
-  
+
   hudRefresh += dt;
   if (hudRefresh >= 150) {
     hudRefresh %= 150;
@@ -3565,7 +3620,6 @@ function triggerWaveNotification() {
 }
 
 // ============ RENDERING ============
-// [Alle draw-Funktionen bleiben gleich wie vorher]
 function drawSoldier(s) {
   const r = s.radius;
   const bob = Math.sin(s.walkPhase) * 1.8;
@@ -3602,7 +3656,6 @@ function drawSoldier(s) {
   ctx.fillStyle = clothGrad; ctx.fillRect(-r + 2, -r + 4, r * 2 - 4, r + 5);
   ctx.fillStyle = '#202b31'; ctx.fillRect(-r + 2, r - 4, r * 2 - 4, 3);
   ctx.fillStyle = uniformDark; ctx.fillRect(-r - 1, -r + 5, 3, 10); ctx.fillRect(r - 2, -r + 5, 3, 10);
-  // Webbing, pouches and stitched shoulder panels give the small infantry sprites more depth.
   ctx.fillStyle = 'rgba(18,29,37,.72)'; ctx.fillRect(-4, -r + 5, 8, r + 4);
   ctx.fillStyle = isOwn ? '#7391a0' : '#a67a64';
   ctx.fillRect(-r + 3, -r + 8, 4, 5); ctx.fillRect(r - 7, -r + 8, 4, 5);
@@ -3711,7 +3764,6 @@ function drawTankWreck(wreck) {
   ctx.translate(wreck.x, wreck.y);
   ctx.rotate(wreck.rotation);
 
-  // Keep the class PNG as the wreck's base silhouette, darkened by battle damage.
   if (image?.complete && image.naturalWidth) {
     ctx.globalAlpha = 0.76;
     ctx.drawImage(image, -width / 2, -height / 2, width, height);
@@ -3725,7 +3777,6 @@ function drawTankWreck(wreck) {
     ctx.fillRect(-width / 2, -height / 2, width, height);
   }
 
-  // Craters and cracks make the wreck readable even when its PNG is simple.
   wreck.holes.forEach(hole => {
     ctx.save();
     ctx.translate(hole.x, hole.y);
@@ -3836,7 +3887,6 @@ function drawAtgun(atgun) {
   ctx.fillStyle = 'rgba(0,0,0,.42)'; ctx.beginPath(); ctx.ellipse(0, 5, 37, 20, 0, 0, Math.PI * 2); ctx.fill();
   ctx.save(); ctx.rotate(atgun.angle);
   const recoil = atgun.recoilOffset ? atgun.recoilOffset * 7 : 0;
-  // Split trails, spades and paired road wheels form a low towed-gun carriage.
   ctx.strokeStyle = '#363c38'; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-5, -7); ctx.lineTo(-30, -22); ctx.moveTo(-5, 7); ctx.lineTo(-30, 22); ctx.stroke();
   for (const side of [-1, 1]) {
@@ -3850,7 +3900,6 @@ function drawAtgun(atgun) {
   }
   ctx.fillStyle = '#555d55'; ctx.beginPath(); ctx.roundRect(-14, -8, 28, 16, 4); ctx.fill();
   ctx.strokeStyle = '#202624'; ctx.lineWidth = 2; ctx.stroke();
-  // Gun shield protects the crew; the breech and recoil sleeve sit behind the barrel.
   const shield = ctx.createLinearGradient(-3, -16, 12, 16);
   shield.addColorStop(0, '#929687'); shield.addColorStop(.42, '#616b62'); shield.addColorStop(1, '#343d3a');
   ctx.fillStyle = shield; ctx.beginPath(); ctx.moveTo(-4, -14); ctx.lineTo(9, -12); ctx.lineTo(14, -7); ctx.lineTo(14, 7); ctx.lineTo(9, 12); ctx.lineTo(-4, 14); ctx.closePath(); ctx.fill();
@@ -3907,7 +3956,6 @@ function drawArtillery(art) {
   ctx.fillStyle = 'rgba(0,0,0,.48)'; ctx.beginPath(); ctx.ellipse(0, 6, 47, 24, 0, 0, Math.PI * 2); ctx.fill();
   const teamMark = art.team === 'own' ? '#55baff' : '#ef6655';
   ctx.save(); ctx.rotate(art.angle);
-  // A low field-howitzer silhouette: split trails, large wheels, shield and long barrel.
   ctx.strokeStyle = '#343b37'; ctx.lineWidth = 7; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(-43, -30); ctx.moveTo(-8, 8); ctx.lineTo(-43, 30); ctx.stroke();
   for (const side of [-1, 1]) {
@@ -3934,7 +3982,6 @@ function drawArtillery(art) {
   ctx.fillStyle = '#282f2d'; ctx.beginPath(); ctx.roundRect(-18, -8, 24, 16, 4); ctx.fill();
   ctx.fillStyle = '#6e786d'; ctx.beginPath(); ctx.arc(1, 0, 11, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#242b29'; ctx.lineWidth = 2; ctx.stroke();
-  // Broad low gun shield with a reinforced rim and team recognition stripe.
   const shield = ctx.createLinearGradient(-2, -21, 12, 21);
   shield.addColorStop(0, '#a1a28c'); shield.addColorStop(.35, '#737b6d'); shield.addColorStop(1, '#3a433f');
   ctx.fillStyle = shield; ctx.beginPath(); ctx.moveTo(-1, -19); ctx.lineTo(13, -16); ctx.lineTo(19, -10); ctx.lineTo(19, 10); ctx.lineTo(13, 16); ctx.lineTo(-1, 19); ctx.closePath(); ctx.fill();
@@ -3957,7 +4004,6 @@ function drawArtillery(art) {
   ctx.fillStyle = tube; ctx.beginPath(); ctx.roundRect(12 - recoil, -barrelW / 2, barrelLen, barrelW, 4); ctx.fill();
   ctx.fillStyle = '#202624'; ctx.fillRect(barrelLen + 5 - recoil, -7, 10, 14);
   ctx.fillStyle = '#0c1110'; ctx.fillRect(barrelLen + 12 - recoil, -4.5, 2, 9);
-  // Small sight and breech details keep the artillery readable at a glance.
   ctx.fillStyle = '#262d2b'; ctx.fillRect(-16, -5, 7, 10);
   ctx.strokeStyle = 'rgba(226,222,190,.6)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(-8, -9); ctx.lineTo(3, -9); ctx.moveTo(-8, 9); ctx.lineTo(3, 9); ctx.stroke();
@@ -4193,8 +4239,6 @@ function drawExplosion(e) {
     const growth = Math.min(1, t * 3.2);
     const cloudAlpha = Math.min(.82, .18 + t * 2.4) * Math.pow(1 - t, .55);
     const cloudScale = .3 + growth * .7;
-
-    // A blinding, fast-growing fireball that spreads across most of the battlefield.
     const visualRadius = Math.min(Math.hypot(WORLD_WIDTH, WORLD_HEIGHT), (e.explosionRadius || GAME_SETTINGS.nukeExplosionRadius) * 6.6);
     const fireRadius = visualRadius * (.14 + t * .86);
     const fireAlpha = .88 * Math.pow(1 - t, .72);
@@ -4207,8 +4251,6 @@ function drawExplosion(e) {
     fire.addColorStop(1, 'rgba(55,12,8,0)');
     ctx.fillStyle = fire; ctx.beginPath(); ctx.arc(e.x, e.y, fireRadius, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
-
-    // The rising stem and boiling cap form a large mushroom cloud after the flash.
     if (cloudAlpha > .01) {
       const stemWidth = 520 * cloudScale;
       const stemHeight = 2400 * cloudScale;
@@ -4222,7 +4264,6 @@ function drawExplosion(e) {
       ctx.lineTo(e.x - stemWidth * .36, e.y - stemHeight);
       ctx.lineTo(e.x + stemWidth * .36, e.y - stemHeight);
       ctx.lineTo(e.x + stemWidth * .8, e.y + 80); ctx.closePath(); ctx.fill();
-
       const capY = e.y - stemHeight * .82;
       const cap = ctx.createRadialGradient(e.x, capY, 120 * cloudScale, e.x, capY, 3000 * cloudScale);
       cap.addColorStop(0, 'rgba(255,184,80,.92)');
@@ -4373,7 +4414,6 @@ function drawBase(base, color, label, isOwn) {
     grad.addColorStop(0, baseColor + '99'); grad.addColorStop(0.7, baseColor + '44'); grad.addColorStop(1, baseColor + '11');
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
-    // Concrete apron, sandbag ring and a compact command bunker make each HQ read as a place.
     ctx.save();
     ctx.strokeStyle = 'rgba(208,205,177,.34)'; ctx.lineWidth = 2; ctx.setLineDash([7, 8]);
     ctx.beginPath(); ctx.arc(x, y, radius - 12, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
@@ -4457,8 +4497,6 @@ function buildTerrainTexture() {
   const ground = g.createLinearGradient(0, 0, WORLD_WIDTH * .24, WORLD_HEIGHT);
   ground.addColorStop(0, '#778363'); ground.addColorStop(.32, '#68765a'); ground.addColorStop(.7, '#596a50'); ground.addColorStop(1, '#495b49');
   g.fillStyle = ground; g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-  // Broad irregular vegetation and dry-earth patches create natural color variation.
   for (let i = 0; i < 145; i++) {
     const x = rand() * WORLD_WIDTH, y = rand() * WORLD_HEIGHT;
     const rx = 35 + rand() * 165, ry = 25 + rand() * 105;
@@ -4468,8 +4506,6 @@ function buildTerrainTexture() {
     patch.addColorStop(1, 'rgba(60,70,48,0)');
     g.fillStyle = patch; g.beginPath(); g.ellipse(x, y, rx, ry, rand() * Math.PI, 0, Math.PI * 2); g.fill();
   }
-
-  // A worn supply track crosses the battlefield, with ruts and dusty shoulders.
   const roadY = y => WORLD_HEIGHT * .5 + Math.sin((y / WORLD_HEIGHT) * Math.PI * 2.3) * 75;
   g.beginPath();
   for (let x = 160; x <= WORLD_WIDTH - 120; x += 20) {
@@ -4488,8 +4524,6 @@ function buildTerrainTexture() {
     }
     g.strokeStyle = 'rgba(58,53,43,.24)'; g.lineWidth = 7; g.stroke();
   }
-
-  // Low grass, scrub and pebbles are baked once, so battlefield detail is cheap to render.
   for (let i = 0; i < 2450; i++) {
     const x = rand() * WORLD_WIDTH, y = rand() * WORLD_HEIGHT;
     const onRoad = Math.abs(y - roadY(x)) < 74;
@@ -4505,8 +4539,6 @@ function buildTerrainTexture() {
     g.fillStyle = rand() < .55 ? 'rgba(45,50,44,.48)' : 'rgba(190,176,139,.4)';
     g.beginPath(); g.ellipse(x, y, size, size * (.35 + rand() * .4), rand() * Math.PI, 0, Math.PI * 2); g.fill();
   }
-
-  // Faint contour lines and the center boundary give the map a tactical reading.
   g.strokeStyle = 'rgba(221,218,183,.09)'; g.lineWidth = 2;
   for (let row = 0; row < 7; row++) {
     const y0 = 90 + row * 195;
@@ -4522,8 +4554,6 @@ function buildTerrainTexture() {
   g.strokeStyle = 'rgba(225,213,172,.22)'; g.lineWidth = 2; g.setLineDash([18, 14]);
   g.beginPath(); g.moveTo(WORLD_WIDTH / 2, 0); g.lineTo(WORLD_WIDTH / 2, WORLD_HEIGHT); g.stroke();
   g.setLineDash([]);
-
-  // Subtle vignette frames the playable area without hiding map detail.
   const vignette = g.createRadialGradient(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 300, WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH * .62);
   vignette.addColorStop(0, 'rgba(16,22,17,0)'); vignette.addColorStop(1, 'rgba(14,20,17,.32)');
   g.fillStyle = vignette; g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -4532,8 +4562,6 @@ function buildTerrainTexture() {
 
 function drawGround() {
   if (!terrainTexture) buildTerrainTexture();
-  // Blit only the camera's visible part of the terrain cache. Scaling the entire
-  // 18k x 12k world every frame can stall the canvas and look like a blank map.
   const scaleX = terrainTexture.width / WORLD_WIDTH;
   const scaleY = terrainTexture.height / WORLD_HEIGHT;
   const viewW = canvas.clientWidth / camera.zoom;
@@ -4623,12 +4651,11 @@ function draw() {
   const viewRight = camera.x + canvas.clientWidth / camera.zoom;
   const viewBottom = camera.y + canvas.clientHeight / camera.zoom;
   const onScreen = (o, extra = 0) => o.x + margin + extra >= camera.x && o.x - margin - extra <= viewRight && o.y + margin + extra >= camera.y && o.y - margin - extra <= viewBottom;
-  // The opaque context and this full-frame fill make clearRect redundant.
   ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
   ctx.save();
   ctx.scale(camera.zoom, camera.zoom);
   ctx.translate(-camera.x + camera.shakeX, -camera.y + camera.shakeY);
-  
+
   buffFlags.forEach(f => {
     if (f.destroyed || !onScreen(f, BUFF_RADIUS)) return;
     const pulse = 0.85 + Math.sin(gameTime * 0.002) * 0.15;
@@ -4643,7 +4670,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(f.x, f.y, BUFF_RADIUS, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
   });
-  
+
   if (fastMode) { ctx.fillStyle = '#647153'; ctx.fillRect(camera.x, camera.y, canvas.clientWidth / camera.zoom, canvas.clientHeight / camera.zoom); }
   else {
     drawGround();
@@ -4662,7 +4689,7 @@ function draw() {
   });
   if (!activeBotBases().length && !Object.keys(remotePlayers).length && onScreen(enemyBase, enemyBase.radius))
     drawBase(enemyBase, '#ff5a4a', 'FEIND-BASIS', false);
-  
+
   if (!fastMode) tracks.forEach(t => {
     if (!onScreen(t, t.size)) return;
     const alpha = (t.life / t.maxLife) * 0.4;
@@ -4675,7 +4702,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
-  
+
   if (!fastMode) particles.forEach(p => {
     if (!onScreen(p, p.size || 3)) return;
     const alpha = p.life / p.maxLife;
@@ -4689,7 +4716,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(p.x, p.y, (p.size || 3) / 2, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
-  
+
   if (!fastMode) shellCasings.forEach(c => {
     const alpha = Math.min(1, c.life / 500);
     ctx.globalAlpha = alpha * 0.8;
@@ -4702,7 +4729,7 @@ function draw() {
     ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.fillStyle = '#b8860b';
     ctx.fillRect(-2, -1, 4, 2); ctx.restore(); ctx.globalAlpha = 1;
   });
-  
+
   if (!fastMode) debris.forEach(d => {
     ctx.globalAlpha = Math.min(1, d.life / 1000);
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
@@ -4714,7 +4741,7 @@ function draw() {
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = '#333';
     ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size); ctx.restore(); ctx.globalAlpha = 1;
   });
-  
+
   if (!fastMode) ragdolls.forEach(r => {
     if (r.landed) {
       const fadeAlpha = r.life < 800 ? r.life / 800 : 1;
@@ -4727,7 +4754,7 @@ function draw() {
     if (r.landed) ctx.globalAlpha = r.life < 800 ? r.life / 800 : 1;
     drawRagdoll(r); ctx.globalAlpha = 1;
   });
-  
+
   const viewWidth = canvas.clientWidth / camera.zoom;
   const viewHeight = canvas.clientHeight / camera.zoom;
   const webglStarted = performance.now();
@@ -4747,7 +4774,6 @@ function draw() {
       else drawSoldier(s);
     });
   }
-  // Keep the detailed Canvas wreck art over the batched active-unit layer.
   if (renderedUnitsWithWebGL) {
     soldiers.forEach(s => {
       if (s.hp <= 0 || !onScreen(s, s.radius)) return;
@@ -4759,7 +4785,7 @@ function draw() {
     atguns.forEach(a => { if (onScreen(a, a.radius)) drawAtgun(a); });
     artillery.forEach(a => { if (onScreen(a, a.radius)) drawArtillery(a); });
   }
-  
+
   turrets.forEach(t => { if ((t.permanent || !fastMode) && onScreen(t, t.radius)) drawTurret(t); });
   if (!fastMode) remoteEffects.turrets.forEach(t => { if (onScreen(t, t.radius)) drawTurret(t); });
   bullets.forEach(b => { if (onScreen(b, 30)) drawBullet(b); });
@@ -4789,7 +4815,7 @@ function draw() {
     ctx.strokeStyle = 'rgba(120,220,255,.95)'; ctx.lineWidth = 2 / camera.zoom;
     ctx.strokeRect(selectionBoxWorld.x, selectionBoxWorld.y, selectionBoxWorld.w, selectionBoxWorld.h);
   }
-  
+
   ctx.restore();
   drawMinimap();
 }
@@ -4806,8 +4832,6 @@ function simulateUntil(now) {
   }
   simulationAccumulator += Math.max(0, now - lastSimulationTime);
   lastSimulationTime = now;
-  // Never discard elapsed simulation time: a slow render can delay this callback,
-  // then all due math-only updates are processed to bring gameplay back to wall time.
   while (simulationAccumulator >= FIXED_STEP) {
     update(FIXED_STEP);
     simulationAccumulator -= FIXED_STEP;
@@ -4823,7 +4847,8 @@ function render(now) {
   if (fpsTimer > 500) {
     currentFps = Math.round(frameCount * 1000 / fpsTimer);
     document.getElementById('hudFps').textContent = currentFps;
-    if (currentFps <= 5 && wreckVisualsEnabled) {
+    // Wracks entfernen, sobald die FPS auf 10 oder weniger fallen
+    if (currentFps <= 10 && wreckVisualsEnabled) {
       wreckVisualsEnabled = false;
       tankWrecks.length = 0;
       turrets = turrets.filter(t => !t.permanent);
@@ -4831,8 +4856,6 @@ function render(now) {
     frameCount = 0;
     fpsTimer = 0;
   }
-  
-  // Rendering runs at the display refresh rate and never owns the simulation clock.
   perfWebglFrame = 0;
   draw();
   recordPerf('canvas', Math.max(0, performance.now() - drawStarted - perfWebglFrame));
@@ -4959,17 +4982,9 @@ const firebaseConfig = {
   measurementId: "G-NPT4JHJ6NS"
 };
 
-/* ==========================================================================
-   NETZWERK-MODELL (v2)
-   - Einheiten ("tracked"): nur geänderte Felder werden gesendet (Delta), mit Zeitstempel.
-     Empfänger puffern Snapshots und spielen sie leicht verzögert interpoliert ab.
-   - Projektile/Effekte ("transient"): werden nur EINMAL gesendet (Startzustand + Zeit)
-     und beim Empfänger lokal weitersimuliert. Partikel/Trümmer/Spuren werden lokal erzeugt.
-   - Treffer werden gesammelt und gebündelt gesendet.
-   ========================================================================== */
 const ROOT = 'warsim/v2';
-const SEND_INTERVAL = 50;          // 20 Hz
-const T0 = 1.7e12;                 // kleine Zeitstempel
+const SEND_INTERVAL = 50;
+const T0 = 1.7e12;
 const FRAME = 1000 / 60;
 
 const app = initializeApp(firebaseConfig);
@@ -5040,7 +5055,6 @@ const TRANS_BUCKETS = [['B', 'bullets'], ['S', 'shells'], ['A', 'artilleryShells
 const TRACKED = { s: 'soldiers', a: 'atguns', r: 'artillery', t: 'trucks', f: 'flags' };
 const TRANSIENT = Object.fromEntries(TRANS_BUCKETS);
 
-/* ---------- Spawn ---------- */
 function assignSpawn(uid) {
   const cols = 9, rows = 6, cellW = 2000, cellH = 2000;
   const cells = Array.from({length: cols * rows}, (_, i) => i).sort(() => Math.random() - .5);
@@ -5062,12 +5076,8 @@ function assignSpawn(uid) {
   })();
 }
 
-/* ==========================================================================
-   SENDER
-   ========================================================================== */
 const SKIP = new Set(['unitId', 'netId', 'remote', 'ownerUid', 'assignedAtgun', 'assignedArtillery',
   'moveTarget', 'trail', 'blobs', 'team', 'landedAt']);
-// Felder, die der Empfänger selbst animiert -> nur beim Erzeugen gesendet
 const VOLATILE = new Set(['hitFlash', 'spawnAnim', 'crouch', 'recoil', 'fireFlash', 'walkPhase', 'flagWave',
   'attackCooldown', 'burstTimer', 'burstShots', 'burstCooldown', 'loadTimer', 'unloadTimer']);
 const MAX_SYNC_TRANSIENTS = 120;
@@ -5088,7 +5098,7 @@ const sent = new Map();
 let lastBase = {}, lastHb = 0;
 
 function flushEntities() {
-  if (!entsRef || pending > 6) return;           // Backpressure: Baseline bleibt konsistent
+  if (!entsRef || pending > 6) return;
   const updates = {};
   const seen = new Set();
   const nowT = Math.round(serverNow() - T0);
@@ -5146,7 +5156,6 @@ function flushPlayer(force) {
   if (Object.keys(up).length) update(playerRef, up).catch(() => {});
 }
 
-/* ---------- Treffer (gebündelt) ---------- */
 const pendingHits = new Map();
 let hitTimer = null;
 function flushHits() {
@@ -5180,9 +5189,6 @@ function sendHit(targetUid, unitId, damage, impact = null) {
   if (!hitTimer) hitTimer = setTimeout(flushHits, 60);
 }
 
-/* ==========================================================================
-   EMPFÄNGER
-   ========================================================================== */
 const REMOTE = { bullets: [], shells: [], artilleryShells: [], ricochets: [], muzzleFlashes: [], explosions: [], shockwaves: [] };
 const REMOTE_FX = { tracks: [], scorchMarks: [], particles: [], debris: [], ragdolls: [], shellCasings: [], turrets: [] };
 const OUT = { B: REMOTE.bullets, S: REMOTE.shells, A: REMOTE.artilleryShells, R: REMOTE.ricochets, M: REMOTE.muzzleFlashes,
@@ -5190,11 +5196,10 @@ const OUT = { B: REMOTE.bullets, S: REMOTE.shells, A: REMOTE.artilleryShells, R:
 window.WarSim.setRemoteProjectiles(REMOTE);
 window.WarSim.setRemoteEffects(REMOTE_FX);
 
-const tracked = new Map();     // uid|key -> rec
+const tracked = new Map();
 const transient = new Map();
 const peers = new Map();
 
-// Netzwerk-Qualität -> adaptive Interpolationsverzögerung
 let lat = 80, dev = 10, delay = 140;
 
 const ANGLE_FIELDS = ['turretAngle', 'angle'];
@@ -5371,7 +5376,6 @@ function advanceRemoteVisuals() {
   }
 }
 
-/* ---------- Spieler / Peers ---------- */
 function attachPeer(pid) {
   const r = ref(db, `${ROOT}/ents/${pid}`);
   peers.set(pid, [
@@ -5472,7 +5476,6 @@ onAuthStateChanged(auth, async user => {
       remove(snap.ref).catch(() => {});
     });
 
-    // Nach Verbindungsabbruch: Server hat unsere Knoten gelöscht -> alles neu senden
     onValue(ref(db, '.info/connected'), s => {
       if (!s.val()) {
         if (ready) showServerDown(new Error('Firebase Realtime Database connection lost'), 'Warsim Verbindung:');
