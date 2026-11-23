@@ -3,94 +3,180 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#10131d">
-  <meta name="description" content="Wähle dein nächstes Abenteuer: Baue ein Reich oder überlebe den Showdown.">
-  <title>Game Vault — Wähle dein Spiel</title>
+  <meta name="theme-color" content="#090b14">
+  <meta name="description" content="Wähle dein nächstes Abenteuer in der Game Vault.">
+  <title>Game Vault — Deine Spielebibliothek</title>
   <style>
-    :root { color-scheme: dark; --bg:#10131d; --panel:#191e2b; --muted:#9ba5b8; --text:#f4f6fb; --line:#ffffff18; --blue:#8bb8ff; --gold:#ffc978; }
-    * { box-sizing:border-box }
-    body { margin:0; min-height:100vh; color:var(--text); font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; background:radial-gradient(ellipse at 16% 4%,#243457 0,transparent 38%),radial-gradient(ellipse at 94% 45%,#382a3a 0,transparent 34%),var(--bg); }
-    a { color:inherit }
-    .shell { width:min(1100px,calc(100% - 40px)); margin:auto; }
-    header { display:flex; align-items:center; justify-content:space-between; padding:26px 0; border-bottom:1px solid var(--line); }
-    .brand { display:flex; align-items:center; gap:11px; text-decoration:none; font-weight:850; letter-spacing:.04em; }
-    .brand-mark { display:grid; place-items:center; width:36px; height:36px; border-radius:11px; color:#10131d; background:linear-gradient(145deg,#a8ccff,#7d8fff); box-shadow:0 6px 22px #768fff45; }
-    .brand-mark svg { width:21px; }
-    .library { color:var(--muted); font-size:13px; }
-    main { padding:74px 0 56px; }
-    .eyebrow { display:flex; align-items:center; gap:9px; color:#b7c9ec; font-size:12px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
-    .live-dot { width:8px; height:8px; border-radius:50%; background:#72e0ab; box-shadow:0 0 13px #72e0ab; }
-    h1 { max-width:730px; margin:17px 0 14px; font-size:clamp(42px,7vw,76px); line-height:.99; letter-spacing:-.065em; }
-    h1 span { color:var(--blue); }
-    .intro { max-width:560px; margin:0; color:var(--muted); font-size:17px; }
-    .games { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin-top:48px; }
-    .card { --accent:var(--blue); position:relative; display:flex; min-height:360px; flex-direction:column; overflow:hidden; padding:25px; border:1px solid var(--line); border-radius:22px; background:linear-gradient(145deg,#ffffff0b,transparent 55%),var(--panel); text-decoration:none; isolation:isolate; transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease; }
-    .card:hover { transform:translateY(-5px); border-color:color-mix(in srgb,var(--accent) 55%,transparent); box-shadow:0 18px 50px #0005; }
-    .card:focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
-    .card.realm { --accent:#91c5ff; }
-    .card.buckshot { --accent:#ff9c78; }
-    .card.warsim { --accent:#ffd166; }
-    .art { position:absolute; z-index:-1; inset:0 0 auto; height:210px; opacity:.9; mask-image:linear-gradient(#000 25%,transparent 100%); }
-    .realm .art { background:radial-gradient(ellipse at 72% 45%,#7396d788,transparent 31%),linear-gradient(135deg,#324b65,#202a3b 58%,#523f35); }
-    .buckshot .art { background:radial-gradient(ellipse at 78% 45%,#e17e5480,transparent 30%),linear-gradient(135deg,#49342f,#24232a 58%,#303445); }
-    .warsim .art { background:radial-gradient(ellipse at 78% 45%,#d2aa4b70,transparent 30%),linear-gradient(135deg,#42473a,#202a2b 58%,#504337); }
-    .art svg { position:absolute; right:22px; top:16px; width:175px; height:155px; filter:drop-shadow(0 18px 15px #0006); }
-    .tag { align-self:flex-start; padding:6px 10px; border:1px solid color-mix(in srgb,var(--accent) 40%,transparent); border-radius:99px; color:var(--accent); background:#10131d88; font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
-    .card-copy { margin-top:auto; }
-    .card h2 { margin:0 0 8px; font-size:30px; line-height:1.1; letter-spacing:-.04em; }
-    .card p { max-width:400px; margin:0; color:#b4bdcd; }
-    .card-foot { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:24px; padding-top:17px; border-top:1px solid var(--line); color:#dfe5f0; font-size:13px; font-weight:750; }
-    .arrow { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; color:#12151e; background:var(--accent); font-size:19px; transition:transform .2s ease; }
-    .card:hover .arrow { transform:translateX(3px); }
-    footer { display:flex; justify-content:space-between; gap:16px; padding:18px 0 30px; border-top:1px solid var(--line); color:#7e899d; font-size:12px; }
-    @media (max-width:700px) { .shell{width:min(100% - 28px,520px)} header{padding:19px 0} main{padding:54px 0 40px} .games{grid-template-columns:1fr;margin-top:34px} .card{min-height:320px;padding:21px} .intro{font-size:15px} footer{flex-direction:column;gap:4px} }
-    @media (prefers-reduced-motion:reduce) { *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important} }
+    :root {
+      color-scheme: dark;
+      --bg: #090b14;
+      --panel: rgba(21, 25, 40, .82);
+      --muted: #9ba5b8;
+      --text: #f7f8fd;
+      --line: rgba(255,255,255,.09);
+      --blue: #91c5ff;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(76,112,186,.26), transparent 28rem),
+        radial-gradient(circle at 88% 30%, rgba(128,86,180,.12), transparent 24rem),
+        linear-gradient(135deg, #080a12 0%, #0d101b 58%, #090b14 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, #000, transparent 70%);
+    }
+    a { color: inherit; }
+    .shell { width: min(1120px, calc(100% - 40px)); margin: auto; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 88px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 900; letter-spacing: .055em; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 12px;
+      color: #10131d;
+      background: linear-gradient(145deg, #b5d4ff, #808cf6);
+      box-shadow: 0 8px 28px rgba(128,140,246,.28);
+    }
+    .brand-mark svg { width: 23px; }
+    .library {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .library::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #72e0ab; box-shadow: 0 0 12px #72e0ab; }
+    main { padding: 64px 0 52px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #b7c9ec;
+      background: rgba(255,255,255,.035);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #72e0ab; box-shadow: 0 0 12px #72e0ab; }
+    h1 { max-width: 760px; margin: 20px 0 15px; font-size: clamp(44px, 7vw, 78px); line-height: .98; letter-spacing: -.066em; }
+    h1 span { color: var(--blue); }
+    .intro { max-width: 610px; margin: 0; color: var(--muted); font-size: 18px; }
+    .games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
+    .card {
+      --accent: var(--blue);
+      position: relative;
+      display: flex;
+      min-height: 340px;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 18px 55px rgba(0,0,0,.12);
+      text-decoration: none;
+      isolation: isolate;
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+    .card:hover { transform: translateY(-6px); border-color: color-mix(in srgb, var(--accent) 52%, transparent); box-shadow: 0 22px 58px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.055); }
+    .card:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .card.realm { --accent: #91c5ff; }
+    .card.buckshot { --accent: #ff9c78; }
+    .card.warsim { --accent: #ffd166; }
+    .card.astro { --accent: #b49cff; }
+    .art { position: absolute; z-index: -1; inset: 0 0 auto; height: 205px; mask-image: linear-gradient(#000 20%, transparent 100%); }
+    .realm .art { background: radial-gradient(ellipse at 78% 44%, #7396d788 0 17%, transparent 38%), linear-gradient(135deg, #324b65, #202a3b 58%, #523f35); }
+    .buckshot .art { background: radial-gradient(ellipse at 78% 44%, #e17e5480 0 18%, transparent 38%), linear-gradient(135deg, #49342f, #24232a 58%, #303445); }
+    .warsim .art { background: radial-gradient(ellipse at 78% 44%, #d2aa4b70 0 18%, transparent 38%), linear-gradient(135deg, #42473a, #202a2b 58%, #504337); }
+    .astro .art { background: radial-gradient(circle at 78% 38%, #8d75cfaa 0 9%, #5265b44d 21%, transparent 38%), radial-gradient(circle at 35% 20%, #ffffff33 0 1px, transparent 2px), linear-gradient(135deg, #252044, #17192c 58%, #29304d); }
+    .art svg { position: absolute; right: 20px; top: 12px; width: 175px; height: 155px; filter: drop-shadow(0 18px 15px #0009); }
+    .tag { align-self: flex-start; padding: 6px 10px; border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent); border-radius: 999px; color: var(--accent); background: rgba(9,11,20,.78); backdrop-filter: blur(8px); font-size: 11px; font-weight: 800; }
+    .card-copy { margin-top: auto; }
+    .card h2 { margin: 0 0 7px; font-size: 31px; line-height: 1.05; letter-spacing: -.045em; }
+    .card p { max-width: 420px; margin: 0; color: #b4bdcd; }
+    .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 21px; padding-top: 15px; border-top: 1px solid var(--line); color: #e3e7f1; font-size: 13px; font-weight: 750; }
+    .arrow { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: #12151e; background: var(--accent); font-size: 20px; transition: transform .2s ease; }
+    .card:hover .arrow { transform: translate(3px, -3px); }
+    footer { display: flex; justify-content: space-between; gap: 16px; padding: 19px 0 32px; border-top: 1px solid var(--line); color: #7e899d; font-size: 12px; }
+    @media (max-width: 700px) {
+      .shell { width: min(calc(100% - 28px), 520px); }
+      header { min-height: 72px; }
+      main { padding: 46px 0 38px; }
+      .library { display: none; }
+      h1 { font-size: clamp(42px, 13vw, 62px); }
+      .intro { font-size: 16px; }
+      .games { grid-template-columns: 1fr; margin-top: 34px; }
+      .card { min-height: 320px; padding: 21px; }
+      .art svg { width: 150px; }
+      footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
   </style>
 </head>
 <body>
   <div class="shell">
     <header>
       <a class="brand" href="./" aria-label="Game Vault Startseite">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z" stroke="currentColor" stroke-width="1.8"/><path d="m8 10 4-2 4 2v4l-4 2-4-2v-4Z" fill="currentColor"/></svg></span>
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z" stroke="currentColor" stroke-width="1.8"/><path d="m8 10 4-2 4 2-4 2-4-2Zm4 2v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <span>GAME VAULT</span>
       </a>
       <span class="library">Deine Spielesammlung</span>
     </header>
 
     <main>
-      <div class="eyebrow"><span class="live-dot" aria-hidden="true"></span> Spiel auswählen</div>
+      <div class="eyebrow">Spiel auswählen</div>
       <h1>Dein nächstes<br><span>Abenteuer</span> wartet.</h1>
-      <p class="intro">Errichte ein mächtiges Königreich oder stell dich einem gnadenlosen Showdown. Womit möchtest du anfangen?</p>
+      <p class="intro">Errichte ein Königreich, überstehe das Duell, führe deine Armee oder erkunde neue Welten. Womit möchtest du anfangen?</p>
 
       <section class="games" aria-label="Verfügbare Spiele">
         <a class="card realm" href="Build-Realm/">
-          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M16 132h148" stroke="#d4c49c" stroke-width="4" stroke-linecap="round"/><path d="M46 132V70l26-22 26 22v62M98 132V56l28-25 28 25v76" fill="#b7c8d0" stroke="#27384a" stroke-width="4" stroke-linejoin="round"/><path d="M38 74h68M90 60h70" stroke="#8195a5" stroke-width="7"/><path d="M66 132V99a9 9 0 0 1 18 0v33M118 132V87a9 9 0 0 1 18 0v45" fill="#34465c"/><path d="M55 70V41h14v17M137 56V18h14v38" fill="#dbb879" stroke="#27384a" stroke-width="3"/><path d="M62 41V25l-9 9 9 7ZM144 18V4l-9 9 9 5Z" fill="#d66c5b"/></svg></div>
+          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M16 132h148" stroke="#d4c49c" stroke-width="4" stroke-linecap="round"/><path d="M46 132V70l26-22 26 22v62M98 132V91l24-18 24 18v41" fill="#8fa3bb" stroke="#d7e1ec" stroke-width="3"/><path d="M57 71V47l15 8 15-8v24M108 92V73l12 7 12-7v19" fill="#596d85" stroke="#d7e1ec" stroke-width="3"/><path d="M72 132v-27h18v27M122 132v-18h10v18" fill="#3e4b62"/><circle cx="111" cy="49" r="13" fill="#f4d48a" opacity=".7"/></svg></div>
           <span class="tag">Strategie · Aufbau</span>
-          <div class="card-copy">
-            <h2>Build a Realm</h2>
-            <p>Baue deine Siedlung aus, verwalte Ressourcen und verteidige dein Reich gegen andere Spieler.</p>
-            <div class="card-foot"><span>Dein Königreich wartet</span><span class="arrow" aria-hidden="true">↗</span></div>
-          </div>
+          <div class="card-copy"><h2>Build a Realm</h2><p>Baue deine Siedlung aus, verwalte Ressourcen und verteidige dein Reich gegen andere Spieler.</p><div class="card-foot"><span>Dein Königreich wartet</span><span class="arrow" aria-hidden="true">↗</span></div></div>
         </a>
 
         <a class="card buckshot" href="BuckShot/">
-          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M38 98 94 42l47 47-56 56-47-47Z" fill="#795341" stroke="#241e20" stroke-width="5" stroke-linejoin="round"/><path d="m82 55 20-20 47 47-20 20" fill="#a27558" stroke="#241e20" stroke-width="5" stroke-linejoin="round"/><path d="m101 34 12-12 47 47-12 12" fill="#bdc5c9" stroke="#30323a" stroke-width="4" stroke-linejoin="round"/><path d="m53 84 18-18 42 42-18 18" stroke="#d9a77c" stroke-width="5"/><circle cx="42" cy="104" r="5" fill="#e4c79a"/><circle cx="84" cy="146" r="5" fill="#e4c79a"/><path d="m132 16 2-11m19 23 11-3m-45-3-8-9" stroke="#ffb47c" stroke-width="4" stroke-linecap="round"/></svg></div>
+          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M38 98 94 42l47 47-56 56-47-47Z" fill="#795341" stroke="#241e20" stroke-width="5" stroke-linejoin="round"/><path d="m57 79 58-58 24 24-58 58-24-24Z" fill="#bda58d" stroke="#241e20" stroke-width="5"/><circle cx="98" cy="62" r="7" fill="#322629"/><path d="M43 103h34v18H43z" fill="#4d3d38" stroke="#241e20" stroke-width="4"/></svg></div>
           <span class="tag">Action · Spannung</span>
-          <div class="card-copy">
-            <h2>BuckShot</h2>
-            <p>Bleib ruhig, lies die Situation und übersteh die nächste Runde in diesem intensiven Duell.</p>
-            <div class="card-foot"><span>Traust du dich?</span><span class="arrow" aria-hidden="true">↗</span></div>
-          </div>
+          <div class="card-copy"><h2>BuckShot</h2><p>Bleib ruhig, lies die Situation und übersteh die nächste Runde in diesem intensiven Duell.</p><div class="card-foot"><span>Traust du dich?</span><span class="arrow" aria-hidden="true">↗</span></div></div>
         </a>
 
         <a class="card warsim" href="WarSim/">
-          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M19 113h142" stroke="#b6aa83" stroke-width="4" stroke-linecap="round"/><path d="M38 99h98l17 23H26l12-23Z" fill="#647356" stroke="#1c2928" stroke-width="5" stroke-linejoin="round"/><path d="M48 90h72l12 18H37l11-18Z" fill="#859168" stroke="#1c2928" stroke-width="4" stroke-linejoin="round"/><path d="M70 90a21 21 0 0 1 42 0" fill="#9b9b72" stroke="#1c2928" stroke-width="4"/><path d="M91 72h66" stroke="#b9b58a" stroke-width="10" stroke-linecap="round"/><circle cx="51" cy="119" r="8" fill="#303c35" stroke="#b4a56e" stroke-width="3"/><circle cx="78" cy="119" r="8" fill="#303c35" stroke="#b4a56e" stroke-width="3"/><circle cx="106" cy="119" r="8" fill="#303c35" stroke="#b4a56e" stroke-width="3"/><path d="m44 58 8-16m35 16 8-16m36 16 8-16" stroke="#f0cb72" stroke-width="4" stroke-linecap="round"/></svg></div>
+          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M19 113h142" stroke="#b6aa83" stroke-width="4" stroke-linecap="round"/><path d="M38 99h98l17 23H26l12-23Z" fill="#66705e" stroke="#bbb68f" stroke-width="3"/><path d="M76 99V48h18v51M50 99V69l18-13 18 13v30M112 99V62l18 9 14 28" fill="#7c866d" stroke="#c9c39b" stroke-width="3"/><path d="M84 48V26M75 32h18" stroke="#d8d0a3" stroke-width="3"/><circle cx="54" cy="79" r="4" fill="#ffd166"/><circle cx="128" cy="78" r="4" fill="#ff7b72"/></svg></div>
           <span class="tag">Echtzeit · Taktik</span>
-          <div class="card-copy">
-            <h2>WarSim</h2>
-            <p>Stelle deine Truppen zusammen, halte die Front und verteidige deine Basis gegen immer stärkere Wellen.</p>
-            <div class="card-foot"><span>Zur Front</span><span class="arrow" aria-hidden="true">↗</span></div>
-          </div>
+          <div class="card-copy"><h2>WarSim</h2><p>Stelle deine Truppen zusammen, halte die Front und verteidige deine Basis gegen immer stärkere Wellen.</p><div class="card-foot"><span>Zur Front</span><span class="arrow" aria-hidden="true">↗</span></div></div>
+        </a>
+
+        <a class="card astro" href="Astro/">
+          <div class="art" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><ellipse cx="94" cy="78" rx="64" ry="22" transform="rotate(-18 94 78)" stroke="#aa9bf2" stroke-width="3"/><circle cx="94" cy="78" r="27" fill="#6e74bd" stroke="#d8d1ff" stroke-width="3"/><circle cx="94" cy="78" r="10" fill="#ffc978"/><circle cx="38" cy="104" r="7" fill="#9fbfff"/><circle cx="148" cy="42" r="5" fill="#e4d7ff"/><path d="M94 51V15M94 141v-36M67 78H31M157 78h-36" stroke="#8e80d8" stroke-opacity=".45" stroke-width="2"/></svg></div>
+          <span class="tag">Universum · Simulation</span>
+          <div class="card-copy"><h2>Astro</h2><p>Erschaffe Sterne und Planeten, ändere Gravitationen und beobachte dein eigenes Universum in Echtzeit.</p><div class="card-foot"><span>Ins Universum starten</span><span class="arrow" aria-hidden="true">↗</span></div></div>
         </a>
       </section>
     </main>
