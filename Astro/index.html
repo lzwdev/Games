@@ -194,7 +194,7 @@ function render(){
   cx.globalAlpha=1;let lit=null;for(const b of bodies)if(b.k==='star'&&(!lit||b.m>lit.m))lit=b;
   for(const b of bodies)drawBody(b,lit);
   cx.font='11px system-ui,sans-serif';cx.fillStyle='rgba(225,232,255,.85)';
-  for(const b of bodies)if(b.rp&&((b.lab&&bodies.length<=60)||b===sel))cx.fillText(b.name,b.sx+b.rp+4,b.sy-b.rp-3);
+  for(const b of bodies)if(b.rp&&((b.lab&&(!b.par||Math.hypot(b.sx-b.par.sx,b.sy-b.par.sy)>40))||b===sel))cx.fillText(b.name,b.sx+b.rp+4,b.sy-b.rp-3);
   if(sel&&sel.rp){cx.strokeStyle='#fff';cx.lineWidth=1.2;cx.setLineDash([4,4]);cx.beginPath();cx.arc(sel.sx,sel.sy,Math.min(sel.rp*1.5+6,1e4),0,6.283);cx.stroke();cx.setLineDash([])}
   for(const r of rings){cx.strokeStyle=`rgba(255,230,170,${r.l})`;cx.lineWidth=3;cx.beginPath();cx.arc(X(r.x),Y(r.y),r.r,0,6.283);cx.stroke()}
   for(const p of parts){cx.globalAlpha=Math.max(p.l,0);cx.fillStyle=p.c==='#000'?'#ffb050':p.c;cx.fillRect(X(p.x)+p.ox,Y(p.y)+p.oy,2.2,2.2)}cx.globalAlpha=1;
@@ -380,7 +380,7 @@ function merge(a,b){
   else if(ka==='wd'||kb==='wd'){if(M>CHANDRA)explodeIa(o,`${o.name} überschreitet durch ${oth.name} die Chandrasekhar-Grenze`);else{o.r=R2('wd',M);spinFix(o);log(`${oth.name} fiel auf den Weißen Zwerg ${o.name} (Nova)`);flashFx(o,'#dfe9ff',220);boom(o,'#dfe9ff',40,100)}}
   else if(ka==='star'&&kb==='star'){o.m=M*.97;o.r=R('star',o.m);o.c=starCol(o.m);o.age=fr*life(o.m);spinFix(o);flashFx(o,'#ff9a70',320);boom(o,'#ff7a5a',80,140);
     log(`${nA} + ${nB} verschmolzen (Leuchtkräftige Rote Nova): ${nf(o.m,2)} M☉, Rotationsperiode ${fP(om(o))}`)}
-  else{o.r=rr;if(o.k==='star'){o.c=starCol(M);log(`${oth.name} stürzte in ${o.name}`)}else log(`${nA} + ${nB} verschmolzen`);if(o.m>1e-6)spinFix(o);boom(o,o.c,30,80)}
+  else{o.r=rr;if(o.k==='star'){o.c=starCol(M);if(oth.lab!==false)log(`${oth.name} stürzte in ${o.name}`)}else if(oth.lab!==false)log(`${nA} + ${nB} verschmolzen`);if(o.m>1e-6)spinFix(o);boom(o,o.c,30,80)}
   if(sel===oth)sel=o;return oth}
 function accelOld(){ // (ersetzt, siehe unten) Gravitation + Kollisionen + Erkennung enger kompakter Paare (→ GW-Inspiral)
   const n=bodies.length,vr=visCol?6/cam.z:0;let hit=null,bn=null;
@@ -462,10 +462,10 @@ function frame(t){
   if(!paused&&SP[speedI]>0&&bodies.length){
     T=rdt*SP[speedI]*sc.b;
     for(const b of bodies)if(b.k==='bin')T=Math.min(T,b.a**4/(4*b.beta)/40);   // automatische Zeitlupe kurz vor der Verschmelzung
-    const nb=bodies.length,maxS=Math.max(50,Math.min(15000,Math.floor(2.5e6/(nb*nb/2+nb+1)))),T0=T;let done=0,st=0;
+    const maxS=Math.max(50,Math.min(15000,Math.floor(2.2e6/(costStep||1)))),T0=T;let done=0,st=0;
     while(done<T0*(1-1e-9)&&st<maxS){const h=Math.min(dtc,sc.dt,T0-done);step(h);done+=h;st++}   // adaptiver Zeitschritt: bei Nahbegegnungen Zeitlupe statt Rechenfehler
     slowF=T0>0?done/T0:1;T=done;
-    if(trails)for(const b of bodies){b.tr.push(b.x,b.y);if(b.tr.length>800)b.tr.splice(0,2)}
+    if(trails)for(const b of bodies){if(b.lab===false||b.rail)continue;b.tr.push(b.x,b.y);if(b.tr.length>800)b.tr.splice(0,2)}
     for(const b of bodies.slice()){if(b.evo){b.age+=T;if(b.age>=life(b.m))explode(b)}
       if(b.loss){const dm=Math.min(b.loss.rate*T,b.m-b.loss.m1);b.m-=dm;if(b.m<=b.loss.m1+1e-12)b.loss=null}}
     const sp=SP[speedI]*sc.b;for(const b of bodies)if(b.k==='star'||b.k==='ns'||b.k==='wd')b.th+=Math.min(25,Math.abs(om(b))*sp)*rdt;
@@ -636,4 +636,71 @@ function paintBg(){
   g.globalCompositeOperation='source-over'}
 paintBg();addEventListener('resize',paintBg);
 const _l3=load;load=function(n){bl=[];sp=[];shake=0;_l3(n)};
+</script>
+<script>
+/* ===== Teil 4: Vollständiges Sonnensystem (reale Bahnelemente, Massen, Radien) ===== */
+SC.sonne.n='Sonnensystem (komplett)';SC.sonne.v=45;SC.sonne.dt=1e-3;
+let costStep=1,RL=[];const MA=[],TA=[],MIN_M=1e-9;
+function accel(){ // massereiche Körper wechselwirken paarweise, Testteilchen (Asteroiden, Kometen, KBOs) fühlen nur diese → viel schneller
+  MA.length=0;TA.length=0;for(const b of bodies){if(b.rail)continue;b.ax=0;b.ay=0;(b.m>=MIN_M?MA:TA).push(b)}
+  const vr=visCol?6/cam.z:0,nm=MA.length,nt=TA.length;let hit=null,bn=null,tm=1e99;
+  for(let i=0;i<nm;i++){const a=MA[i];
+    for(let j=i+1;j<nm;j++){const b=MA[j],dx=b.x-a.x,dy=b.y-a.y,dd=dx*dx+dy*dy,s=a.r+b.r,d2=dd+Math.max(E2,.09*s*s),sq=Math.sqrt(d2),f=G/(d2*sq);
+      a.ax+=dx*f*b.m;a.ay+=dy*f*b.m;b.ax-=dx*f*a.m;b.ay-=dy*f*a.m;
+      const t2=d2*sq/(G*(a.m+b.m));if(t2<tm)tm=t2;
+      if(a.k==='bin'||b.k==='bin')continue;
+      if(!bn&&CP[a.k]&&CP[b.k]&&dd<2.5e-5){const vx=b.vx-a.vx,vy=b.vy-a.vy;if(vx*vx+vy*vy<2*G*(a.m+b.m)/Math.sqrt(dd))bn=[a,b]}
+      else if(!hit){const rr=Math.max(s,vr);if(dd<rr*rr)hit=[a,b]}}
+    for(let j=0;j<nt;j++){const t=TA[j],dx=a.x-t.x,dy=a.y-t.y,dd=dx*dx+dy*dy,s=a.r+t.r,d2=dd+Math.max(E2,.09*s*s),sq=Math.sqrt(d2),f=G*a.m/(d2*sq);
+      t.ax+=dx*f;t.ay+=dy*f;const t2=d2*sq/(G*a.m);if(t2<tm)tm=t2;
+      if(!hit&&a.k!=='bin'){const rr=Math.max(s,vr);if(dd<rr*rr)hit=[a,t]}}}
+  dtc=Math.max(.06*Math.sqrt(tm),1e-14);costStep=nm*nm/2+nm*nt+bodies.length;
+  if(bn){mkBin(bn[0],bn[1]);accel();return}
+  if(hit){const rem=merge(hit[0],hit[1]);bodies.splice(bodies.indexOf(rem),1);for(let i=bodies.length-1;i>=0;i--)if(bodies[i].dead){if(sel===bodies[i])sel=null;bodies.splice(i,1)}accel()}
+}
+/* Kleine Monde laufen auf analytischen Kepler-Bahnen ("on rails") um ihren Planeten – exakt und ohne Rechenaufwand */
+function railPos(b){const r=b.rail;if(!r)return;const a=r.ph+r.dir*r.w*simT,c=Math.cos(a),s=Math.sin(a),p=r.p;b.x=p.x+r.a*c;b.y=p.y+r.a*s;b.vx=p.vx-r.dir*r.a*r.w*s;b.vy=p.vy+r.dir*r.a*r.w*c}
+const _s4=step;step=function(h){_s4(h);for(const b of RL)railPos(b)};
+const _r4=render;render=function(){for(const b of RL)if(b.rail&&(b.rail.p.dead||bodies.indexOf(b.rail.p)<0))delete b.rail;RL=RL.filter(b=>b.rail);_r4()};
+function ellAp(c,k,a,e,m,o){const r=a*(1+e),t=rnd()*TAU,v=Math.sqrt(G*(c.m+m)*(1-e)/r);return add(k,c.x+r*Math.cos(t),c.y+r*Math.sin(t),c.vx-v*Math.sin(t),c.vy+v*Math.cos(t),m,o)}
+const flip=(b,p)=>{b.vx=2*p.vx-b.vx;b.vy=2*p.vy-b.vy;return b};
+function drawComet(b,lit){
+  const z=cam.z,px=X(b.x),py=Y(b.y),rp=Math.max(b.r*z,2.2);b.sx=px;b.sy=py;b.rp=rp;if(px<-500||px>W+500||py<-500||py>H+500)return;
+  if(lit){const dx=px-X(lit.x),dy=py-Y(lit.y),d=Math.hypot(dx,dy)||1,dAU=Math.hypot(b.x-lit.x,b.y-lit.y),act=dAU<6?Math.min(1,3/Math.max(dAU,.05)):0;
+    if(act>.02){const L=act*Math.min(W,H)*.33,ux=dx/d,uy=dy/d;cx.globalCompositeOperation='lighter';   // Ionenschweif (gerade) + Staubschweif (gekrümmt) + Koma
+      let gr=cx.createLinearGradient(px,py,px+ux*L,py+uy*L);gr.addColorStop(0,'rgba(140,200,255,.8)');gr.addColorStop(1,'rgba(0,0,0,0)');cx.strokeStyle=gr;cx.lineWidth=Math.max(1.5,rp*.6);cx.beginPath();cx.moveTo(px,py);cx.lineTo(px+ux*L,py+uy*L);cx.stroke();
+      gr=cx.createLinearGradient(px,py,px+ux*L*.7,py+uy*L*.7);gr.addColorStop(0,'rgba(255,230,170,.7)');gr.addColorStop(1,'rgba(0,0,0,0)');cx.strokeStyle=gr;cx.lineWidth=Math.max(3,rp*1.4);cx.beginPath();cx.moveTo(px,py);cx.quadraticCurveTo(px+ux*L*.45-uy*L*.12,py+uy*L*.45+ux*L*.12,px+ux*L*.75-uy*L*.3,py+uy*L*.75+ux*L*.3);cx.stroke();
+      glow(px,py,rp*4+8*act,'#bfe0ff',.6*act);cx.globalAlpha=1;cx.globalCompositeOperation='source-over'}}
+  cx.fillStyle='#e8f0ff';cx.beginPath();cx.arc(px,py,rp,0,TAU);cx.fill()}
+const _d4=drawBody;drawBody=function(b,lit){return b.comet?drawComet(b,lit):_d4(b,lit)};
+function buildSolar(){
+  _l4('leer');logs.pop();preset='sonne';sc=SC.sonne;E2=1e-14;visCol=false;cam.z=Math.min(W,H)/2/sc.v;
+  const sun=add('star',0,0,0,0,1,{name:'Sonne',c:'#ffd24a',age:4.6e9}),P={},gr=['#8a8378','#a09a8c','#6d6a62','#b0a898'];
+  [['Merkur',.3871,.2056,1.66e-7,1.63e-5,'#a89f94'],['Venus',.7233,.0068,2.448e-6,4.05e-5,'#e6c68a'],['Erde',1,.0167,3.003e-6,4.26e-5,'#4c8dff'],['Mars',1.5237,.0934,3.227e-7,2.27e-5,'#d9603a'],
+   ['Jupiter',5.2029,.0484,9.546e-4,4.78e-4,'#d8b48c'],['Saturn',9.537,.0541,2.858e-4,4.03e-4,'#e7d29a',1],['Uranus',19.189,.0472,4.366e-5,1.71e-4,'#8fe0e6'],['Neptun',30.07,.0086,5.151e-5,1.65e-4,'#4a68e8'],
+   ['Ceres',2.767,.0785,4.7e-10,3.16e-6,'#9a9690'],['Pluto',39.48,.2488,6.55e-9,7.94e-6,'#d8c4a8'],['Haumea',43.13,.195,2e-9,5.2e-6,'#e8e0d8'],['Makemake',45.79,.159,1.56e-9,4.8e-6,'#c89878'],
+   ['Eris',67.67,.44,8.4e-9,7.8e-6,'#e8ecf0'],['Sedna',506,.85,5e-10,3.3e-6,'#b0402a']]
+   .forEach(p=>P[p[0]]=ell(sun,'planet',p[1],p[2],p[3],{name:p[0],r:p[4],c:p[5],ring:p[6]}));
+  const mo=(p,n,a,m,r,c,dir)=>{const b=orbit(P[p],'moon',a,m,{name:n,r,c});b.par=P[p];if(dir<0)flip(b,P[p])};
+  mo('Erde','Mond',.00257,3.694e-8,1.162e-5,'#d4d4d4');mo('Jupiter','Io',.002819,4.49e-8,1.218e-5,'#f0e08a');mo('Jupiter','Europa',.004485,2.41e-8,1.044e-5,'#e8dcc8');
+  mo('Jupiter','Ganymed',.007155,7.45e-8,1.763e-5,'#b8aa9a');mo('Jupiter','Kallisto',.012585,5.4e-8,1.613e-5,'#8a7e72');mo('Saturn','Titan',.008168,6.77e-8,1.72e-5,'#e0a850');
+  mo('Neptun','Triton',.002371,1.075e-8,9.05e-6,'#cfd8e0',-1);mo('Uranus','Titania',.002916,1.77e-9,5.3e-6,'#b8b0a8');mo('Uranus','Oberon',.0039,7.6e-10,5.1e-6,'#a89890');mo('Pluto','Charon',.000131,6.4e-10,4.05e-6,'#9a9a9a');
+  const rl=(p,n,a,r,c,dir=1)=>{const q=P[p],b=add('moon',q.x+a,q.y,q.vx,q.vy,1e-14,{name:n,r,c});b.par=q;b.rail={p:q,a,w:Math.sqrt(G*q.m/a**3),ph:rnd()*TAU,dir};RL.push(b)};
+  rl('Mars','Phobos',6.27e-5,7.4e-8,'#9a8f84');rl('Mars','Deimos',1.568e-4,4e-8,'#a89c90');rl('Saturn','Mimas',1.24e-3,1.3e-6,'#cfcfcf');rl('Saturn','Enceladus',1.59e-3,1.7e-6,'#f4fbff');
+  rl('Saturn','Tethys',1.97e-3,3.6e-6,'#e8e8e8');rl('Saturn','Dione',2.52e-3,3.7e-6,'#dcdcdc');rl('Saturn','Rhea',3.52e-3,5.1e-6,'#d0ccc4');rl('Saturn','Iapetus',.0238,4.9e-6,'#b0a090');
+  rl('Uranus','Miranda',8.68e-4,1.6e-6,'#c8c8c8');rl('Uranus','Ariel',1.277e-3,3.9e-6,'#d4d0cc');rl('Uranus','Umbriel',1.78e-3,3.9e-6,'#8a8680');rl('Neptun','Proteus',7.86e-4,1.4e-6,'#8a8a8a');
+  const ts=(n,a,e,o={})=>ell(sun,'moon',a,e,1e-11,{name:n,r:5e-7,c:gr[Math.floor(rnd()*4)],lab:false,...o});
+  const gap=a=>Math.abs(a-2.5)<.025||Math.abs(a-2.82)<.02||Math.abs(a-2.95)<.015||Math.abs(a-3.27)<.015||Math.abs(a-2.065)<.02;
+  for(let i=0;i<220;i++){let a;do a=2.1+rnd()*1.25;while(gap(a));ts('Asteroid '+(i+1),a,rnd()*.22)}                          // Hauptgürtel mit Kirkwood-Lücken
+  const th=Math.atan2(P.Jupiter.y,P.Jupiter.x);
+  for(let i=0;i<30;i++){const r=5.2+(rnd()-.5)*.3,an=th+(i%2?1:-1)*Math.PI/3+(rnd()-.5)*.25,v=Math.sqrt(G/r);add('moon',r*Math.cos(an),r*Math.sin(an),-v*Math.sin(an),v*Math.cos(an),1e-11,{name:'Trojaner '+(i+1),r:5e-7,c:gr[i%4],lab:false})}  // L4/L5
+  for(let i=0;i<120;i++)ts('Kuipergürtel-Objekt '+(i+1),39.4+rnd()*8.6,rnd()*.2);
+  for(let i=0;i<15;i++)ts('Streuscheiben-Objekt '+(i+1),50+rnd()*70,.3+rnd()*.3);
+  ts('Chiron',13.7,.38,{lab:true,r:1.3e-7});ts('Chariklo',15.8,.17,{lab:true,r:1.2e-7});
+  [['Halley',17.83,.967,-1],['Hale-Bopp',186,.995,1],['Tschurjumow-Gerassimenko',3.46,.64,1]].forEach(p=>{const c=ellAp(sun,'moon',p[1],p[2],1e-12,{name:p[0],r:4e-8,c:'#e8f0ff',comet:true});if(p[3]<0)flip(c,sun)});
+  ell(sun,'moon',2.22,.848,1e-12,{name:'Encke',r:2e-8,c:'#e8f0ff',comet:true});
+  for(let i=0;i<40;i++){const r=2000+rnd()*48000,an=rnd()*TAU,v=Math.sqrt(G/r)*(rnd()<.5?1:-1);add('moon',r*Math.cos(an),r*Math.sin(an),-v*Math.sin(an),v*Math.cos(an),1e-12,{name:'Oortsche Wolke '+(i+1),r:2e-8,c:'#cfd8ff',lab:false})}
+  zeroMom();for(const b of RL)railPos(b);accel();log(`Sonnensystem: Sonne, 8 Planeten, 6 Zwergplaneten, ${bodies.filter(b=>b.k==='moon'&&b.par).length} Monde, Asteroiden, Trojaner, Kuipergürtel, Kometen, Oortsche Wolke (${bodies.length} Körper)`);ui()}
+const _l4=load;load=function(n){RL=[];if(n==='sonne')buildSolar();else _l4(n)};
+build();load('sonne');
 </script></body></html>
